@@ -4,6 +4,7 @@ import (
     "log"
 
     "github.com/kazzmir/web-computer/scripts"
+    "github.com/kazzmir/web-computer/lib/coroutine"
 
     "github.com/go-python/gpython/py"
     _ "github.com/go-python/gpython/stdlib"
@@ -26,6 +27,28 @@ func registerWebTestModule() {
         Info: py.ModuleInfo{
             Name: "webtest",
             Doc: "webtest module",
+        },
+        Methods: methods,
+        Globals: py.StringDict{},
+        OnContextClosed: func (instance *py.Module) {
+        },
+    })
+}
+
+func registerPygameModule(yielder *PygameYield) {
+    pygame_draw := func(self py.Object, args py.Tuple) (py.Object, error) {
+        yielder.Yield()
+        return py.None, nil
+    }
+
+    methods := []*py.Method{
+        py.MustNewMethod("draw", pygame_draw, 0, ""),
+    }
+
+    py.RegisterModule(&py.ModuleImpl{
+        Info: py.ModuleInfo{
+            Name: "pygame",
+            Doc: "pygame module",
         },
         Methods: methods,
         Globals: py.StringDict{},
@@ -64,6 +87,7 @@ func test1() {
 }
 
 type Engine struct {
+    Coroutine *coroutine.Coroutine
 }
 
 func (engine *Engine) Update() error {
@@ -74,14 +98,21 @@ func (engine *Engine) Update() error {
         }
     }
 
+    engine.Coroutine.Run()
+
     return nil
 }
 
 func (engine *Engine) Draw(screen *ebiten.Image) {
+    log.Printf("draw!")
 }
 
 func (engine *Engine) Layout(outsideWidth int, outsideHeight int) (int, int) {
     return 640, 480
+}
+
+type PygameYield struct {
+    Yield coroutine.YieldFunc
 }
 
 func testGraphics() {
@@ -89,10 +120,47 @@ func testGraphics() {
     ebiten.SetWindowTitle("Python test")
     ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
-    engine := &Engine{
+    opts := py.DefaultContextOpts()
+
+    python := py.NewContext(opts)
+    defer python.Close()
+
+    var yielder PygameYield
+
+    registerPygameModule(&yielder)
+
+    script, err := scripts.Load("game1.py")
+    if err != nil {
+        log.Printf("Unable to load python script: %v", err)
+        return
     }
 
-    err := ebiten.RunGame(engine)
+    registerWebTestModule()
+
+    code, err := py.Compile(string(script), "game1.py", "exec", 0, false)
+    if err != nil {
+        log.Printf("Unable to compile python script: %v", err)
+        return
+    }
+
+    mainCoroutine := func (yield coroutine.YieldFunc) error {
+        yielder.Yield = yield
+
+        module, err := py.RunCode(python, code, "script", "user")
+        if err != nil {
+            log.Printf("Unable to run code: %v", err)
+        } else {
+            log.Printf("Module: %v", module)
+        }
+
+        return ebiten.Termination
+    }
+
+    engine := &Engine{
+        Coroutine: coroutine.MakeCoroutine(mainCoroutine),
+    }
+
+    err = ebiten.RunGame(engine)
     if err != nil {
         log.Printf("Error: %v", err)
     }
