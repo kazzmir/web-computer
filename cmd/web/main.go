@@ -69,6 +69,9 @@ type Engine struct {
     Coroutine *coroutine.Coroutine
     Yield coroutine.YieldFunc
     DrawCalls []func(*ebiten.Image)
+
+    ScreenWidth int
+    ScreenHeight int
 }
 
 // invoked from python when the user calls pygame.display.flip() or update()
@@ -95,6 +98,11 @@ func (engine *Engine) Update() error {
     return nil
 }
 
+func (engine *Engine) SetScreenSize(width int, height int) {
+    engine.ScreenWidth = width
+    engine.ScreenHeight = height
+}
+
 func (engine *Engine) Draw(screen *ebiten.Image) {
     for _, draw := range engine.DrawCalls {
         draw(screen)
@@ -102,7 +110,7 @@ func (engine *Engine) Draw(screen *ebiten.Image) {
 }
 
 func (engine *Engine) Layout(outsideWidth int, outsideHeight int) (int, int) {
-    return 640, 480
+    return engine.ScreenWidth, engine.ScreenHeight
 }
 
 func testGraphics() {
@@ -134,17 +142,25 @@ func testGraphics() {
 
     engine = &Engine{
         Coroutine: coroutine.MakeCoroutine(mainCoroutine),
+        ScreenWidth: 640,
+        ScreenHeight: 480,
     }
 
-    pygame.RegisterPygameModule(engine)
+    err := pygame.RegisterPygameModule(engine, python)
+    if err != nil {
+        log.Printf("Error: %v", err)
+        return
+    }
 
-    script, err := scripts.Load("game1.py")
+    path := "game3.py"
+
+    script, err := scripts.Load(path)
     if err != nil {
         log.Printf("Unable to load python script: %v", err)
         return
     }
 
-    code, err = py.Compile(string(script), "game1.py", "exec", 0, false)
+    code, err = py.Compile(string(script), path, "exec", 0, false)
     if err != nil {
         log.Printf("Unable to compile python script: %v", err)
         return
@@ -158,6 +174,6 @@ func testGraphics() {
 
 func main() {
     log.SetFlags(log.Lshortfile | log.Ldate | log.Lmicroseconds)
-    test1()
+    // test1()
     testGraphics()
 }
