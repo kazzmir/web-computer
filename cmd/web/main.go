@@ -14,7 +14,7 @@ func webtest_foo(self py.Object, args py.Tuple) (py.Object, error) {
     return py.String("foo"), nil
 }
 
-func registerModule() {
+func registerWebTestModule() {
     methods := []*py.Method{
         py.MustNewMethod("foo", webtest_foo, 0, ""),
     }
@@ -31,7 +31,7 @@ func registerModule() {
     })
 }
 
-func main() {
+func test1() {
     log.Printf("Starting python test")
     opts := py.DefaultContextOpts()
 
@@ -44,7 +44,7 @@ func main() {
         return
     }
 
-    registerModule()
+    registerWebTestModule()
 
     code, err := py.Compile(string(script), "xmod.py", "exec", 0, false)
     if err != nil {
@@ -58,4 +58,8 @@ func main() {
     } else {
         log.Printf("Module: %v", module)
     }
+}
+
+func main() {
+    test1()
 }
