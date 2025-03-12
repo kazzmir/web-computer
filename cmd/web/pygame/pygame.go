@@ -72,8 +72,29 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
         py.MustNewMethod("init", pygame_init, 0, "init"),
     }
 
+    pygame_surface_fill := func (self py.Object, args py.Tuple) (py.Object, error) {
+        var fillColor py.Int
+
+        err := py.LoadTuple(args, []interface{}{&fillColor})
+        if err != nil {
+            return py.None, fmt.Errorf("Unable to load fill args %v", err)
+        }
+
+        value, err := fillColor.GoInt()
+        if err != nil {
+            return py.None, fmt.Errorf("Unable to convert to int %v", err)
+        }
+        switch value {
+            case 0: system.AddDrawCall(func (screen *ebiten.Image) {
+                screen.Fill(color.RGBA{A: 255})
+            })
+        }
+
+        return py.None, nil
+    }
+
     surfaceType := py.NewType("Surface", "")
-    _ = surfaceType
+    surfaceType.Dict["fill"] = py.MustNewMethod("fill", pygame_surface_fill, 0, "fill surface with color")
 
     pygame_set_display_mode := func (self py.Object, args py.Tuple) (py.Object, error) {
         // log.Printf("set display mode")
@@ -124,6 +145,7 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
         },
         Methods: []*py.Method{
             py.MustNewMethod("set_mode", pygame_set_display_mode, 0, "set display mode"),
+            py.MustNewMethod("update", pygame_draw, 0, "update display"),
         },
         Globals: py.StringDict{},
         OnContextClosed: func (instance *py.Module) {
