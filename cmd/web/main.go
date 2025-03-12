@@ -7,6 +7,9 @@ import (
 
     "github.com/go-python/gpython/py"
     _ "github.com/go-python/gpython/stdlib"
+
+    "github.com/hajimehoshi/ebiten/v2"
+    "github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 func webtest_foo(self py.Object, args py.Tuple) (py.Object, error) {
@@ -60,6 +63,42 @@ func test1() {
     }
 }
 
+type Engine struct {
+}
+
+func (engine *Engine) Update() error {
+    keys := inpututil.AppendJustPressedKeys(nil)
+    for _, key := range keys {
+        if key == ebiten.KeyEscape || key == ebiten.KeyCapsLock {
+            return ebiten.Termination
+        }
+    }
+
+    return nil
+}
+
+func (engine *Engine) Draw(screen *ebiten.Image) {
+}
+
+func (engine *Engine) Layout(outsideWidth int, outsideHeight int) (int, int) {
+    return 640, 480
+}
+
+func testGraphics() {
+    ebiten.SetWindowSize(800, 600)
+    ebiten.SetWindowTitle("Python test")
+    ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
+
+    engine := &Engine{
+    }
+
+    err := ebiten.RunGame(engine)
+    if err != nil {
+        log.Printf("Error: %v", err)
+    }
+}
+
 func main() {
     test1()
+    testGraphics()
 }
