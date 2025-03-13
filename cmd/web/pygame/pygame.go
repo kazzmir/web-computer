@@ -33,6 +33,15 @@ func (surface *RegularSurface) Type() *py.Type {
     return surface.pyType
 }
 
+type Rect struct {
+    x1, y1, x2, y2 py.Int
+    pyType *py.Type
+}
+
+func (rect *Rect) Type() *py.Type {
+    return rect.pyType
+}
+
 func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
     var screenSurface *RegularSurface
 
@@ -91,6 +100,16 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
             return py.None, fmt.Errorf("Unable to unpack blit args %v", err)
         }
 
+        var x1 int
+        var y1 int
+        arg2Rect, ok := arg2.(*Rect)
+        if ok {
+            x1, _ = arg2Rect.x1.GoInt()
+            y1, _ = arg2Rect.y1.GoInt()
+        } else {
+            return py.None, fmt.Errorf("Expected rect for second argument but was %v", arg2.Type().Name)
+        }
+
         fromSurface, ok := arg1.(*RegularSurface)
         if !ok {
             return py.None, fmt.Errorf("Expected surface for first argument but was %v", arg1.Type().Name)
@@ -101,7 +120,7 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
             return py.None, fmt.Errorf("Expected self to be a surface but was %v", self.Type().Name)
         }
         var options ebiten.DrawImageOptions
-        options.GeoM.Translate(20, 20)
+        options.GeoM.Translate(float64(x1), float64(y1))
 
         selfSurface.Image.DrawImage(fromSurface.Image, &options)
 
@@ -166,6 +185,45 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
     regularSurfaceType := py.NewType("Surface", "")
     regularSurfaceType.Dict["fill"] = py.MustNewMethod("fill", pygame_surface_fill, 0, "fill surface with color")
     regularSurfaceType.Dict["blit"] = py.MustNewMethod("blit", pygame_surface_blit, 0, "blit one surface onto another")
+
+    rectType := py.NewType("Rect", "")
+
+    Rect_new := func (module py.Object, args py.Tuple) (py.Object, error) {
+        var coord1, coord2 py.Object
+        err := py.UnpackTuple(args, py.StringDict{}, "", 2, 2, &coord1, &coord2)
+        if err != nil {
+            return py.None, fmt.Errorf("Unable to unpack rect args %v", err)
+        }
+
+        coord1Tuple, ok := coord1.(py.Tuple)
+        if !ok {
+            return py.None, fmt.Errorf("Expected tuple for coord1")
+        }
+
+        var x1, y1, x2, y2 py.Int
+        err = py.LoadTuple(coord1Tuple, []interface{}{&x1, &y1})
+        if err != nil {
+            return py.None, fmt.Errorf("Unable to load rect args %v", err)
+        }
+
+        coord2Tuple, ok := coord2.(py.Tuple)
+        if !ok {
+            return py.None, fmt.Errorf("Expected tuple for coord2")
+        }
+
+        err = py.LoadTuple(coord2Tuple, []interface{}{&x2, &y2})
+        if err != nil {
+            return py.None, fmt.Errorf("Unable to load rect args %v", err)
+        }
+
+        return &Rect{
+            x1: x1,
+            y1: y1,
+            x2: x2,
+            y2: y2,
+            pyType: rectType,
+        }, nil
+    }
 
     RegularSurface_new := func (module py.Object, args py.Tuple) (py.Object, error) {
         var arg1 py.Object
@@ -278,6 +336,7 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
         py.MustNewMethod("clear", pygame_clear, 0, "clear screen to a color"),
         py.MustNewMethod("init", pygame_init, 0, "init"),
         py.MustNewMethod("Surface", RegularSurface_new, 0, ""),
+        py.MustNewMethod("Rect", Rect_new, 0, ""),
     }
 
     py.RegisterModule(&py.ModuleImpl{
