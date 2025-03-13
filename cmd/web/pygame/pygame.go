@@ -24,8 +24,26 @@ func (surface *DisplaySurface) Type() *py.Type {
     return surface.pyType
 }
 
+type RegularSurface struct {
+    Image *ebiten.Image
+    pyType *py.Type
+}
+
+func (surface *RegularSurface) Type() *py.Type {
+    return surface.pyType
+}
+
 func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
+    var screenSurface *RegularSurface
+
     pygame_draw := func (self py.Object, args py.Tuple) (py.Object, error) {
+        if screenSurface != nil {
+            system.AddDrawCall(func (screen *ebiten.Image) {
+                var options ebiten.DrawImageOptions
+                screen.DrawImage(screenSurface.Image, &options)
+            })
+        }
+
         system.Flip()
         return py.None, nil
     }
@@ -66,35 +84,130 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
         return py.SequenceTuple(py.NewListFromItems([]py.Object{py.Int(successes), py.Int(failures)}))
     }
 
-    methods := []*py.Method{
-        py.MustNewMethod("draw", pygame_draw, 0, ""),
-        py.MustNewMethod("clear", pygame_clear, 0, "clear screen to a color"),
-        py.MustNewMethod("init", pygame_init, 0, "init"),
-    }
-
-    pygame_surface_fill := func (self py.Object, args py.Tuple) (py.Object, error) {
-        var fillColor py.Int
-
-        err := py.LoadTuple(args, []interface{}{&fillColor})
+    pygame_surface_blit := func (self py.Object, args py.Tuple) (py.Object, error) {
+        var arg1, arg2 py.Object
+        err := py.UnpackTuple(args, py.StringDict{}, "", 1, 2, &arg1, &arg2)
         if err != nil {
-            return py.None, fmt.Errorf("Unable to load fill args %v", err)
+            return py.None, fmt.Errorf("Unable to unpack blit args %v", err)
         }
 
-        value, err := fillColor.GoInt()
-        if err != nil {
-            return py.None, fmt.Errorf("Unable to convert to int %v", err)
+        fromSurface, ok := arg1.(*RegularSurface)
+        if !ok {
+            return py.None, fmt.Errorf("Expected surface for first argument but was %v", arg1.Type().Name)
         }
-        switch value {
-            case 0: system.AddDrawCall(func (screen *ebiten.Image) {
-                screen.Fill(color.RGBA{A: 255})
-            })
+
+        selfSurface, ok := self.(*RegularSurface)
+        if !ok {
+            return py.None, fmt.Errorf("Expected self to be a surface but was %v", self.Type().Name)
         }
+        var options ebiten.DrawImageOptions
+        options.GeoM.Translate(20, 20)
+
+        selfSurface.Image.DrawImage(fromSurface.Image, &options)
 
         return py.None, nil
     }
 
+    pygame_surface_fill := func (self py.Object, args py.Tuple) (py.Object, error) {
+        var arg1 py.Object
+
+        // log.Printf("Args are %v", args)
+
+        err := py.UnpackTuple(args, py.StringDict{}, "", 1, 1, &arg1)
+        if err != nil {
+            return py.None, fmt.Errorf("Unable to unpack display args %v", err)
+        }
+
+        colorTuple, ok := arg1.(py.Tuple)
+
+        if !ok {
+            return py.None, fmt.Errorf("Expected tuple for color")
+        }
+
+        var r, g, b py.Int
+
+        err = py.LoadTuple(colorTuple, []interface{}{&r, &g, &b})
+        if err != nil {
+            return py.None, fmt.Errorf("Unable to load fill args %v", err)
+        }
+
+        rInt, err := r.GoInt()
+        if err != nil {
+            return py.None, fmt.Errorf("Unable to convert r to int %v", err)
+        }
+
+        gInt, err := g.GoInt()
+        if err != nil {
+            return py.None, fmt.Errorf("Unable to convert g to int %v", err)
+        }
+
+        bInt, err := b.GoInt()
+        if err != nil {
+            return py.None, fmt.Errorf("Unable to convert b to int %v", err)
+        }
+
+        fillColor := color.RGBA{R: uint8(rInt), G: uint8(gInt), B: uint8(bInt), A: 255}
+
+        surface, ok := self.(*RegularSurface)
+        if !ok {
+            return py.None, fmt.Errorf("Not a surface")
+        }
+
+        surface.Image.Fill(fillColor)
+
+        return py.None, nil
+    }
+
+    /*
     surfaceType := py.NewType("Surface", "")
     surfaceType.Dict["fill"] = py.MustNewMethod("fill", pygame_surface_fill, 0, "fill surface with color")
+    */
+
+    regularSurfaceType := py.NewType("Surface", "")
+    regularSurfaceType.Dict["fill"] = py.MustNewMethod("fill", pygame_surface_fill, 0, "fill surface with color")
+    regularSurfaceType.Dict["blit"] = py.MustNewMethod("blit", pygame_surface_blit, 0, "blit one surface onto another")
+
+    RegularSurface_new := func (module py.Object, args py.Tuple) (py.Object, error) {
+        var arg1 py.Object
+
+        // log.Printf("Args are %v", args)
+
+        err := py.UnpackTuple(args, py.StringDict{}, "", 1, 1, &arg1)
+        if err != nil {
+            return py.None, fmt.Errorf("Unable to unpack surface args %v", err)
+        }
+
+        sizeTuple, ok := arg1.(py.Tuple)
+
+        if !ok {
+            return py.None, fmt.Errorf("Expected tuple for size")
+        }
+
+        var width, height py.Int
+
+        err = py.LoadTuple(sizeTuple, []interface{}{&width, &height})
+        if err != nil {
+            return py.None, fmt.Errorf("Unable to load surface args %v", err)
+        }
+
+        widthInt, err := width.GoInt()
+        if err != nil {
+            return py.None, fmt.Errorf("Unable to convert width to int %v", err)
+        }
+
+        heightInt, err := height.GoInt()
+        if err != nil {
+            return py.None, fmt.Errorf("Unable to convert height to int %v", err)
+        }
+
+        // log.Printf("Create new surface %d %d", widthInt, heightInt)
+
+        surface := &RegularSurface{
+            Image: ebiten.NewImage(widthInt, heightInt),
+            pyType: regularSurfaceType,
+        }
+        return surface, nil
+    }
 
     pygame_set_display_mode := func (self py.Object, args py.Tuple) (py.Object, error) {
         // log.Printf("set display mode")
@@ -115,25 +228,29 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
                 return py.None, err
             }
 
-            system.SetScreenSize(int(width), int(height))
-
-            surface := DisplaySurface{
-                pyType: surfaceType,
+            widthInt, err := width.GoInt()
+            if err != nil {
+                return py.None, err
             }
+
+            heightInt, err := height.GoInt()
+            if err != nil {
+                return py.None, err
+            }
+
+            system.SetScreenSize(widthInt, heightInt)
+
+            surface := RegularSurface{
+                Image: ebiten.NewImage(widthInt, heightInt),
+                pyType: regularSurfaceType,
+            }
+
+            screenSurface = &surface
 
             return &surface, nil
         } else {
             return py.None, fmt.Errorf("Expected tuple for display size")
         }
-
-        /*
-        err := py.LoadTuple(args, []interface{}{&size})
-        if err != nil {
-            return py.None, fmt.Errorf("Unable to load display args %v", err)
-        }
-
-        return py.None, nil
-        */
     }
 
     moduleStore := py.NewModuleStore()
@@ -156,12 +273,19 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
         return err
     }
 
+    pygameMethods := []*py.Method{
+        py.MustNewMethod("draw", pygame_draw, 0, ""),
+        py.MustNewMethod("clear", pygame_clear, 0, "clear screen to a color"),
+        py.MustNewMethod("init", pygame_init, 0, "init"),
+        py.MustNewMethod("Surface", RegularSurface_new, 0, ""),
+    }
+
     py.RegisterModule(&py.ModuleImpl{
         Info: py.ModuleInfo{
             Name: "pygame",
             Doc: "pygame module",
         },
-        Methods: methods,
+        Methods: pygameMethods,
         Globals: py.StringDict{
             "display": displayModule,
         },
