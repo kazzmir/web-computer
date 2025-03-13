@@ -177,6 +177,23 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
         return py.None, nil
     }
 
+    pygame_rect_move_ip := func (self py.Object, args py.Tuple) (py.Object, error) {
+        var x, y py.Int
+
+        err := py.LoadTuple(args, []interface{}{&x, &y})
+        if err != nil {
+            return py.None, fmt.Errorf("Error with move_ip args: %v", err)
+        }
+
+        rect := self.(*Rect)
+        rect.x1 += x
+        rect.y1 += y
+        rect.x2 += x
+        rect.y2 += y
+
+        return py.None, nil
+    }
+
     /*
     surfaceType := py.NewType("Surface", "")
     surfaceType.Dict["fill"] = py.MustNewMethod("fill", pygame_surface_fill, 0, "fill surface with color")
@@ -187,6 +204,7 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
     regularSurfaceType.Dict["blit"] = py.MustNewMethod("blit", pygame_surface_blit, 0, "blit one surface onto another")
 
     rectType := py.NewType("Rect", "")
+    rectType.Dict["move_ip"] = py.MustNewMethod("move_ip", pygame_rect_move_ip, 0, "move rect")
 
     Rect_new := func (module py.Object, args py.Tuple) (py.Object, error) {
         var coord1, coord2 py.Object

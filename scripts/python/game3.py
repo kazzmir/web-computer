@@ -14,5 +14,6 @@ image.fill(WHITE)
 
 while True:
     screen.fill(BLACK)
+    rect.move_ip(0, 2)
     screen.blit(image, rect)
     pygame.display.update()
