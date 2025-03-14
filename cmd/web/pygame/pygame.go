@@ -1,7 +1,7 @@
 package pygame
 
 import (
-    // "log"
+    "log"
     "fmt"
     "image/color"
     "time"
@@ -365,7 +365,30 @@ func createRectType() PythonMethod {
     return Rect_new
 }
 
+type InternalEventType int
+
+const (
+    NoEvent InternalEventType = iota
+    QuitEvent
+    KeyDownEvent
+)
+
 type EventType struct {
+    kind InternalEventType
+    pyType *py.Type
+}
+
+func (eventType *EventType) M__eq__(other py.Object) (py.Object, error) {
+    otherEventType, ok := other.(*EventType)
+    if !ok {
+        return py.None, fmt.Errorf("Expected event type")
+    }
+
+    return py.Bool(eventType.kind == otherEventType.kind), nil
+}
+
+func (eventType *EventType) Type() *py.Type {
+    return eventType.pyType
 }
 
 type Event struct {
@@ -383,7 +406,7 @@ type EventTypes struct {
     KeyDown *EventType
 }
 
-func createEventModule(eventTypes *EventTypes) *py.ModuleImpl {
+func createEventModule(eventTypes *EventTypes, eventTypeType *py.Type) *py.ModuleImpl {
     eventType := py.NewType("Event", "")
 
     // returns a list of events
@@ -409,6 +432,22 @@ func createEventModule(eventTypes *EventTypes) *py.ModuleImpl {
         return py.NewListFromItems(events), nil
     }
 
+    eventType.Dict["type"] = &py.Property{
+        Fget: func (self py.Object) (py.Object, error) {
+            event := self.(*Event)
+
+            return event.eventType, nil
+        },
+    }
+
+    eventType.Dict["key"] = &py.Property{
+        Fget: func (self py.Object) (py.Object, error) {
+            event := self.(*Event)
+
+            return py.Int(event.key), nil
+        },
+    }
+
     return &py.ModuleImpl{
         Info: py.ModuleInfo{
             Name: "pygame.event",
@@ -424,6 +463,8 @@ func createEventModule(eventTypes *EventTypes) *py.ModuleImpl {
 }
 
 func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
+    log.Printf("Register pygame")
+
     pygame_init := func (self py.Object, args py.Tuple) (py.Object, error) {
         successes := 1
         failures := 0
@@ -444,10 +485,20 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
         return err
     }
 
+    eventType := py.NewType("EventType", "")
+
     eventTypes := &EventTypes{
+        Quit: &EventType{
+            kind: QuitEvent,
+            pyType: eventType,
+        },
+        KeyDown: &EventType{
+            kind: KeyDownEvent,
+            pyType: eventType,
+        },
     }
 
-    eventModule, err := moduleStore.NewModule(context, createEventModule(eventTypes))
+    eventModule, err := moduleStore.NewModule(context, createEventModule(eventTypes, eventType))
     if err != nil {
         return err
     }
@@ -470,6 +521,16 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
             "display": displayModule,
             "time": timeModule,
             "event": eventModule,
+            "QUIT": eventTypes.Quit,
+            "KEYDOWN": eventTypes.KeyDown,
+            "K_w": py.Int(ebiten.KeyW),
+            "K_a": py.Int(ebiten.KeyA),
+            "K_s": py.Int(ebiten.KeyS),
+            "K_d": py.Int(ebiten.KeyD),
+            "K_UP": py.Int(ebiten.KeyUp),
+            "K_DOWN": py.Int(ebiten.KeyDown),
+            "K_LEFT": py.Int(ebiten.KeyLeft),
+            "K_RIGHT": py.Int(ebiten.KeyRight),
         },
         OnContextClosed: func (instance *py.Module) {
         },
