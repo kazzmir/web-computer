@@ -42,6 +42,52 @@ func (rect *Rect) Type() *py.Type {
     return rect.pyType
 }
 
+type TimeClock struct {
+    pyType *py.Type
+}
+
+func (clock *TimeClock) Type() *py.Type {
+    return clock.pyType
+}
+
+func createTimeModule() *py.ModuleImpl {
+    clock_tick := func (self py.Object, args py.Tuple) (py.Object, error) {
+        var value py.Int
+        err := py.LoadTuple(args, []interface{}{&value})
+        if err != nil {
+            return py.None, err
+        }
+
+        num, err := value.GoInt()
+        if err != nil {
+            return py.None, err
+        }
+
+        ebiten.SetTPS(num)
+
+        return py.None, nil
+    }
+
+    clockType := py.NewType("Clock", "")
+    clockType.Dict["tick"] = py.MustNewMethod("tick", clock_tick, 0, "")
+
+    Clock_new := func (module py.Object, args py.Tuple) (py.Object, error) {
+        return &TimeClock{
+            pyType: clockType,
+        }, nil
+    }
+
+    return &py.ModuleImpl{
+        Info: py.ModuleInfo{
+            Name: "pygame.time",
+            Doc: "pygame module for monitoring time",
+        },
+        Methods: []*py.Method{
+            py.MustNewMethod("Clock", Clock_new, 0, ""),
+        },
+    }
+}
+
 func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
     var screenSurface *RegularSurface
 
@@ -334,7 +380,7 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
     displayModule, err := moduleStore.NewModule(context, &py.ModuleImpl{
         Info: py.ModuleInfo{
             Name: "pygame.display",
-            Doc: "pygame display",
+            Doc: "pygame module to control the display window and screen",
         },
         Methods: []*py.Method{
             py.MustNewMethod("set_mode", pygame_set_display_mode, 0, "set display mode"),
@@ -348,6 +394,12 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
     if err != nil {
         return err
     }
+
+    timeModule, err := moduleStore.NewModule(context, createTimeModule())
+    if err != nil {
+        return err
+    }
+    // event doc: pygame module for interacting with events and queues
 
     pygameMethods := []*py.Method{
         py.MustNewMethod("draw", pygame_draw, 0, ""),
@@ -365,6 +417,7 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
         Methods: pygameMethods,
         Globals: py.StringDict{
             "display": displayModule,
+            "time": timeModule,
         },
         OnContextClosed: func (instance *py.Module) {
         },
