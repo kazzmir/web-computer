@@ -11,7 +11,7 @@ import (
     _ "github.com/go-python/gpython/stdlib"
 
     "github.com/hajimehoshi/ebiten/v2"
-    "github.com/hajimehoshi/ebiten/v2/inpututil"
+    // "github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 func webtest_foo(self py.Object, args py.Tuple) (py.Object, error) {
@@ -84,12 +84,14 @@ func (engine *Engine) AddDrawCall(draw func(*ebiten.Image)) {
 }
 
 func (engine *Engine) Update() error {
+    /*
     keys := inpututil.AppendJustPressedKeys(nil)
     for _, key := range keys {
         if key == ebiten.KeyEscape || key == ebiten.KeyCapsLock {
             return ebiten.Termination
         }
     }
+    */
 
     // log.Printf("update")
     engine.DrawCalls = nil

@@ -8,6 +8,7 @@ import (
     // "reflect"
 
     "github.com/hajimehoshi/ebiten/v2"
+    "github.com/hajimehoshi/ebiten/v2/inpututil"
     "github.com/go-python/gpython/py"
 )
 
@@ -364,6 +365,64 @@ func createRectType() PythonMethod {
     return Rect_new
 }
 
+type EventType struct {
+}
+
+type Event struct {
+    eventType *EventType
+    pyType *py.Type
+    key ebiten.Key
+}
+
+func (event *Event) Type() *py.Type {
+    return event.pyType
+}
+
+type EventTypes struct {
+    Quit *EventType
+    KeyDown *EventType
+}
+
+func createEventModule(eventTypes *EventTypes) *py.ModuleImpl {
+    eventType := py.NewType("Event", "")
+
+    // returns a list of events
+    event_get := func (self py.Object, args py.Tuple) (py.Object, error) {
+        keys := inpututil.AppendJustPressedKeys(nil)
+
+        var events []py.Object
+        for _, key := range keys {
+            if key == ebiten.KeyEscape || key == ebiten.KeyCapsLock {
+                events = append(events, &Event{
+                    eventType: eventTypes.Quit,
+                    pyType: eventType,
+                })
+            } else {
+                events = append(events, &Event{
+                    eventType: eventTypes.KeyDown,
+                    pyType: eventType,
+                    key: key,
+                })
+            }
+        }
+
+        return py.NewListFromItems(events), nil
+    }
+
+    return &py.ModuleImpl{
+        Info: py.ModuleInfo{
+            Name: "pygame.event",
+            Doc: "pygame module for interacting with events and queues",
+        },
+        Methods: []*py.Method{},
+        Globals: py.StringDict{
+            "get": py.MustNewMethod("get", event_get, 0, ""),
+        },
+        OnContextClosed: func (instance *py.Module) {
+        },
+    }
+}
+
 func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
     pygame_init := func (self py.Object, args py.Tuple) (py.Object, error) {
         successes := 1
@@ -384,13 +443,18 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
     if err != nil {
         return err
     }
-    // event doc: pygame module for interacting with events and queues
+
+    eventTypes := &EventTypes{
+    }
+
+    eventModule, err := moduleStore.NewModule(context, createEventModule(eventTypes))
+    if err != nil {
+        return err
+    }
 
     Rect_new := createRectType()
 
     pygameMethods := []*py.Method{
-        // py.MustNewMethod("draw", pygame_draw, 0, ""),
-        // py.MustNewMethod("clear", pygame_clear, 0, "clear screen to a color"),
         py.MustNewMethod("init", pygame_init, 0, "init"),
         py.MustNewMethod("Surface", RegularSurface_new, 0, ""),
         py.MustNewMethod("Rect", Rect_new, 0, ""),
@@ -405,6 +469,7 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
         Globals: py.StringDict{
             "display": displayModule,
             "time": timeModule,
+            "event": eventModule,
         },
         OnContextClosed: func (instance *py.Module) {
         },

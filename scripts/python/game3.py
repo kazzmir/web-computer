@@ -16,7 +16,11 @@ image.fill(WHITE)
 
 while True:
     clock.tick(FPS)
-    screen.fill(BLACK)
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            quit()
+
     rect.move_ip(0, 2)
+    screen.fill(BLACK)
     screen.blit(image, rect)
     pygame.display.update()
