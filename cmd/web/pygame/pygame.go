@@ -1,7 +1,7 @@
 package pygame
 
 import (
-    "log"
+    // "log"
     "fmt"
     "image/color"
     "time"
@@ -10,6 +10,8 @@ import (
     "github.com/hajimehoshi/ebiten/v2"
     "github.com/go-python/gpython/py"
 )
+
+type PythonMethod = func (py.Object, py.Tuple) (py.Object, error)
 
 type GraphicsSystem interface {
     Flip()
@@ -96,8 +98,10 @@ func createTimeModule() *py.ModuleImpl {
     }
 }
 
-func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
+// hack: return the Surface constructor as one of the return values
+func createDisplayModule(system GraphicsSystem) (*py.ModuleImpl, PythonMethod) {
     var screenSurface *RegularSurface
+    regularSurfaceType := py.NewType("Surface", "")
 
     pygame_draw := func (self py.Object, args py.Tuple) (py.Object, error) {
         if screenSurface != nil {
@@ -109,42 +113,6 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 
         system.Flip()
         return py.None, nil
-    }
-
-    pygame_clear := func (self py.Object, args py.Tuple) (py.Object, error) {
-        var value py.Int
-        err := py.LoadTuple(args, []interface{}{&value})
-        if err != nil {
-            log.Printf("Unable to load args: %v", err)
-            return py.None, err
-        }
-
-        num, err := value.GoInt()
-        if err != nil {
-            log.Printf("Unable to convert to int: %v", err)
-            return py.None, err
-        }
-
-        system.AddDrawCall(func (screen *ebiten.Image) {
-            var c color.Color
-            switch num {
-                case 0: c = color.RGBA{R: 255, G: 0, B: 0, A: 255}
-                case 1: c = color.RGBA{R: 0, G: 255, B: 0, A: 255}
-                case 2: c = color.RGBA{R: 0, G: 0, B: 255, A: 255}
-                case 3: c = color.RGBA{R: 255, G: 255, B: 0, A: 255}
-                default: c = color.RGBA{R: 0, G: 0, B: 0, A: 255}
-            }
-
-            screen.Fill(c)
-        })
-
-        return py.None, nil
-    }
-
-    pygame_init := func (self py.Object, args py.Tuple) (py.Object, error) {
-        successes := 1
-        failures := 0
-        return py.SequenceTuple(py.NewListFromItems([]py.Object{py.Int(successes), py.Int(failures)}))
     }
 
     pygame_surface_blit := func (self py.Object, args py.Tuple) (py.Object, error) {
@@ -229,72 +197,6 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
         surface.Image.Fill(fillColor)
 
         return py.None, nil
-    }
-
-    pygame_rect_move_ip := func (self py.Object, args py.Tuple) (py.Object, error) {
-        var x, y py.Int
-
-        err := py.LoadTuple(args, []interface{}{&x, &y})
-        if err != nil {
-            return py.None, fmt.Errorf("Error with move_ip args: %v", err)
-        }
-
-        rect := self.(*Rect)
-        rect.x1 += x
-        rect.y1 += y
-        rect.x2 += x
-        rect.y2 += y
-
-        return py.None, nil
-    }
-
-    /*
-    surfaceType := py.NewType("Surface", "")
-    surfaceType.Dict["fill"] = py.MustNewMethod("fill", pygame_surface_fill, 0, "fill surface with color")
-    */
-
-    regularSurfaceType := py.NewType("Surface", "")
-    regularSurfaceType.Dict["fill"] = py.MustNewMethod("fill", pygame_surface_fill, 0, "fill surface with color")
-    regularSurfaceType.Dict["blit"] = py.MustNewMethod("blit", pygame_surface_blit, 0, "blit one surface onto another")
-
-    rectType := py.NewType("Rect", "")
-    rectType.Dict["move_ip"] = py.MustNewMethod("move_ip", pygame_rect_move_ip, 0, "move rect")
-
-    Rect_new := func (module py.Object, args py.Tuple) (py.Object, error) {
-        var coord1, coord2 py.Object
-        err := py.UnpackTuple(args, py.StringDict{}, "", 2, 2, &coord1, &coord2)
-        if err != nil {
-            return py.None, fmt.Errorf("Unable to unpack rect args %v", err)
-        }
-
-        coord1Tuple, ok := coord1.(py.Tuple)
-        if !ok {
-            return py.None, fmt.Errorf("Expected tuple for coord1")
-        }
-
-        var x1, y1, x2, y2 py.Int
-        err = py.LoadTuple(coord1Tuple, []interface{}{&x1, &y1})
-        if err != nil {
-            return py.None, fmt.Errorf("Unable to load rect args %v", err)
-        }
-
-        coord2Tuple, ok := coord2.(py.Tuple)
-        if !ok {
-            return py.None, fmt.Errorf("Expected tuple for coord2")
-        }
-
-        err = py.LoadTuple(coord2Tuple, []interface{}{&x2, &y2})
-        if err != nil {
-            return py.None, fmt.Errorf("Unable to load rect args %v", err)
-        }
-
-        return &Rect{
-            x1: x1,
-            y1: y1,
-            x2: x2,
-            y2: y2,
-            pyType: rectType,
-        }, nil
     }
 
     RegularSurface_new := func (module py.Object, args py.Tuple) (py.Object, error) {
@@ -383,9 +285,10 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
         }
     }
 
-    moduleStore := py.NewModuleStore()
+    regularSurfaceType.Dict["fill"] = py.MustNewMethod("fill", pygame_surface_fill, 0, "fill surface with color")
+    regularSurfaceType.Dict["blit"] = py.MustNewMethod("blit", pygame_surface_blit, 0, "blit one surface onto another")
 
-    displayModule, err := moduleStore.NewModule(context, &py.ModuleImpl{
+    return &py.ModuleImpl{
         Info: py.ModuleInfo{
             Name: "pygame.display",
             Doc: "pygame module to control the display window and screen",
@@ -397,7 +300,81 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
         Globals: py.StringDict{},
         OnContextClosed: func (instance *py.Module) {
         },
-    })
+    }, RegularSurface_new
+}
+
+func createRectType() PythonMethod {
+    pygame_rect_move_ip := func (self py.Object, args py.Tuple) (py.Object, error) {
+        var x, y py.Int
+
+        err := py.LoadTuple(args, []interface{}{&x, &y})
+        if err != nil {
+            return py.None, fmt.Errorf("Error with move_ip args: %v", err)
+        }
+
+        rect := self.(*Rect)
+        rect.x1 += x
+        rect.y1 += y
+        rect.x2 += x
+        rect.y2 += y
+
+        return py.None, nil
+    }
+
+    rectType := py.NewType("Rect", "")
+    rectType.Dict["move_ip"] = py.MustNewMethod("move_ip", pygame_rect_move_ip, 0, "move rect")
+
+    Rect_new := func (module py.Object, args py.Tuple) (py.Object, error) {
+        var coord1, coord2 py.Object
+        err := py.UnpackTuple(args, py.StringDict{}, "", 2, 2, &coord1, &coord2)
+        if err != nil {
+            return py.None, fmt.Errorf("Unable to unpack rect args %v", err)
+        }
+
+        coord1Tuple, ok := coord1.(py.Tuple)
+        if !ok {
+            return py.None, fmt.Errorf("Expected tuple for coord1")
+        }
+
+        var x1, y1, x2, y2 py.Int
+        err = py.LoadTuple(coord1Tuple, []interface{}{&x1, &y1})
+        if err != nil {
+            return py.None, fmt.Errorf("Unable to load rect args %v", err)
+        }
+
+        coord2Tuple, ok := coord2.(py.Tuple)
+        if !ok {
+            return py.None, fmt.Errorf("Expected tuple for coord2")
+        }
+
+        err = py.LoadTuple(coord2Tuple, []interface{}{&x2, &y2})
+        if err != nil {
+            return py.None, fmt.Errorf("Unable to load rect args %v", err)
+        }
+
+        return &Rect{
+            x1: x1,
+            y1: y1,
+            x2: x2,
+            y2: y2,
+            pyType: rectType,
+        }, nil
+    }
+
+    return Rect_new
+}
+
+func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
+    pygame_init := func (self py.Object, args py.Tuple) (py.Object, error) {
+        successes := 1
+        failures := 0
+        return py.SequenceTuple(py.NewListFromItems([]py.Object{py.Int(successes), py.Int(failures)}))
+    }
+
+    moduleStore := py.NewModuleStore()
+
+    displayDefintion, RegularSurface_new := createDisplayModule(system)
+    displayModule, err := moduleStore.NewModule(context, displayDefintion)
 
     if err != nil {
         return err
@@ -409,9 +386,11 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
     }
     // event doc: pygame module for interacting with events and queues
 
+    Rect_new := createRectType()
+
     pygameMethods := []*py.Method{
-        py.MustNewMethod("draw", pygame_draw, 0, ""),
-        py.MustNewMethod("clear", pygame_clear, 0, "clear screen to a color"),
+        // py.MustNewMethod("draw", pygame_draw, 0, ""),
+        // py.MustNewMethod("clear", pygame_clear, 0, "clear screen to a color"),
         py.MustNewMethod("init", pygame_init, 0, "init"),
         py.MustNewMethod("Surface", RegularSurface_new, 0, ""),
         py.MustNewMethod("Rect", Rect_new, 0, ""),
