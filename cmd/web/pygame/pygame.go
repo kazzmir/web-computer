@@ -4,6 +4,7 @@ import (
     "log"
     "fmt"
     "image/color"
+    "time"
     // "reflect"
 
     "github.com/hajimehoshi/ebiten/v2"
@@ -43,6 +44,7 @@ func (rect *Rect) Type() *py.Type {
 }
 
 type TimeClock struct {
+    lastTime time.Time
     pyType *py.Type
 }
 
@@ -65,7 +67,12 @@ func createTimeModule() *py.ModuleImpl {
 
         ebiten.SetTPS(num)
 
-        return py.None, nil
+        clock := self.(*TimeClock)
+        duration := time.Since(clock.lastTime)
+        clock.lastTime = time.Now()
+
+        // pygame also returns an int here
+        return py.Int(duration / time.Millisecond), nil
     }
 
     clockType := py.NewType("Clock", "")
@@ -73,6 +80,7 @@ func createTimeModule() *py.ModuleImpl {
 
     Clock_new := func (module py.Object, args py.Tuple) (py.Object, error) {
         return &TimeClock{
+            lastTime: time.Now(),
             pyType: clockType,
         }, nil
     }
