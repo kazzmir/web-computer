@@ -173,7 +173,7 @@ func fdopen(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Object, err
 		return nil, py.ExceptionNewf(py.OSError, "Bad file descriptor")
 	}
 
-	return &py.File{f, perm}, nil
+    return &py.File{File: f, FileMode: perm}, nil
 }
 
 // getCwd returns the current working directory.
@@ -201,11 +201,11 @@ func chdir(self py.Object, args py.Tuple) (py.Object, error) {
 	}
 	dir, ok := args[0].(py.String)
 	if !ok {
-		return nil, py.ExceptionNewf(py.TypeError, "str expected, not "+args[0].Type().Name)
+		return nil, py.ExceptionNewf(py.TypeError, "str expected, not %v", args[0].Type().Name)
 	}
 	err := os.Chdir(string(dir))
 	if err != nil {
-		return nil, py.ExceptionNewf(py.NotADirectoryError, "Couldn't change cwd; "+err.Error())
+		return nil, py.ExceptionNewf(py.NotADirectoryError, "Couldn't change cwd; %v", err.Error())
 	}
 	return py.None, nil
 }
@@ -218,7 +218,7 @@ func getenv(self py.Object, args py.Tuple) (py.Object, error) {
 	}
 	k, ok := args[0].(py.String)
 	if !ok {
-		return nil, py.ExceptionNewf(py.TypeError, "str expected (pos 1), not "+args[0].Type().Name)
+		return nil, py.ExceptionNewf(py.TypeError, "str expected (pos 1), not %v", args[0].Type().Name)
 	}
 	v, ok := os.LookupEnv(string(k))
 	if ok {
@@ -397,11 +397,11 @@ func putenv(self py.Object, args py.Tuple) (py.Object, error) {
 	}
 	k, ok := args[0].(py.String)
 	if !ok {
-		return nil, py.ExceptionNewf(py.TypeError, "str expected (pos 1), not "+args[0].Type().Name)
+		return nil, py.ExceptionNewf(py.TypeError, "str expected (pos 1), not %v", args[0].Type().Name)
 	}
 	v, ok := args[1].(py.String)
 	if !ok {
-		return nil, py.ExceptionNewf(py.TypeError, "str expected (pos 2), not "+args[1].Type().Name)
+		return nil, py.ExceptionNewf(py.TypeError, "str expected (pos 2), not %v", args[1].Type().Name)
 	}
 	err := os.Setenv(string(k), string(v))
 	if err != nil {
@@ -417,7 +417,7 @@ func unsetenv(self py.Object, args py.Tuple) (py.Object, error) {
 	}
 	k, ok := args[0].(py.String)
 	if !ok {
-		return nil, py.ExceptionNewf(py.TypeError, "str expected (pos 1), not "+args[0].Type().Name)
+		return nil, py.ExceptionNewf(py.TypeError, "str expected (pos 1), not %v", args[0].Type().Name)
 	}
 	err := os.Unsetenv(string(k))
 	if err != nil {
@@ -433,7 +433,7 @@ func _exit(self py.Object, args py.Tuple) (py.Object, error) { // can never retu
 	}
 	arg, ok := args[0].(py.Int)
 	if !ok {
-		return nil, py.ExceptionNewf(py.TypeError, "expected int (pos 1), not "+args[0].Type().Name)
+		return nil, py.ExceptionNewf(py.TypeError, "expected int (pos 1), not %v", args[0].Type().Name)
 	}
 	os.Exit(int(arg))
 	return nil, nil
@@ -554,7 +554,7 @@ func system(self py.Object, args py.Tuple) (py.Object, error) {
 	}
 	arg, ok := args[0].(py.String)
 	if !ok {
-		return nil, py.ExceptionNewf(py.TypeError, "str expected (pos 1), not "+args[0].Type().Name)
+		return nil, py.ExceptionNewf(py.TypeError, "str expected (pos 1), not %v", args[0].Type().Name)
 	}
 
 	var command *exec.Cmd
@@ -565,7 +565,7 @@ func system(self py.Object, args py.Tuple) (py.Object, error) {
 	}
 	outb, err := command.CombinedOutput() // - commbinedoutput to get both stderr and stdout -
 	if err != nil {
-		return nil, py.ExceptionNewf(py.OSError, err.Error())
+		return nil, py.ExceptionNewf(py.OSError, "%v", err)
 	}
 	ok = py.Println(self, string(outb))
 	if !ok {

@@ -45,8 +45,8 @@ const (
 )
 
 type File struct {
-	*os.File
-	FileMode
+    File *os.File
+	FileMode FileMode
 }
 
 // Type of this object
@@ -197,13 +197,13 @@ func OpenFile(filename, mode string, buffering int) (Object, error) {
 	if err != nil {
 		switch {
 		case os.IsExist(err):
-			return nil, ExceptionNewf(FileExistsError, err.Error())
+			return nil, ExceptionNewf(FileExistsError, "%v", err)
 
 		case os.IsNotExist(err):
-			return nil, ExceptionNewf(FileNotFoundError, err.Error())
+			return nil, ExceptionNewf(FileNotFoundError, "%v", err)
 		}
 
-		return nil, ExceptionNewf(OSError, err.Error())
+		return nil, ExceptionNewf(OSError, "%v", err)
 	}
 
 	if finfo, err := f.Stat(); err == nil {

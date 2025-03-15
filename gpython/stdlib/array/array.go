@@ -419,7 +419,7 @@ func (arr *array) M__setitem__(k, v py.Object) (py.Object, error) {
 	default:
 		return nil, py.ExceptionNewf(py.TypeError, "array indices must be integers")
 	}
-	panic("impossible")
+	// panic("impossible")
 }
 
 func (arr *array) appendRune(v py.Object) (py.Object, error) {
