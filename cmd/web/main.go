@@ -2,13 +2,14 @@ package main
 
 import (
     "log"
+    "os"
 
     "github.com/kazzmir/web-computer/scripts"
     "github.com/kazzmir/web-computer/cmd/web/pygame"
     "github.com/kazzmir/web-computer/lib/coroutine"
 
-    "github.com/go-python/gpython/py"
-    _ "github.com/go-python/gpython/stdlib"
+    "github.com/kazzmir/web-computer/gpython/py"
+    _ "github.com/kazzmir/web-computer/gpython/stdlib"
 
     "github.com/hajimehoshi/ebiten/v2"
     // "github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -116,6 +117,14 @@ func (engine *Engine) Layout(outsideWidth int, outsideHeight int) (int, int) {
 }
 
 func testGraphics() {
+    var path string
+    if len(os.Args) > 1 {
+        path = os.Args[1]
+    } else {
+        log.Printf("Usage: %v <script>", os.Args[0])
+        return
+    }
+
     ebiten.SetWindowSize(800, 600)
     ebiten.SetWindowTitle("Python test")
     ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
@@ -153,8 +162,6 @@ func testGraphics() {
         log.Printf("Error: %v", err)
         return
     }
-
-    path := "game3.py"
 
     script, err := scripts.Load(path)
     if err != nil {

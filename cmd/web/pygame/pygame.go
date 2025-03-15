@@ -7,9 +7,10 @@ import (
     "time"
     // "reflect"
 
+    "github.com/kazzmir/web-computer/gpython/py"
+
     "github.com/hajimehoshi/ebiten/v2"
     "github.com/hajimehoshi/ebiten/v2/inpututil"
-    "github.com/go-python/gpython/py"
 )
 
 type PythonMethod = func (py.Object, py.Tuple) (py.Object, error)
