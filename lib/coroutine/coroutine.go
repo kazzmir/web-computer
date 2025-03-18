@@ -70,7 +70,6 @@ func (coro *Coroutine) Stop() {
 func (coro *Coroutine) Run() error {
     if coro.stopped {
         // wait for yieldTo to be closed
-        fmt.Printf("wait for yieldto to be closed\n")
         <-coro.yieldTo
         return CoroutineCancelled
     }
