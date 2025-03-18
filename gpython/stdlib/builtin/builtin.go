@@ -86,6 +86,7 @@ func init() {
 		"list":   py.ListType,
 		"map":    py.MapType,
 		"object": py.ObjectType,
+		"quit":   py.Quit,
 		"range":  py.RangeType,
 		// "reversed":       py.ReversedType,
 		"set":          py.SetType,

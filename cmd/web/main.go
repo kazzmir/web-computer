@@ -3,6 +3,7 @@ package main
 import (
     "log"
     "os"
+    // "reflect"
 
     "github.com/kazzmir/web-computer/scripts"
     "github.com/kazzmir/web-computer/cmd/web/pygame"
@@ -96,9 +97,8 @@ func (engine *Engine) Update() error {
 
     // log.Printf("update")
     engine.DrawCalls = nil
-    engine.Coroutine.Run()
-
-    return nil
+    err := engine.Coroutine.Run()
+    return err
 }
 
 func (engine *Engine) SetScreenSize(width int, height int) {
@@ -143,7 +143,16 @@ func testGraphics() {
 
         module, err := py.RunCode(python, code, "script", "user")
         if err != nil {
+            pyException, ok := err.(py.ExceptionInfo)
+            if ok {
+                if pyException.Type == py.SystemExit {
+                    log.Printf("Clean exit")
+                    return ebiten.Termination
+                }
+            }
+
             log.Printf("Unable to run code: %v", err)
+            return err
         } else {
             log.Printf("Module: %v", module)
         }
@@ -156,6 +165,8 @@ func testGraphics() {
         ScreenWidth: 640,
         ScreenHeight: 480,
     }
+
+    defer engine.Coroutine.Stop()
 
     err := pygame.RegisterPygameModule(engine, python)
     if err != nil {
