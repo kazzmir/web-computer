@@ -3,7 +3,7 @@ package main
 import (
     "log"
     "os"
-    "reflect"
+    // "reflect"
 
     "github.com/kazzmir/web-computer/scripts"
     "github.com/kazzmir/web-computer/cmd/web/pygame"
@@ -143,7 +143,6 @@ func testGraphics() {
 
         module, err := py.RunCode(python, code, "script", "user")
         if err != nil {
-            log.Printf("Error is %v", reflect.TypeOf(err))
             pyException, ok := err.(py.ExceptionInfo)
             if ok {
                 if pyException.Type == py.SystemExit {
@@ -153,6 +152,7 @@ func testGraphics() {
             }
 
             log.Printf("Unable to run code: %v", err)
+            return err
         } else {
             log.Printf("Module: %v", module)
         }
