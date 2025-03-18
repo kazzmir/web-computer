@@ -97,9 +97,8 @@ func (engine *Engine) Update() error {
 
     // log.Printf("update")
     engine.DrawCalls = nil
-    engine.Coroutine.Run()
-
-    return nil
+    err := engine.Coroutine.Run()
+    return err
 }
 
 func (engine *Engine) SetScreenSize(width int, height int) {
@@ -166,6 +165,8 @@ func testGraphics() {
         ScreenWidth: 640,
         ScreenHeight: 480,
     }
+
+    defer engine.Coroutine.Stop()
 
     err := pygame.RegisterPygameModule(engine, python)
     if err != nil {
