@@ -22,6 +22,11 @@ func (quit Quitter) Type() *Type {
 
 func (quit Quitter) M__call__(args Tuple, kwargs StringDict) (Object, error) {
     log.Printf("Quit python vm")
-    return None, nil
-}
 
+    exit, err := ExceptionNew(SystemExit, args, nil)
+    if err != nil {
+        return nil, err
+    }
+
+    return nil, exit.(*Exception)
+}
