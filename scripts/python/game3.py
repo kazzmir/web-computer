@@ -1,8 +1,7 @@
 import pygame
 
 a, b = pygame.init()
-print("Successes", a)
-print("Failures", b)
+print("{0} successes and {1} failures".format(successes, failures))
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
