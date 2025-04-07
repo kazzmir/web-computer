@@ -15,6 +15,7 @@ package py
 import (
 	"bytes"
 	"fmt"
+    "log"
 	"strconv"
 	"strings"
 	"unicode"
@@ -225,6 +226,10 @@ replaced.`)
 	StringType.Dict["lower"] = MustNewMethod("lower", func(self Object, args Tuple, kwargs StringDict) (Object, error) {
 		return self.(String).Lower()
 	}, 0, "lower() -> a copy of the string converted to lowercase")
+
+    StringType.Dict["format"] = MustNewMethod("format", func(self Object, args Tuple, kwargs StringDict) (Object, error) {
+        return self.(String).Format(args, kwargs)
+    }, 0, "format() -> a copy of the string formatted with the given arguments")
 
 }
 
@@ -753,6 +758,64 @@ func (s String) Upper() (Object, error) {
 
 func (s String) Lower() (Object, error) {
 	return String(strings.ToLower(string(s))), nil
+}
+
+func (str String) Format(args Tuple, kwargs StringDict) (Object, error) {
+    type part struct {
+        literal string
+        expression string
+    }
+
+    var parts []part
+
+    var currentPart part
+
+    type State int
+    const (
+        StateLiteral State = iota
+        StateExpression
+    )
+
+    state := StateLiteral
+
+    for _, ch := range str {
+        switch state {
+            case StateLiteral:
+                if ch == '{' {
+                    state = StateExpression
+                    parts = append(parts, currentPart)
+                    currentPart = part{}
+                } else {
+                    currentPart.literal += string(ch)
+                }
+            case StateExpression:
+                if ch == '}' {
+                    state = StateLiteral
+                    parts = append(parts, currentPart)
+                    currentPart = part{}
+                } else {
+                    currentPart.expression += string(ch)
+                }
+        }
+    }
+
+    if state == StateExpression {
+		return nil, ExceptionNewf(TypeError, "Unclosed expression in string")
+    }
+
+    parts = append(parts, currentPart)
+
+    var out strings.Builder
+
+    for _, part := range parts {
+        if part.literal != "" {
+            out.WriteString(part.literal)
+        } else if part.expression != "" {
+            log.Printf("todo: String format expression '%v'", part.expression)
+        }
+    }
+
+    return String(out.String()), nil
 }
 
 // Check stringerface is satisfied
