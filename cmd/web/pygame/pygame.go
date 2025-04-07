@@ -463,6 +463,31 @@ func createEventModule(eventTypes *EventTypes, eventTypeType *py.Type) *py.Modul
     }
 }
 
+func createFontModule() *py.ModuleImpl {
+
+    return &py.ModuleImpl{
+        Info: py.ModuleInfo{
+            Name: "pygame.font",
+            Doc: "pygame module for rendering fonts",
+        },
+        Methods: []*py.Method{},
+        Globals: py.StringDict{
+        },
+    }
+}
+
+func createMixerModule() *py.ModuleImpl {
+    return &py.ModuleImpl{
+        Info: py.ModuleInfo{
+            Name: "pygame.mixer",
+            Doc: "pygame module for playing sounds",
+        },
+        Methods: []*py.Method{},
+        Globals: py.StringDict{
+        },
+    }
+}
+
 func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
     log.Printf("Register pygame")
 
@@ -504,6 +529,16 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
         return err
     }
 
+    fontModule, err := moduleStore.NewModule(context, createFontModule())
+    if err != nil {
+        return err
+    }
+
+    mixerModule, err := moduleStore.NewModule(context, createMixerModule())
+    if err != nil {
+        return err
+    }
+
     Rect_new := createRectType()
 
     pygameMethods := []*py.Method{
@@ -522,6 +557,8 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
             "display": displayModule,
             "time": timeModule,
             "event": eventModule,
+            "font": fontModule,
+            "mixer": mixerModule,
             "QUIT": eventTypes.Quit,
             "KEYDOWN": eventTypes.KeyDown,
             "K_w": py.Int(ebiten.KeyW),
