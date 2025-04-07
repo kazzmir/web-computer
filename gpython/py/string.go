@@ -15,7 +15,7 @@ package py
 import (
 	"bytes"
 	"fmt"
-    "log"
+    // "log"
 	"strconv"
 	"strings"
 	"unicode"
@@ -778,6 +778,8 @@ func (str String) Format(args Tuple, kwargs StringDict) (Object, error) {
 
     state := StateLiteral
 
+    // FIXME: replace this with a format string parser
+    // https://docs.python.org/3/library/string.html#string.Formatter.vformat
     for _, ch := range str {
         switch state {
             case StateLiteral:
@@ -800,7 +802,7 @@ func (str String) Format(args Tuple, kwargs StringDict) (Object, error) {
     }
 
     if state == StateExpression {
-		return nil, ExceptionNewf(TypeError, "Unclosed expression in string")
+        return nil, ExceptionNewf(TypeError, "Unclosed expression in string")
     }
 
     parts = append(parts, currentPart)
@@ -811,7 +813,27 @@ func (str String) Format(args Tuple, kwargs StringDict) (Object, error) {
         if part.literal != "" {
             out.WriteString(part.literal)
         } else if part.expression != "" {
-            log.Printf("todo: String format expression '%v'", part.expression)
+            // log.Printf("todo: String format expression '%v'", part.expression)
+
+            // positional argument {0}, {1}
+            number, err := strconv.Atoi(part.expression)
+            if err == nil {
+                if number < len(args) {
+                    asStr, ok := args[number].(I__str__)
+                    if ok {
+                        argString, err := asStr.M__str__()
+                        if err != nil {
+                            return nil, err
+                        }
+                        out.WriteString(string(argString.(String)))
+                    } else {
+                        return nil, ExceptionNewf(TypeError, "Invalid argument %v", args[number])
+                    }
+
+                } else {
+                    return nil, ExceptionNewf(IndexError, "Index out of range for %v", number)
+                }
+            }
         }
     }
 
