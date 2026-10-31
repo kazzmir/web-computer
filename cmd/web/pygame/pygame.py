@@ -1,8 +1,10 @@
 # Python-facing objects; pixel operations and input are backed by Ebitengine.
+FULLSCREEN = -2147483648
 SCALED = 512
 RLEACCEL = 16384
 QUIT = 256
 KEYDOWN = 768
+KEYUP = 769
 MOUSEBUTTONDOWN = 1025
 MOUSEBUTTONUP = 1026
 
@@ -93,9 +95,10 @@ def _wrap(pixels):
 
 class _Display:
     def __init__(self): self.surface = None
+    def init(self): pass
     def set_mode(self, size, flags=0):
         self.surface = Surface(size)
-        _set_mode(int(size[0]), int(size[1]))
+        _set_mode(int(size[0]), int(size[1]), not not (flags & FULLSCREEN))
         return self.surface
     def get_surface(self): return self.surface
     def set_caption(self, caption): _caption(caption)
@@ -108,14 +111,15 @@ class _Image:
 image = _Image()
 
 class _Transform:
-    def scale(self, surface, size): return _wrap(_scale(surface._pixels, int(size[0]), int(size[1])))
+    def scale(self, surface, size): return _wrap(_scale(surface._pixels, int(size[0]), int(size[1]), False))
+    def smoothscale(self, surface, size): return _wrap(_scale(surface._pixels, int(size[0]), int(size[1]), True))
     def flip(self, surface, x, y): return _wrap(_flip(surface._pixels, x, y))
     def rotate(self, surface, angle): return _wrap(_rotate(surface._pixels, angle))
 transform = _Transform()
 
 class _Mouse:
     def get_pos(self): return _mouse_pos()
-    def set_visible(self, visible): return _mouse_visible(visible)
+    def set_visible(self, visible): return _mouse_visible(not not visible)
 mouse = _Mouse()
 
 class _Sprite:

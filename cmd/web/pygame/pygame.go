@@ -24,7 +24,24 @@ type GraphicsSystem interface {
 	SetScreenSize(int, int)
 }
 
-type pixels struct{ image *ebiten.Image }
+type pixels struct {
+	image     *ebiten.Image
+	emptySize image.Point // Ebitengine images cannot have zero dimensions.
+}
+
+func newPixels(w, h int) *pixels {
+	if w == 0 || h == 0 {
+		return &pixels{emptySize: image.Pt(w, h)}
+	}
+	return &pixels{image: ebiten.NewImage(w, h)}
+}
+
+func (p *pixels) bounds() image.Rectangle {
+	if p.image == nil {
+		return image.Rectangle{Max: p.emptySize}
+	}
+	return p.image.Bounds()
+}
 
 var pixelsType = py.NewType("_Pixels", "Internal surface storage")
 
@@ -89,13 +106,13 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 	img := func(a py.Object) *ebiten.Image { return a.(*pixels).image }
 	add("_new_surface", "ii", func(a py.Tuple) (py.Object, error) {
 		w, h := integer(a[0]), integer(a[1])
-		if w <= 0 || h <= 0 {
-			return nil, py.ExceptionNewf(py.ValueError, "surface dimensions must be positive")
+		if w < 0 || h < 0 {
+			return nil, py.ExceptionNewf(py.ValueError, "surface dimensions must be nonnegative")
 		}
-		return &pixels{ebiten.NewImage(w, h)}, nil
+		return newPixels(w, h), nil
 	})
 	add("_size", "p", func(a py.Tuple) (py.Object, error) {
-		b := img(a[0]).Bounds()
+		b := a[0].(*pixels).bounds()
 		return py.Tuple{py.Int(b.Dx()), py.Int(b.Dy())}, nil
 	})
 	add("_fill", "po", func(a py.Tuple) (py.Object, error) {
@@ -103,10 +120,15 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		if e != nil {
 			return nil, e
 		}
-		img(a[0]).Fill(c)
+		if im := img(a[0]); im != nil {
+			im.Fill(c)
+		}
 		return py.None, nil
 	})
 	add("_blit", "ppii", func(a py.Tuple) (py.Object, error) {
+		if img(a[0]) == nil || img(a[1]) == nil {
+			return py.None, nil
+		}
 		var o ebiten.DrawImageOptions
 		o.GeoM.Translate(float64(integer(a[2])), float64(integer(a[3])))
 		img(a[0]).DrawImage(img(a[1]), &o)
@@ -114,7 +136,7 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 	})
 	add("_get_at", "pii", func(a py.Tuple) (py.Object, error) {
 		x, y := integer(a[1]), integer(a[2])
-		if !image.Pt(x, y).In(img(a[0]).Bounds()) {
+		if !image.Pt(x, y).In(a[0].(*pixels).bounds()) {
 			return nil, py.ExceptionNewf(py.IndexError, "pixel outside surface")
 		}
 		c := color.NRGBAModel.Convert(img(a[0]).At(x, y)).(color.NRGBA)
@@ -126,6 +148,9 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 			return nil, e
 		}
 		im := img(a[0])
+		if im == nil {
+			return py.None, nil
+		}
 		b := im.Bounds()
 		data := make([]byte, 4*b.Dx()*b.Dy())
 		im.ReadPixels(data)
@@ -151,22 +176,32 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		if e != nil {
 			return nil, py.ExceptionNewf(py.OSError, "loading %s: %v", name, e)
 		}
-		return &pixels{ebiten.NewImageFromImage(decoded)}, nil
+		return &pixels{image: ebiten.NewImageFromImage(decoded)}, nil
 	})
-	add("_scale", "pii", func(a py.Tuple) (py.Object, error) {
+	add("_scale", "piib", func(a py.Tuple) (py.Object, error) {
 		w, h := integer(a[1]), integer(a[2])
-		if w <= 0 || h <= 0 {
-			return nil, py.ExceptionNewf(py.ValueError, "scale dimensions must be positive")
+		if w < 0 || h < 0 {
+			return nil, py.ExceptionNewf(py.ValueError, "scale dimensions must be nonnegative")
 		}
+		out := newPixels(w, h)
 		from := img(a[0])
+		if out.image == nil || from == nil {
+			return out, nil
+		}
 		b := from.Bounds()
-		out := ebiten.NewImage(w, h)
 		var o ebiten.DrawImageOptions
+		if bool(a[3].(py.Bool)) {
+			o.Filter = ebiten.FilterLinear
+		}
 		o.GeoM.Scale(float64(w)/float64(b.Dx()), float64(h)/float64(b.Dy()))
-		out.DrawImage(from, &o)
-		return &pixels{out}, nil
+		out.image.DrawImage(from, &o)
+		return out, nil
 	})
 	add("_flip", "pbb", func(a py.Tuple) (py.Object, error) {
+		if img(a[0]) == nil {
+			b := a[0].(*pixels).bounds()
+			return newPixels(b.Dx(), b.Dy()), nil
+		}
 		from := img(a[0])
 		b := from.Bounds()
 		out := ebiten.NewImage(b.Dx(), b.Dy())
@@ -184,7 +219,7 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		o.GeoM.Scale(sx, sy)
 		o.GeoM.Translate(tx, ty)
 		out.DrawImage(from, &o)
-		return &pixels{out}, nil
+		return &pixels{image: out}, nil
 	})
 	add("_rotate", "pn", func(a py.Tuple) (py.Object, error) {
 		angle := 0.0
@@ -198,6 +233,10 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 				angle = 1
 			}
 		}
+		if img(a[0]) == nil {
+			b := a[0].(*pixels).bounds()
+			return newPixels(b.Dx(), b.Dy()), nil
+		}
 		rad := -angle * math.Pi / 180
 		from := img(a[0])
 		b := from.Bounds()
@@ -210,10 +249,14 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		o.GeoM.Rotate(rad)
 		o.GeoM.Translate(float64(nw)/2, float64(nh)/2)
 		out.DrawImage(from, &o)
-		return &pixels{out}, nil
+		return &pixels{image: out}, nil
 	})
-	add("_set_mode", "ii", func(a py.Tuple) (py.Object, error) {
+	add("_set_mode", "iib", func(a py.Tuple) (py.Object, error) {
+		if integer(a[0]) <= 0 || integer(a[1]) <= 0 {
+			return nil, py.ExceptionNewf(py.ValueError, "display dimensions must be positive")
+		}
 		system.SetScreenSize(integer(a[0]), integer(a[1]))
+		ebiten.SetFullscreen(bool(a[2].(py.Bool)))
 		return py.None, nil
 	})
 	add("_caption", "s", func(a py.Tuple) (py.Object, error) {
@@ -222,7 +265,11 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 	})
 	add("_present", "p", func(a py.Tuple) (py.Object, error) {
 		im := img(a[0])
-		system.AddDrawCall(func(screen *ebiten.Image) { screen.DrawImage(im, nil) })
+		system.AddDrawCall(func(screen *ebiten.Image) {
+			if im != nil {
+				screen.DrawImage(im, nil)
+			}
+		})
 		system.Flip()
 		return py.None, nil
 	})
@@ -251,6 +298,9 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		events := py.Tuple{}
 		for _, key := range inpututil.AppendJustPressedKeys(nil) {
 			events = append(events, py.Tuple{py.Int(768), py.Int(key)})
+		}
+		for _, key := range inpututil.AppendJustReleasedKeys(nil) {
+			events = append(events, py.Tuple{py.Int(769), py.Int(key)})
 		}
 		for _, button := range []ebiten.MouseButton{ebiten.MouseButtonLeft, ebiten.MouseButtonMiddle, ebiten.MouseButtonRight} {
 			n := py.Int(1)

@@ -91,6 +91,7 @@ assert event_calls == 5
 	if system.frames != 6 {
 		g.t.Errorf("got %d frames, want 6", system.frames)
 	}
+	g.t.Run("Scaletest", testScaletest)
 	return ebiten.Termination
 }
 

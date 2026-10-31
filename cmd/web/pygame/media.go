@@ -134,7 +134,7 @@ func mediaMethods() ([]*py.Method, func()) {
 			options.ColorScale.ScaleWithColor(c)
 			options.LineSpacing = f.size * 1.2
 			text.Draw(out, string(message.(py.String)), face, options)
-			return &pixels{out}, nil
+			return &pixels{image: out}, nil
 		}, 0, ""),
 		py.MustNewMethod("_sound", func(self py.Object, args py.Tuple) (py.Object, error) {
 			var filename py.Object

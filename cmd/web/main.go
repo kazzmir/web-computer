@@ -131,6 +131,7 @@ func testGraphics() {
     ebiten.SetTPS(20)
 
     opts := py.DefaultContextOpts()
+    opts.SysArgs = os.Args[1:]
 
     python := py.NewContext(opts)
     defer python.Close()
