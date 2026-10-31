@@ -8,7 +8,10 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"math"
+	"strings"
 	"time"
+
+	"golang.org/x/image/colornames"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -27,6 +30,7 @@ type GraphicsSystem interface {
 type pixels struct {
 	image     *ebiten.Image
 	emptySize image.Point // Ebitengine images cannot have zero dimensions.
+	clip      *image.Rectangle
 }
 
 func newPixels(w, h int) *pixels {
@@ -40,7 +44,7 @@ func (p *pixels) bounds() image.Rectangle {
 	if p.image == nil {
 		return image.Rectangle{Max: p.emptySize}
 	}
-	return p.image.Bounds()
+	return image.Rectangle{Max: p.image.Bounds().Size()}
 }
 
 var pixelsType = py.NewType("_Pixels", "Internal surface storage")
@@ -48,6 +52,16 @@ var pixelsType = py.NewType("_Pixels", "Internal surface storage")
 func (p *pixels) Type() *py.Type { return pixelsType }
 
 func rgba(obj py.Object) (color.RGBA, error) {
+	if name, ok := obj.(py.String); ok {
+		key := strings.ToLower(strings.ReplaceAll(string(name), " ", ""))
+		if c, found := colornames.Map[key]; found {
+			return c, nil
+		}
+		if key == "transparent" {
+			return color.RGBA{}, nil
+		}
+		return color.RGBA{}, py.ExceptionNewf(py.ValueError, "unknown color name: %s", name)
+	}
 	values, err := py.SequenceTuple(obj)
 	if err != nil {
 		return color.RGBA{}, err
@@ -102,6 +116,14 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 			return fn(args)
 		}, 0, ""))
 	}
+	registerSurfaceMethods(add)
+	add("_color", "o", func(a py.Tuple) (py.Object, error) {
+		c, err := rgba(a[0])
+		if err != nil {
+			return nil, err
+		}
+		return py.Tuple{py.Int(c.R), py.Int(c.G), py.Int(c.B), py.Int(c.A)}, nil
+	})
 	integer := func(a py.Object) int { return int(a.(py.Int)) }
 	img := func(a py.Object) *ebiten.Image { return a.(*pixels).image }
 	add("_new_surface", "ii", func(a py.Tuple) (py.Object, error) {
@@ -120,18 +142,21 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		if e != nil {
 			return nil, e
 		}
-		if im := img(a[0]); im != nil {
+		if im := a[0].(*pixels).target(); im != nil {
 			im.Fill(c)
 		}
 		return py.None, nil
 	})
 	add("_blit", "ppii", func(a py.Tuple) (py.Object, error) {
-		if img(a[0]) == nil || img(a[1]) == nil {
+		to := a[0].(*pixels)
+		target := to.target()
+		if target == nil || img(a[1]) == nil {
 			return py.None, nil
 		}
 		var o ebiten.DrawImageOptions
-		o.GeoM.Translate(float64(integer(a[2])), float64(integer(a[3])))
-		img(a[0]).DrawImage(img(a[1]), &o)
+		origin := to.image.Bounds().Min
+		o.GeoM.Translate(float64(integer(a[2])+origin.X), float64(integer(a[3])+origin.Y))
+		target.DrawImage(img(a[1]), &o)
 		return py.None, nil
 	})
 	add("_get_at", "pii", func(a py.Tuple) (py.Object, error) {
@@ -139,7 +164,8 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		if !image.Pt(x, y).In(a[0].(*pixels).bounds()) {
 			return nil, py.ExceptionNewf(py.IndexError, "pixel outside surface")
 		}
-		c := color.NRGBAModel.Convert(img(a[0]).At(x, y)).(color.NRGBA)
+		origin := img(a[0]).Bounds().Min
+		c := color.NRGBAModel.Convert(img(a[0]).At(x+origin.X, y+origin.Y)).(color.NRGBA)
 		return py.Tuple{py.Int(c.R), py.Int(c.G), py.Int(c.B), py.Int(c.A)}, nil
 	})
 	add("_colorkey", "po", func(a py.Tuple) (py.Object, error) {
@@ -184,17 +210,7 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 			return nil, py.ExceptionNewf(py.ValueError, "scale dimensions must be nonnegative")
 		}
 		out := newPixels(w, h)
-		from := img(a[0])
-		if out.image == nil || from == nil {
-			return out, nil
-		}
-		b := from.Bounds()
-		var o ebiten.DrawImageOptions
-		if bool(a[3].(py.Bool)) {
-			o.Filter = ebiten.FilterLinear
-		}
-		o.GeoM.Scale(float64(w)/float64(b.Dx()), float64(h)/float64(b.Dy()))
-		out.image.DrawImage(from, &o)
+		scaleInto(a[0].(*pixels), out, bool(a[3].(py.Bool)))
 		return out, nil
 	})
 	add("_flip", "pbb", func(a py.Tuple) (py.Object, error) {
@@ -263,14 +279,37 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		ebiten.SetWindowTitle(string(a[0].(py.String)))
 		return py.None, nil
 	})
-	add("_present", "p", func(a py.Tuple) (py.Object, error) {
-		im := img(a[0])
+	var display *pixels
+	presentedSinceTick := false
+	present := func(p *pixels) {
+		im := p.image
 		system.AddDrawCall(func(screen *ebiten.Image) {
 			if im != nil {
 				screen.DrawImage(im, nil)
 			}
 		})
 		system.Flip()
+	}
+	add("_present", "p", func(a py.Tuple) (py.Object, error) {
+		display = a[0].(*pixels)
+		present(display)
+		presentedSinceTick = true
+		return py.None, nil
+	})
+	add("_tick", "i", func(a py.Tuple) (py.Object, error) {
+		fps := integer(a[0])
+		if fps < 0 {
+			return nil, py.ExceptionNewf(py.ValueError, "framerate must be nonnegative")
+		}
+		if fps > 0 {
+			ebiten.SetTPS(fps)
+		}
+		// Event-driven scripts may not flip while idle. Yield at tick in that
+		// case so Ebitengine can deliver input and keep the last screen drawn.
+		if !presentedSinceTick && display != nil {
+			present(display)
+		}
+		presentedSinceTick = false
 		return py.None, nil
 	})
 	add("_mouse_pos", "", func(a py.Tuple) (py.Object, error) {
@@ -294,10 +333,37 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		}
 		return py.None, nil
 	})
+	add("_key_pressed", "", func(a py.Tuple) (py.Object, error) {
+		keys := make(py.Tuple, int(ebiten.KeyMax)+1)
+		for key := range keys {
+			keys[key] = py.Bool(ebiten.IsKeyPressed(ebiten.Key(key)))
+		}
+		return keys, nil
+	})
+	var repeatDelay, repeatInterval time.Duration
+	repeats := map[ebiten.Key]time.Time{}
+	add("_key_repeat", "ii", func(a py.Tuple) (py.Object, error) {
+		repeatDelay = time.Duration(integer(a[0])) * time.Millisecond
+		repeatInterval = time.Duration(integer(a[1])) * time.Millisecond
+		repeats = map[ebiten.Key]time.Time{}
+		return py.None, nil
+	})
 	add("_events", "", func(a py.Tuple) (py.Object, error) {
 		events := py.Tuple{}
+		now := time.Now()
 		for _, key := range inpututil.AppendJustPressedKeys(nil) {
 			events = append(events, py.Tuple{py.Int(768), py.Int(key)})
+			repeats[key] = now.Add(repeatDelay)
+		}
+		for key, next := range repeats {
+			if !ebiten.IsKeyPressed(key) {
+				delete(repeats, key)
+				continue
+			}
+			if repeatDelay > 0 && repeatInterval > 0 && !now.Before(next) {
+				events = append(events, py.Tuple{py.Int(768), py.Int(key)})
+				repeats[key] = now.Add(repeatInterval)
+			}
 		}
 		for _, key := range inpututil.AppendJustReleasedKeys(nil) {
 			events = append(events, py.Tuple{py.Int(769), py.Int(key)})
@@ -326,6 +392,10 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 	for name, key := range map[string]ebiten.Key{"K_ESCAPE": ebiten.KeyEscape, "K_w": ebiten.KeyW, "K_a": ebiten.KeyA, "K_s": ebiten.KeyS, "K_d": ebiten.KeyD, "K_UP": ebiten.KeyUp, "K_DOWN": ebiten.KeyDown, "K_LEFT": ebiten.KeyLeft, "K_RIGHT": ebiten.KeyRight} {
 		globals[name] = py.Int(key)
 	}
+	py.RegisterModule(&py.ModuleImpl{
+		Info:    py.ModuleInfo{Name: "pygame.transform"},
+		CodeSrc: "from pygame import transform as _impl\nscale = _impl.scale\nsmoothscale = _impl.smoothscale\nflip = _impl.flip\nrotate = _impl.rotate\n",
+	})
 	py.RegisterModule(&py.ModuleImpl{Info: py.ModuleInfo{Name: "pygame", Doc: "Pygame backed by Ebitengine"}, Methods: methods, Globals: globals, CodeSrc: source,
 		OnContextClosed: func(*py.Module) { closeAudio() },
 	})

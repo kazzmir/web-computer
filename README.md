@@ -14,6 +14,14 @@ go run ./cmd/web scaletest.py data/chimp.png
 go run ./cmd/web scaletest.py data/chimp.png -t -convert_alpha
 ```
 
+Run the zoomed scroll viewer (arrow keys or click the triangles; Escape exits):
+
+```sh
+go run ./cmd/web scroll.py
+# Or supply an image:
+go run ./cmd/web scroll.py data/chimp.png
+```
+
 The embedded runtime supports f-strings, including expressions, `!s`/`!r`/`!a`
 conversions, escaped braces, and numeric format specs such as `.4f`.
 

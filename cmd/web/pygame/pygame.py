@@ -43,6 +43,10 @@ class Rect:
     def _get_size(self): return self.width, self.height
     def _set_size(self, v): self.width, self.height = int(v[0]), int(v[1])
     size = property(_get_size, _set_size)
+    w = property(lambda self: self.width, lambda self, value: setattr(self, 'width', int(value)))
+    h = property(lambda self: self.height, lambda self, value: setattr(self, 'height', int(value)))
+
+    def copy(self): return Rect(self.x, self.y, self.width, self.height)
 
     def move(self, *args):
         r = Rect(self.x, self.y, self.width, self.height)
@@ -65,7 +69,7 @@ class Rect:
         return self.width > 0 and self.height > 0 and r.width > 0 and r.height > 0 and self.left < r.right and self.right > r.left and self.top < r.bottom and self.bottom > r.top
 
 class Surface:
-    def __init__(self, size, _pixels=None):
+    def __init__(self, size, flags=0, depth=0, _pixels=None):
         if _pixels is None:
             self._pixels = _new_surface(int(size[0]), int(size[1]))
         else:
@@ -89,9 +93,22 @@ class Surface:
         return Rect(dest, source.get_size())
     def get_at(self, pos): return _get_at(self._pixels, int(pos[0]), int(pos[1]))
     def set_colorkey(self, color, flags=0): _colorkey(self._pixels, color)
+    def get_clip(self): return Rect(_get_clip(self._pixels))
+    def set_clip(self, rect=None):
+        if rect is not None:
+            rect = rect if isinstance(rect, Rect) else Rect(rect)
+            rect = (rect.x, rect.y, rect.w, rect.h)
+        _set_clip(self._pixels, rect)
+    def subsurface(self, rect):
+        rect = rect if isinstance(rect, Rect) else Rect(rect)
+        return _wrap(_subsurface(self._pixels, rect.x, rect.y, rect.w, rect.h))
+    def scroll(self, dx=0, dy=0): _scroll(self._pixels, int(dx), int(dy))
 
 def _wrap(pixels):
-    return Surface(None, pixels)
+    return Surface(None, _pixels=pixels)
+
+def Color(*args):
+    return _color(args[0] if len(args) == 1 else args)
 
 class _Display:
     def __init__(self): self.surface = None
@@ -103,7 +120,7 @@ class _Display:
     def get_surface(self): return self.surface
     def set_caption(self, caption): _caption(caption)
     def flip(self): _present(self.surface._pixels)
-    def update(self): self.flip()
+    def update(self, rect=None): self.flip()
 display = _Display()
 
 class _Image:
@@ -111,8 +128,13 @@ class _Image:
 image = _Image()
 
 class _Transform:
-    def scale(self, surface, size): return _wrap(_scale(surface._pixels, int(size[0]), int(size[1]), False))
-    def smoothscale(self, surface, size): return _wrap(_scale(surface._pixels, int(size[0]), int(size[1]), True))
+    def _scale(self, surface, size, dest_surface, smooth):
+        w, h = int(size[0]), int(size[1])
+        if dest_surface is None: return _wrap(_scale(surface._pixels, w, h, smooth))
+        _scale_to(surface._pixels, dest_surface._pixels, w, h, smooth)
+        return dest_surface
+    def scale(self, surface, size, dest_surface=None): return self._scale(surface, size, dest_surface, False)
+    def smoothscale(self, surface, size, dest_surface=None): return self._scale(surface, size, dest_surface, True)
     def flip(self, surface, x, y): return _wrap(_flip(surface._pixels, x, y))
     def rotate(self, surface, angle): return _wrap(_rotate(surface._pixels, angle))
 transform = _Transform()
@@ -150,7 +172,7 @@ sprite.RenderPlain = _Group
 class _Clock:
     def __init__(self): self._last = _ticks()
     def tick(self, fps=0):
-        if fps: _tps(fps)
+        _tick(int(fps))
         now = _ticks()
         elapsed = now - self._last
         self._last = now
@@ -168,9 +190,27 @@ class _Events:
             e.type = kind
             e.key = key
             e.button = key
+            if kind == MOUSEBUTTONDOWN or kind == MOUSEBUTTONUP: e.pos = mouse.get_pos()
             events.append(e)
         return events
 event = _Events()
+
+class _Key:
+    def __init__(self): self._repeat = (0, 0)
+    def get_pressed(self): return _key_pressed()
+    def get_repeat(self): return self._repeat
+    def set_repeat(self, delay=0, interval=0):
+        delay, interval = int(delay), int(interval)
+        if delay < 0 or interval < 0: raise ValueError('repeat values must be nonnegative')
+        if delay and not interval: interval = delay
+        self._repeat = (delay, interval)
+        _key_repeat(delay, interval)
+key = _Key()
+
+class _Draw:
+    def polygon(self, surface, color, points):
+        return Rect(_polygon(surface._pixels, color, points))
+draw = _Draw()
 
 class _Font:
     def __init__(self, filename, size): self._face = _font(filename, int(size))
