@@ -143,6 +143,9 @@ const (
 	MAP_ADD     OpCode = 147
 
 	LOAD_CLASSDEREF OpCode = 148 // New in Python 3.4
+
+	FORMAT_VALUE OpCode = 155 // Conversion flags and optional format spec
+	BUILD_STRING OpCode = 157 // Number of formatted string parts
 )
 
 // Rich comparison opcodes

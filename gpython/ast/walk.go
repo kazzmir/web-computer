@@ -316,6 +316,17 @@ func Walk(ast Ast, Visit func(Ast) bool) {
 	case *Str:
 		// S py.String
 
+	case *JoinedStr:
+		for _, value := range node.Values {
+			Walk(value, Visit)
+		}
+
+	case *FormattedValue:
+		Walk(node.Value, Visit)
+		if node.FormatSpec != nil {
+			Walk(node.FormatSpec, Visit)
+		}
+
 	case *Bytes:
 		// S py.Bytes
 

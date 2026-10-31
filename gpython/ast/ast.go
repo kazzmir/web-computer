@@ -65,8 +65,9 @@ type Pos struct {
 	ColOffset int
 }
 
-func (o *Pos) GetLineno() int    { return o.Lineno }
-func (o *Pos) GetColOffset() int { return o.ColOffset }
+func (o *Pos) GetLineno() int      { return o.Lineno }
+func (o *Pos) GetColOffset() int   { return o.ColOffset }
+func (o *Pos) SetPosition(pos Pos) { *o = pos }
 
 // Base AST node
 type AST struct {
@@ -517,6 +518,20 @@ type Str struct {
 	S py.String
 }
 
+// JoinedStr and FormattedValue represent f-strings without evaluating fields
+// during parsing, preserving scope, closures, and left-to-right evaluation.
+type JoinedStr struct {
+	ExprBase
+	Values []Expr
+}
+
+type FormattedValue struct {
+	ExprBase
+	Value      Expr
+	Conversion int // -1, 's', 'r', or 'a'
+	FormatSpec Expr
+}
+
 type Bytes struct {
 	ExprBase
 	S py.Bytes
@@ -822,6 +837,8 @@ var CompareType = ExprBaseType.NewType("Compare", "Compare Node", nil, nil)
 var CallType = ExprBaseType.NewType("Call", "Call Node", nil, nil)
 var NumType = ExprBaseType.NewType("Num", "Num Node", nil, nil)
 var StrType = ExprBaseType.NewType("Str", "Str Node", nil, nil)
+var JoinedStrType = ExprBaseType.NewType("JoinedStr", "JoinedStr Node", nil, nil)
+var FormattedValueType = ExprBaseType.NewType("FormattedValue", "FormattedValue Node", nil, nil)
 var BytesType = ExprBaseType.NewType("Bytes", "Bytes Node", nil, nil)
 var NameConstantType = ExprBaseType.NewType("NameConstant", "NameConstant Node", nil, nil)
 var EllipsisType = ExprBaseType.NewType("Ellipsis", "Ellipsis Node", nil, nil)
@@ -847,68 +864,70 @@ var AliasType = ASTType.NewType("Alias", "Alias Node", nil, nil)
 var WithItemType = ASTType.NewType("WithItem", "WithItem Node", nil, nil)
 
 // Python type definitions
-func (o *AST) Type() *py.Type           { return ASTType }
-func (o *ModBase) Type() *py.Type       { return ModBaseType }
-func (o *Module) Type() *py.Type        { return ModuleType }
-func (o *Interactive) Type() *py.Type   { return InteractiveType }
-func (o *Expression) Type() *py.Type    { return ExpressionType }
-func (o *Suite) Type() *py.Type         { return SuiteType }
-func (o *StmtBase) Type() *py.Type      { return StmtBaseType }
-func (o *FunctionDef) Type() *py.Type   { return FunctionDefType }
-func (o *ClassDef) Type() *py.Type      { return ClassDefType }
-func (o *Return) Type() *py.Type        { return ReturnType }
-func (o *Delete) Type() *py.Type        { return DeleteType }
-func (o *Assign) Type() *py.Type        { return AssignType }
-func (o *AugAssign) Type() *py.Type     { return AugAssignType }
-func (o *For) Type() *py.Type           { return ForType }
-func (o *While) Type() *py.Type         { return WhileType }
-func (o *If) Type() *py.Type            { return IfType }
-func (o *With) Type() *py.Type          { return WithType }
-func (o *Raise) Type() *py.Type         { return RaiseType }
-func (o *Try) Type() *py.Type           { return TryType }
-func (o *Assert) Type() *py.Type        { return AssertType }
-func (o *Import) Type() *py.Type        { return ImportType }
-func (o *ImportFrom) Type() *py.Type    { return ImportFromType }
-func (o *Global) Type() *py.Type        { return GlobalType }
-func (o *Nonlocal) Type() *py.Type      { return NonlocalType }
-func (o *ExprStmt) Type() *py.Type      { return ExprStmtType }
-func (o *Pass) Type() *py.Type          { return PassType }
-func (o *Break) Type() *py.Type         { return BreakType }
-func (o *Continue) Type() *py.Type      { return ContinueType }
-func (o *ExprBase) Type() *py.Type      { return ExprBaseType }
-func (o *BoolOp) Type() *py.Type        { return BoolOpType }
-func (o *BinOp) Type() *py.Type         { return BinOpType }
-func (o *UnaryOp) Type() *py.Type       { return UnaryOpType }
-func (o *Lambda) Type() *py.Type        { return LambdaType }
-func (o *IfExp) Type() *py.Type         { return IfExpType }
-func (o *Dict) Type() *py.Type          { return DictType }
-func (o *Set) Type() *py.Type           { return SetType }
-func (o *ListComp) Type() *py.Type      { return ListCompType }
-func (o *SetComp) Type() *py.Type       { return SetCompType }
-func (o *DictComp) Type() *py.Type      { return DictCompType }
-func (o *GeneratorExp) Type() *py.Type  { return GeneratorExpType }
-func (o *Yield) Type() *py.Type         { return YieldType }
-func (o *YieldFrom) Type() *py.Type     { return YieldFromType }
-func (o *Compare) Type() *py.Type       { return CompareType }
-func (o *Call) Type() *py.Type          { return CallType }
-func (o *Num) Type() *py.Type           { return NumType }
-func (o *Str) Type() *py.Type           { return StrType }
-func (o *Bytes) Type() *py.Type         { return BytesType }
-func (o *NameConstant) Type() *py.Type  { return NameConstantType }
-func (o *Ellipsis) Type() *py.Type      { return EllipsisType }
-func (o *Attribute) Type() *py.Type     { return AttributeType }
-func (o *Subscript) Type() *py.Type     { return SubscriptType }
-func (o *Starred) Type() *py.Type       { return StarredType }
-func (o *Name) Type() *py.Type          { return NameType }
-func (o *List) Type() *py.Type          { return ListType }
-func (o *Tuple) Type() *py.Type         { return TupleType }
-func (o *SliceBase) Type() *py.Type     { return SliceBaseType }
-func (o *Slice) Type() *py.Type         { return SliceType }
-func (o *ExtSlice) Type() *py.Type      { return ExtSliceType }
-func (o *Index) Type() *py.Type         { return IndexType }
-func (o *ExceptHandler) Type() *py.Type { return ExceptHandlerType }
-func (o *Arguments) Type() *py.Type     { return ArgumentsType }
-func (o *Arg) Type() *py.Type           { return ArgType }
-func (o *Keyword) Type() *py.Type       { return KeywordType }
-func (o *Alias) Type() *py.Type         { return AliasType }
-func (o *WithItem) Type() *py.Type      { return WithItemType }
+func (o *AST) Type() *py.Type            { return ASTType }
+func (o *ModBase) Type() *py.Type        { return ModBaseType }
+func (o *Module) Type() *py.Type         { return ModuleType }
+func (o *Interactive) Type() *py.Type    { return InteractiveType }
+func (o *Expression) Type() *py.Type     { return ExpressionType }
+func (o *Suite) Type() *py.Type          { return SuiteType }
+func (o *StmtBase) Type() *py.Type       { return StmtBaseType }
+func (o *FunctionDef) Type() *py.Type    { return FunctionDefType }
+func (o *ClassDef) Type() *py.Type       { return ClassDefType }
+func (o *Return) Type() *py.Type         { return ReturnType }
+func (o *Delete) Type() *py.Type         { return DeleteType }
+func (o *Assign) Type() *py.Type         { return AssignType }
+func (o *AugAssign) Type() *py.Type      { return AugAssignType }
+func (o *For) Type() *py.Type            { return ForType }
+func (o *While) Type() *py.Type          { return WhileType }
+func (o *If) Type() *py.Type             { return IfType }
+func (o *With) Type() *py.Type           { return WithType }
+func (o *Raise) Type() *py.Type          { return RaiseType }
+func (o *Try) Type() *py.Type            { return TryType }
+func (o *Assert) Type() *py.Type         { return AssertType }
+func (o *Import) Type() *py.Type         { return ImportType }
+func (o *ImportFrom) Type() *py.Type     { return ImportFromType }
+func (o *Global) Type() *py.Type         { return GlobalType }
+func (o *Nonlocal) Type() *py.Type       { return NonlocalType }
+func (o *ExprStmt) Type() *py.Type       { return ExprStmtType }
+func (o *Pass) Type() *py.Type           { return PassType }
+func (o *Break) Type() *py.Type          { return BreakType }
+func (o *Continue) Type() *py.Type       { return ContinueType }
+func (o *ExprBase) Type() *py.Type       { return ExprBaseType }
+func (o *BoolOp) Type() *py.Type         { return BoolOpType }
+func (o *BinOp) Type() *py.Type          { return BinOpType }
+func (o *UnaryOp) Type() *py.Type        { return UnaryOpType }
+func (o *Lambda) Type() *py.Type         { return LambdaType }
+func (o *IfExp) Type() *py.Type          { return IfExpType }
+func (o *Dict) Type() *py.Type           { return DictType }
+func (o *Set) Type() *py.Type            { return SetType }
+func (o *ListComp) Type() *py.Type       { return ListCompType }
+func (o *SetComp) Type() *py.Type        { return SetCompType }
+func (o *DictComp) Type() *py.Type       { return DictCompType }
+func (o *GeneratorExp) Type() *py.Type   { return GeneratorExpType }
+func (o *Yield) Type() *py.Type          { return YieldType }
+func (o *YieldFrom) Type() *py.Type      { return YieldFromType }
+func (o *Compare) Type() *py.Type        { return CompareType }
+func (o *Call) Type() *py.Type           { return CallType }
+func (o *Num) Type() *py.Type            { return NumType }
+func (o *Str) Type() *py.Type            { return StrType }
+func (o *JoinedStr) Type() *py.Type      { return JoinedStrType }
+func (o *FormattedValue) Type() *py.Type { return FormattedValueType }
+func (o *Bytes) Type() *py.Type          { return BytesType }
+func (o *NameConstant) Type() *py.Type   { return NameConstantType }
+func (o *Ellipsis) Type() *py.Type       { return EllipsisType }
+func (o *Attribute) Type() *py.Type      { return AttributeType }
+func (o *Subscript) Type() *py.Type      { return SubscriptType }
+func (o *Starred) Type() *py.Type        { return StarredType }
+func (o *Name) Type() *py.Type           { return NameType }
+func (o *List) Type() *py.Type           { return ListType }
+func (o *Tuple) Type() *py.Type          { return TupleType }
+func (o *SliceBase) Type() *py.Type      { return SliceBaseType }
+func (o *Slice) Type() *py.Type          { return SliceType }
+func (o *ExtSlice) Type() *py.Type       { return ExtSliceType }
+func (o *Index) Type() *py.Type          { return IndexType }
+func (o *ExceptHandler) Type() *py.Type  { return ExceptHandlerType }
+func (o *Arguments) Type() *py.Type      { return ArgumentsType }
+func (o *Arg) Type() *py.Type            { return ArgType }
+func (o *Keyword) Type() *py.Type        { return KeywordType }
+func (o *Alias) Type() *py.Type          { return AliasType }
+func (o *WithItem) Type() *py.Type       { return WithItemType }

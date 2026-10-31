@@ -1847,6 +1847,27 @@ func (c *compiler) Expr(expr ast.Expr) {
 	case *ast.Str:
 		// S py.String
 		c.LoadConst(node.S)
+	case *ast.JoinedStr:
+		for _, value := range node.Values {
+			c.Expr(value)
+		}
+		c.OpArg(vm.BUILD_STRING, uint32(len(node.Values)))
+	case *ast.FormattedValue:
+		c.Expr(node.Value)
+		var flags uint32
+		switch node.Conversion {
+		case 's':
+			flags = 1
+		case 'r':
+			flags = 2
+		case 'a':
+			flags = 3
+		}
+		if node.FormatSpec != nil {
+			c.Expr(node.FormatSpec)
+			flags |= 4
+		}
+		c.OpArg(vm.FORMAT_VALUE, flags)
 	case *ast.Bytes:
 		// S py.Bytes
 		c.LoadConst(node.S)

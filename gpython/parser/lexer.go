@@ -778,12 +778,26 @@ func (x *yyLex) readString() (token int, value py.Object) {
 		}
 	}
 
+	startPos := x.pos
+	formattedString := false
 	rawString := false  // whether we are parsing a r"" string
 	byteString := false // whether we are parsing a b"" string
 	// u"" strings are just normal strings so we ignore that qualifier
 
 	// Start of string
 	if r0 == '\'' || r0 == '"' {
+		goto found
+	}
+	if (r0 == 'f' || r0 == 'F') && (r1 == '\'' || r1 == '"') {
+		formattedString = true
+		x.cut(1)
+		goto found
+	}
+	if ((r0 == 'f' || r0 == 'F') && (r1 == 'r' || r1 == 'R') ||
+		(r0 == 'r' || r0 == 'R') && (r1 == 'f' || r1 == 'F')) && (r2 == '\'' || r2 == '"') {
+		formattedString = true
+		rawString = true
+		x.cut(2)
 		goto found
 	}
 	// Or start of r"" u"" b""
@@ -880,6 +894,14 @@ found:
 		x.refill()
 	}
 foundEndOfString:
+	if formattedString {
+		value, err := parseFString(buf.String(), rawString, startPos, x.filename)
+		if err != nil {
+			x.SyntaxErrorf("%v", err)
+			return eofError, nil
+		}
+		return STRING, value
+	}
 	if !rawString {
 		var err error
 		buf, err = DecodeEscape(buf, byteString)

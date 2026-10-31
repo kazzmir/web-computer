@@ -1539,22 +1539,8 @@ strings:
 	}
 |	strings STRING
 	{
-		switch a := $$.(type) {
-		case py.String:
-			switch b := $2.(type) {
-			case py.String:
-				$$ = a + b
-			default:
-				yylex.(*yyLex).SyntaxError("cannot mix string and nonstring literals")
-			}
-		case py.Bytes:
-			switch b := $2.(type) {
-			case py.Bytes:
-				$$ = append(a, b...)
-			default:
-				yylex.(*yyLex).SyntaxError("cannot mix bytes and nonbytes literals")
-			}
-		}
+        value, err := concatenateStrings($1, $2)
+        if err != nil { yylex.(*yyLex).SyntaxError(err.Error()) } else { $$ = value }
 	}
 
 atom:
@@ -1609,8 +1595,10 @@ atom:
 			$$ = &ast.Str{ExprBase: ast.ExprBase{Pos: $<pos>$}, S: s}
 		case py.Bytes:
 			$$ = &ast.Bytes{ExprBase: ast.ExprBase{Pos: $<pos>$}, S: s}
+        case *ast.JoinedStr:
+            $$ = s
 		default:
-			panic("not Bytes or String in strings")
+			panic("not Bytes, String, or JoinedStr in strings")
 		}
 	}
 |	ELIPSIS

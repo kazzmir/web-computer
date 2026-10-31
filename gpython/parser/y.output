@@ -804,7 +804,7 @@ state 58
 	'-'  shift 77
 	'{'  shift 83
 	'~'  shift 78
-	.  reduce 308 (src line 1975)
+	.  reduce 308 (src line 1963)
 
 	strings  goto 86
 	expr  goto 69
@@ -1246,13 +1246,13 @@ state 83
 state 84
 	atom:  NAME.    (250)
 
-	.  reduce 250 (src line 1597)
+	.  reduce 250 (src line 1583)
 
 
 state 85
 	atom:  NUMBER.    (251)
 
-	.  reduce 251 (src line 1601)
+	.  reduce 251 (src line 1587)
 
 
 state 86
@@ -1260,31 +1260,31 @@ state 86
 	atom:  strings.    (252)
 
 	STRING  shift 207
-	.  reduce 252 (src line 1605)
+	.  reduce 252 (src line 1591)
 
 
 state 87
 	atom:  ELIPSIS.    (253)
 
-	.  reduce 253 (src line 1616)
+	.  reduce 253 (src line 1604)
 
 
 state 88
 	atom:  NONE.    (254)
 
-	.  reduce 254 (src line 1620)
+	.  reduce 254 (src line 1608)
 
 
 state 89
 	atom:  TRUE.    (255)
 
-	.  reduce 255 (src line 1624)
+	.  reduce 255 (src line 1612)
 
 
 state 90
 	atom:  FALSE.    (256)
 
-	.  reduce 256 (src line 1628)
+	.  reduce 256 (src line 1616)
 
 
 state 91
@@ -1545,7 +1545,7 @@ state 104
 state 105
 	expr_or_star_exprs:  expr_or_star_expr.    (277)
 
-	.  reduce 277 (src line 1751)
+	.  reduce 277 (src line 1739)
 
 
 state 106
@@ -1553,13 +1553,13 @@ state 106
 	expr_or_star_expr:  expr.    (275)
 
 	'|'  shift 179
-	.  reduce 275 (src line 1741)
+	.  reduce 275 (src line 1729)
 
 
 state 107
 	expr_or_star_expr:  star_expr.    (276)
 
-	.  reduce 276 (src line 1746)
+	.  reduce 276 (src line 1734)
 
 
 state 108
@@ -2095,7 +2095,7 @@ state 153
 state 154
 	yield_expr:  YIELD testlist.    (310)
 
-	.  reduce 310 (src line 1984)
+	.  reduce 310 (src line 1972)
 
 
 state 155
@@ -2704,7 +2704,7 @@ state 193
 state 194
 	atom:  '(' ')'.    (241)
 
-	.  reduce 241 (src line 1560)
+	.  reduce 241 (src line 1546)
 
 
 state 195
@@ -2736,7 +2736,7 @@ state 197
 state 198
 	atom:  '[' ']'.    (245)
 
-	.  reduce 245 (src line 1577)
+	.  reduce 245 (src line 1563)
 
 
 state 199
@@ -2761,7 +2761,7 @@ state 200
 state 201
 	atom:  '{' '}'.    (248)
 
-	.  reduce 248 (src line 1589)
+	.  reduce 248 (src line 1575)
 
 
 state 202
@@ -2796,7 +2796,7 @@ state 204
 state 205
 	dictorsetmaker:  testlistraw.    (286)
 
-	.  reduce 286 (src line 1813)
+	.  reduce 286 (src line 1801)
 
 
 state 206
@@ -2895,7 +2895,7 @@ state 214
 state 215
 	testlist:  tests optional_comma.    (280)
 
-	.  reduce 280 (src line 1769)
+	.  reduce 280 (src line 1757)
 
 
 state 216
@@ -3135,7 +3135,7 @@ state 221
 state 222
 	exprlist:  expr_or_star_exprs optional_comma.    (279)
 
-	.  reduce 279 (src line 1762)
+	.  reduce 279 (src line 1750)
 
 
 state 223
@@ -3356,7 +3356,7 @@ state 232
 	'-'  shift 77
 	'{'  shift 83
 	'~'  shift 78
-	.  reduce 291 (src line 1847)
+	.  reduce 291 (src line 1835)
 
 	strings  goto 86
 	expr  goto 69
@@ -3607,7 +3607,7 @@ state 250
 state 251
 	yield_expr:  YIELD FROM test.    (309)
 
-	.  reduce 309 (src line 1980)
+	.  reduce 309 (src line 1968)
 
 
 state 252
@@ -3923,7 +3923,7 @@ state 279
 	'-'  shift 77
 	'{'  shift 83
 	'~'  shift 78
-	.  reduce 291 (src line 1847)
+	.  reduce 291 (src line 1835)
 
 	strings  goto 86
 	expr  goto 69
@@ -3997,7 +3997,7 @@ state 281
 state 282
 	atom:  '(' yield_expr ')'.    (242)
 
-	.  reduce 242 (src line 1565)
+	.  reduce 242 (src line 1551)
 
 
 state 283
@@ -4066,7 +4066,7 @@ state 287
 state 288
 	atom:  '{' dictorsetmaker '}'.    (249)
 
-	.  reduce 249 (src line 1593)
+	.  reduce 249 (src line 1579)
 
 
 state 289
@@ -4110,7 +4110,7 @@ state 289
 state 290
 	dictorsetmaker:  test_colon_tests optional_comma.    (284)
 
-	.  reduce 284 (src line 1798)
+	.  reduce 284 (src line 1786)
 
 
 state 291
@@ -4154,13 +4154,13 @@ state 291
 state 292
 	dictorsetmaker:  test comp_for.    (287)
 
-	.  reduce 287 (src line 1817)
+	.  reduce 287 (src line 1805)
 
 
 state 293
 	testlistraw:  tests optional_comma.    (281)
 
-	.  reduce 281 (src line 1780)
+	.  reduce 281 (src line 1768)
 
 
 state 294
@@ -4208,7 +4208,7 @@ state 299
 state 300
 	expr_or_star_exprs:  expr_or_star_exprs ',' expr_or_star_expr.    (278)
 
-	.  reduce 278 (src line 1757)
+	.  reduce 278 (src line 1745)
 
 
 state 301
@@ -4562,7 +4562,7 @@ state 320
 state 321
 	arguments:  argument.    (289)
 
-	.  reduce 289 (src line 1836)
+	.  reduce 289 (src line 1824)
 
 
 state 322
@@ -4572,7 +4572,7 @@ state 322
 
 	FOR  shift 284
 	'='  shift 387
-	.  reduce 299 (src line 1901)
+	.  reduce 299 (src line 1889)
 
 	comp_for  goto 386
 
@@ -4761,7 +4761,7 @@ state 344
 state 345
 	trailer:  '(' ')'.    (257)
 
-	.  reduce 257 (src line 1634)
+	.  reduce 257 (src line 1622)
 
 
 state 346
@@ -4791,7 +4791,7 @@ state 348
 state 349
 	subscripts:  subscript.    (261)
 
-	.  reduce 261 (src line 1666)
+	.  reduce 261 (src line 1654)
 
 
 state 350
@@ -4802,7 +4802,7 @@ state 350
 	subscript:  test.':' test sliceop 
 
 	':'  shift 400
-	.  reduce 264 (src line 1693)
+	.  reduce 264 (src line 1681)
 
 
 state 351
@@ -4827,7 +4827,7 @@ state 351
 	'-'  shift 77
 	'{'  shift 83
 	'~'  shift 78
-	.  reduce 265 (src line 1698)
+	.  reduce 265 (src line 1686)
 
 	strings  goto 86
 	expr  goto 69
@@ -4850,13 +4850,13 @@ state 351
 state 352
 	trailer:  '.' NAME.    (260)
 
-	.  reduce 260 (src line 1661)
+	.  reduce 260 (src line 1649)
 
 
 state 353
 	atom:  '(' test_or_star_expr comp_for ')'.    (243)
 
-	.  reduce 243 (src line 1569)
+	.  reduce 243 (src line 1555)
 
 
 state 354
@@ -4870,19 +4870,19 @@ state 354
 state 355
 	atom:  '(' test_or_star_exprs optional_comma ')'.    (244)
 
-	.  reduce 244 (src line 1573)
+	.  reduce 244 (src line 1559)
 
 
 state 356
 	atom:  '[' test_or_star_expr comp_for ']'.    (246)
 
-	.  reduce 246 (src line 1581)
+	.  reduce 246 (src line 1567)
 
 
 state 357
 	atom:  '[' test_or_star_exprs optional_comma ']'.    (247)
 
-	.  reduce 247 (src line 1585)
+	.  reduce 247 (src line 1571)
 
 
 state 358
@@ -4897,7 +4897,7 @@ state 359
 	dictorsetmaker:  test ':' test.comp_for 
 
 	FOR  shift 284
-	.  reduce 282 (src line 1787)
+	.  reduce 282 (src line 1775)
 
 	comp_for  goto 406
 
@@ -5368,7 +5368,7 @@ state 379
 state 380
 	classdef:  CLASS NAME optional_arglist_call ':' suite.    (288)
 
-	.  reduce 288 (src line 1822)
+	.  reduce 288 (src line 1810)
 
 
 state 381
@@ -5398,7 +5398,7 @@ state 382
 	'-'  shift 77
 	'{'  shift 83
 	'~'  shift 78
-	.  reduce 292 (src line 1851)
+	.  reduce 292 (src line 1839)
 
 	strings  goto 86
 	expr  goto 69
@@ -5421,7 +5421,7 @@ state 382
 state 383
 	arglist:  arguments optional_comma.    (295)
 
-	.  reduce 295 (src line 1866)
+	.  reduce 295 (src line 1854)
 
 
 state 384
@@ -5502,7 +5502,7 @@ state 385
 state 386
 	argument:  test comp_for.    (300)
 
-	.  reduce 300 (src line 1907)
+	.  reduce 300 (src line 1895)
 
 
 state 387
@@ -5609,13 +5609,13 @@ state 395
 state 396
 	trailer:  '(' arglist ')'.    (258)
 
-	.  reduce 258 (src line 1639)
+	.  reduce 258 (src line 1627)
 
 
 state 397
 	trailer:  '[' subscriptlist ']'.    (259)
 
-	.  reduce 259 (src line 1643)
+	.  reduce 259 (src line 1631)
 
 
 state 398
@@ -5661,7 +5661,7 @@ state 398
 state 399
 	subscriptlist:  subscripts optional_comma.    (263)
 
-	.  reduce 263 (src line 1683)
+	.  reduce 263 (src line 1671)
 
 
 state 400
@@ -5686,7 +5686,7 @@ state 400
 	'-'  shift 77
 	'{'  shift 83
 	'~'  shift 78
-	.  reduce 269 (src line 1714)
+	.  reduce 269 (src line 1702)
 
 	strings  goto 86
 	expr  goto 69
@@ -5709,7 +5709,7 @@ state 400
 state 401
 	subscript:  ':' sliceop.    (266)
 
-	.  reduce 266 (src line 1702)
+	.  reduce 266 (src line 1690)
 
 
 state 402
@@ -5717,7 +5717,7 @@ state 402
 	subscript:  ':' test.sliceop 
 
 	':'  shift 403
-	.  reduce 267 (src line 1706)
+	.  reduce 267 (src line 1694)
 
 	sliceop  goto 437
 
@@ -5740,7 +5740,7 @@ state 403
 	'-'  shift 77
 	'{'  shift 83
 	'~'  shift 78
-	.  reduce 273 (src line 1731)
+	.  reduce 273 (src line 1719)
 
 	strings  goto 86
 	expr  goto 69
@@ -5834,7 +5834,7 @@ state 405
 state 406
 	dictorsetmaker:  test ':' test comp_for.    (285)
 
-	.  reduce 285 (src line 1809)
+	.  reduce 285 (src line 1797)
 
 
 state 407
@@ -6265,7 +6265,7 @@ state 423
 state 424
 	arguments:  arguments ',' argument.    (290)
 
-	.  reduce 290 (src line 1841)
+	.  reduce 290 (src line 1829)
 
 
 state 425
@@ -6273,20 +6273,20 @@ state 425
 	arglist:  optional_arguments '*' test.arguments2 ',' STARSTAR test 
 	arguments2: .    (293)
 
-	.  reduce 293 (src line 1856)
+	.  reduce 293 (src line 1844)
 
 	arguments2  goto 451
 
 state 426
 	arglist:  optional_arguments STARSTAR test.    (298)
 
-	.  reduce 298 (src line 1892)
+	.  reduce 298 (src line 1880)
 
 
 state 427
 	argument:  test '=' test.    (301)
 
-	.  reduce 301 (src line 1914)
+	.  reduce 301 (src line 1902)
 
 
 state 428
@@ -6334,13 +6334,13 @@ state 433
 state 434
 	subscripts:  subscripts ',' subscript.    (262)
 
-	.  reduce 262 (src line 1672)
+	.  reduce 262 (src line 1660)
 
 
 state 435
 	subscript:  test ':' sliceop.    (270)
 
-	.  reduce 270 (src line 1718)
+	.  reduce 270 (src line 1706)
 
 
 state 436
@@ -6348,20 +6348,20 @@ state 436
 	subscript:  test ':' test.sliceop 
 
 	':'  shift 403
-	.  reduce 271 (src line 1722)
+	.  reduce 271 (src line 1710)
 
 	sliceop  goto 455
 
 state 437
 	subscript:  ':' test sliceop.    (268)
 
-	.  reduce 268 (src line 1710)
+	.  reduce 268 (src line 1698)
 
 
 state 438
 	sliceop:  ':' test.    (274)
 
-	.  reduce 274 (src line 1736)
+	.  reduce 274 (src line 1724)
 
 
 state 439
@@ -6372,7 +6372,7 @@ state 439
 	FOR  shift 284
 	IF  shift 459
 	OR  shift 156
-	.  reduce 304 (src line 1937)
+	.  reduce 304 (src line 1925)
 
 	comp_if  goto 458
 	comp_iter  goto 456
@@ -6381,7 +6381,7 @@ state 439
 state 440
 	test_colon_tests:  test_colon_tests ',' test ':' test.    (283)
 
-	.  reduce 283 (src line 1793)
+	.  reduce 283 (src line 1781)
 
 
 state 441
@@ -6462,7 +6462,7 @@ state 451
 	arglist:  optional_arguments '*' test arguments2.',' STARSTAR test 
 
 	','  shift 466
-	.  reduce 296 (src line 1871)
+	.  reduce 296 (src line 1859)
 
 
 state 452
@@ -6491,25 +6491,25 @@ state 454
 state 455
 	subscript:  test ':' test sliceop.    (272)
 
-	.  reduce 272 (src line 1726)
+	.  reduce 272 (src line 1714)
 
 
 state 456
 	comp_for:  FOR exprlist IN or_test comp_iter.    (305)
 
-	.  reduce 305 (src line 1947)
+	.  reduce 305 (src line 1935)
 
 
 state 457
 	comp_iter:  comp_for.    (302)
 
-	.  reduce 302 (src line 1925)
+	.  reduce 302 (src line 1913)
 
 
 state 458
 	comp_iter:  comp_if.    (303)
 
-	.  reduce 303 (src line 1931)
+	.  reduce 303 (src line 1919)
 
 
 state 459
@@ -6715,7 +6715,7 @@ state 468
 
 	FOR  shift 284
 	IF  shift 459
-	.  reduce 306 (src line 1959)
+	.  reduce 306 (src line 1947)
 
 	comp_if  goto 458
 	comp_iter  goto 479
@@ -6851,7 +6851,7 @@ state 475
 state 476
 	arguments2:  arguments2 ',' argument.    (294)
 
-	.  reduce 294 (src line 1860)
+	.  reduce 294 (src line 1848)
 
 
 state 477
@@ -6900,7 +6900,7 @@ state 478
 state 479
 	comp_if:  IF test_nocond comp_iter.    (307)
 
-	.  reduce 307 (src line 1965)
+	.  reduce 307 (src line 1953)
 
 
 state 480
@@ -6964,7 +6964,7 @@ state 483
 state 484
 	arglist:  optional_arguments '*' test arguments2 ',' STARSTAR test.    (297)
 
-	.  reduce 297 (src line 1881)
+	.  reduce 297 (src line 1869)
 
 
 state 485

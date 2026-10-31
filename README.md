@@ -14,7 +14,8 @@ go run ./cmd/web scaletest.py data/chimp.png
 go run ./cmd/web scaletest.py data/chimp.png -t -convert_alpha
 ```
 
-`scaletest.py` uses Python 3.4-compatible formatting for the embedded runtime.
+The embedded runtime supports f-strings, including expressions, `!s`/`!r`/`!a`
+conversions, escaped braces, and numeric format specs such as `.4f`.
 
 Scripts and their `data/` assets are embedded from `scripts/python/`. Images,
 fonts, and WAV sounds can also be loaded from filesystem paths. The pygame

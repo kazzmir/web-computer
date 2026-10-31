@@ -157,8 +157,13 @@ func opcodeStackEffect(opcode vm.OpCode, oparg uint32) int {
 		return 1
 	case vm.LOAD_NAME:
 		return 1
-	case vm.BUILD_TUPLE, vm.BUILD_LIST, vm.BUILD_SET:
+	case vm.BUILD_TUPLE, vm.BUILD_LIST, vm.BUILD_SET, vm.BUILD_STRING:
 		return 1 - int(oparg)
+	case vm.FORMAT_VALUE:
+		if oparg&4 != 0 {
+			return -1
+		}
+		return 0
 	case vm.BUILD_MAP:
 		return 1
 	case vm.LOAD_ATTR:

@@ -37,7 +37,7 @@ func init() {
 		py.MustNewMethod("divmod", builtin_divmod, 0, divmod_doc),
 		py.MustNewMethod("eval", py.InternalMethodEval, 0, eval_doc),
 		py.MustNewMethod("exec", py.InternalMethodExec, 0, exec_doc),
-		// py.MustNewMethod("format", builtin_format, 0, format_doc),
+		py.MustNewMethod("format", builtin_format, 0, "Format a value using its __format__ method."),
 		py.MustNewMethod("getattr", builtin_getattr, 0, getattr_doc),
 		py.MustNewMethod("globals", py.InternalMethodGlobals, 0, globals_doc),
 		py.MustNewMethod("hasattr", builtin_hasattr, 0, hasattr_doc),
@@ -81,13 +81,13 @@ func init() {
 		"filter":      py.FilterType,
 		"float":       py.FloatType,
 		"frozenset":   py.FrozenSetType,
-		"property":       py.PropertyType,
-		"int":    py.IntType, // FIXME LongType?
-		"list":   py.ListType,
-		"map":    py.MapType,
-		"object": py.ObjectType,
-		"quit":   py.Quit,
-		"range":  py.RangeType,
+		"property":    py.PropertyType,
+		"int":         py.IntType, // FIXME LongType?
+		"list":        py.ListType,
+		"map":         py.MapType,
+		"object":      py.ObjectType,
+		"quit":        py.Quit,
+		"range":       py.RangeType,
 		// "reversed":       py.ReversedType,
 		"set":          py.SetType,
 		"slice":        py.SliceType,
@@ -342,14 +342,17 @@ repr() using \\x, \\u or \\U escapes. This generates a string similar
 to that returned by repr() in Python 2.
 `
 
-func builtin_ascii(self, o py.Object) (py.Object, error) {
-	reprObj, err := py.Repr(o)
-	if err != nil {
+func builtin_format(self py.Object, args py.Tuple) (py.Object, error) {
+	var value py.Object
+	var spec py.Object = py.String("")
+	if err := py.ParseTupleAndKeywords(args, nil, "O|s:format", []string{"value", "format_spec"}, &value, &spec); err != nil {
 		return nil, err
 	}
-	repr := reprObj.(py.String)
-	out := py.StringEscape(repr, true)
-	return py.String(out), err
+	return py.Format(value, spec.(py.String))
+}
+
+func builtin_ascii(self, o py.Object) (py.Object, error) {
+	return py.Ascii(o)
 }
 
 const bin_doc = `Return the binary representation of an integer.
