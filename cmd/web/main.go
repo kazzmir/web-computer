@@ -141,7 +141,7 @@ func testGraphics() {
     mainCoroutine := func (yield coroutine.YieldFunc) error {
         engine.Yield = yield
 
-        module, err := py.RunCode(python, code, "script", "user")
+        module, err := py.RunCode(python, code, "python/"+path, py.MainModuleName)
         if err != nil {
             pyException, ok := err.(py.ExceptionInfo)
             if ok {

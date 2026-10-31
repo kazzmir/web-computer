@@ -81,7 +81,7 @@ func init() {
 		"filter":      py.FilterType,
 		"float":       py.FloatType,
 		"frozenset":   py.FrozenSetType,
-		// "property":       py.PropertyType,
+		"property":       py.PropertyType,
 		"int":    py.IntType, // FIXME LongType?
 		"list":   py.ListType,
 		"map":    py.MapType,

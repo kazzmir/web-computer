@@ -83,7 +83,7 @@ func Import(ctx Context, names ...string) error {
 func ImportModuleLevelObject(ctx Context, name string, globals, locals StringDict, fromlist Tuple, level int) (Object, error) {
 	// Module already loaded - return that
 	if module, err := ctx.GetModule(name); err == nil {
-		return module, nil
+		return importedModule(ctx, name, module, fromlist)
 	}
 
 	// See if the module is a registered embeddded module that has not been loaded into this ctx yet.
@@ -92,7 +92,7 @@ func ImportModuleLevelObject(ctx Context, name string, globals, locals StringDic
 		if err != nil {
 			return nil, err
 		}
-		return module, nil
+		return importedModule(ctx, name, module, fromlist)
 	}
 
 	if level != 0 {
@@ -116,7 +116,25 @@ func ImportModuleLevelObject(ctx Context, name string, globals, locals StringDic
 		return nil, err
 	}
 
-	return module, nil
+	return importedModule(ctx, name, module, fromlist)
+}
+
+// Dotted imports bind the child on its parent, but `import a.b` returns a.
+// A nonempty fromlist (as in `from a.b import c`) returns the child instead.
+func importedModule(ctx Context, name string, module *Module, fromlist Tuple) (Object, error) {
+	i := strings.LastIndex(name, ".")
+	if i < 0 {
+		return module, nil
+	}
+	parent, err := ImportModuleLevelObject(ctx, name[:i], nil, nil, Tuple{String("*")}, 0)
+	if err != nil {
+		return nil, err
+	}
+	parent.(*Module).Globals[name[i+1:]] = module
+	if len(fromlist) != 0 {
+		return module, nil
+	}
+	return ctx.GetModule(strings.Split(name, ".")[0])
 }
 
 // Straight port of the python code

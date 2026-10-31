@@ -10,6 +10,10 @@ import (
 	"github.com/kazzmir/web-computer/gpython/pytest"
 )
 
+func TestPath(t *testing.T) {
+	pytest.RunScript(t, "./testdata/path.py")
+}
+
 func TestOs(t *testing.T) {
 	pytest.RunScript(t, "./testdata/test.py")
 }

@@ -85,6 +85,7 @@ func init() {
 		},
 		Methods: methods,
 		Globals: globals,
+        CodeSrc: "import os.path as path\n",
 	})
 }
 
