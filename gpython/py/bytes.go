@@ -9,7 +9,6 @@ package py
 import (
 	"bytes"
 	"fmt"
-	"strings"
 )
 
 var BytesType = ObjectType.NewType("bytes",
@@ -56,15 +55,11 @@ func BytesNew(metatype *Type, args Tuple, kwargs StringDict) (res Object, err er
 		if encoding == nil {
 			return nil, ExceptionNewf(TypeError, "string argument without an encoding")
 		}
-		encodingStr := strings.ToLower(string(encoding.(String)))
-		if encodingStr == "utf-8" || encodingStr == "utf8" {
-			return Bytes([]byte(s)), nil
+		handler := "strict"
+		if errors != nil {
+			handler = string(errors.(String))
 		}
-		// FIXME
-		// New = PyUnicode_AsEncodedString(x, encoding, errors)
-		// assert(PyBytes_Check(New))
-		// return New
-		return nil, ExceptionNewf(NotImplementedError, "String decode for %q not implemented", encodingStr)
+		return EncodeString(s, string(encoding.(String)), handler)
 	}
 
 	// We'd like to call PyObject_Bytes here, but we need to check for an

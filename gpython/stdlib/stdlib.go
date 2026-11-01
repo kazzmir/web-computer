@@ -165,7 +165,11 @@ func (ctx *context) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.
 				return false, py.ExceptionNewf(py.OSError, "Error reading %q: %v", fpath, err)
 			}
 
-			out.Code, err = py.Compile(string(pySrc), fpath, py.ExecMode, 0, true)
+			decoded, decodeErr := py.DecodeSource(pySrc, fpath)
+			if decodeErr != nil {
+				return false, decodeErr
+			}
+			out.Code, err = py.Compile(decoded, fpath, py.ExecMode, 0, true)
 			if err != nil {
 				return false, err
 			}

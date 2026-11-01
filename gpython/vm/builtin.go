@@ -53,7 +53,10 @@ func builtinEvalOrExec(ctx py.Context, args py.Tuple, kwargs, currentLocals, cur
 	case py.String:
 		codeStr = string(x)
 	case py.Bytes:
-		codeStr = string(x)
+		codeStr, err = py.DecodeSource(x, "<string>")
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, py.ExceptionNewf(py.TypeError, "%s() arg 1 must be a string, bytes or code object", mode)
 

@@ -15,6 +15,7 @@ These test files are copied unchanged from
 | `test_pow.py` | 7 | Integer/float powers, modular inverses, negative moduli, reflected power, huge random exponents |
 | `test_typechecks.py` | 6 | Metaclass `__instancecheck__`/`__subclasscheck__`, virtual types, inheritance, tuple class arguments |
 | `test_unicode_identifiers.py` | 3 | NFKC identifier normalization, non-BMP names, variation selectors, invalid-character diagnostics |
+| `test_utf8source.py` | 3 | UTF-8 source/text, malformed source, byte-source Latin-1 encoding declarations |
 
 The upstream license is retained in `LICENSE.cpython`. The runtime also embeds
 unchanged copies of `Lib/keyword.py` and `Lib/colorsys.py` from the same
@@ -35,7 +36,8 @@ go run ./gpython test/test_longexp.py
 Each file runs in a fresh interpreter context. No cases are skipped or weakened.
 The copied `test/__init__.py`, `tokenizedata/__init__.py`, and malformed-source
 fixtures support the upstream `test.*` imports. Syntax-error fixtures are data,
-not additional runnable test suites.
+not additional runnable test suites. Basic source/text codecs currently cover
+UTF-8, Latin-1, and ASCII; unsupported encodings fail explicitly.
 
 The runtime currently supplies a **limited, fail-fast `unittest` subset**:
 `TestCase`, `setUp`/`tearDown`, LIFO `addCleanup`/`doCleanups`, `assertTrue`,

@@ -747,8 +747,10 @@ func builtin_setattr(self py.Object, args py.Tuple) (py.Object, error) {
 }
 
 // Reads the source as a string
-func source_as_string(cmd py.Object, funcname, what string /*, PyCompilerFlags *cf */) (string, error) {
-	// FIXME only understands strings, not bytes etc at the moment
+func source_as_string(cmd py.Object, funcname, what, filename string) (string, error) {
+	if data, ok := cmd.(py.Bytes); ok {
+		return py.DecodeSource(data, filename)
+	}
 	if str, ok := cmd.(py.String); ok {
 		// FIXME cf->cf_flags |= PyCF_IGNORE_COOKIE;
 		return string(str), nil
@@ -860,7 +862,7 @@ func builtin_compile(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Ob
 	// 		PyArena_Free(arena)
 	// 	}
 	// } else {
-	str, err := source_as_string(cmd, "compile", "string, bytes or AST" /*, &cf*/)
+	str, err := source_as_string(cmd, "compile", "string, bytes or AST", string(filename.(py.String)))
 	if err != nil {
 		return nil, err
 	}

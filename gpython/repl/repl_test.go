@@ -64,7 +64,7 @@ func TestREPL(t *testing.T) {
 	rt.assert(t, "multi#5", NormalPrompt, "45")
 
 	r.Run("if")
-	rt.assert(t, "compileError", NormalPrompt, "Compile error: \n  File \"<stdin>\", line 1, offset 2\n    if\n\n\nSyntaxError: 'invalid syntax'")
+	rt.assert(t, "compileError", NormalPrompt, "Compile error: \n  File \"<stdin>\", line 1, offset 3\n    if\n\n\nSyntaxError: 'invalid syntax'")
 
 	// test comments in the REPL work properly
 	r.Run("# this is a comment")
@@ -91,7 +91,7 @@ func TestCompleter(t *testing.T) {
 			line:            "di",
 			pos:             2,
 			wantHead:        "",
-			wantCompletions: []string{"dict", "divmod"},
+			wantCompletions: []string{"dict", "dir", "divmod"},
 			wantTail:        "",
 		},
 		{

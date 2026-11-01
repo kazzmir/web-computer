@@ -23,6 +23,7 @@ func TestCPython(t *testing.T) {
 		{"test_pow.py", 7},
 		{"test_typechecks.py", 6},
 		{"test_unicode_identifiers.py", 3},
+		{"test_utf8source.py", 3},
 	} {
 		t.Run(suite.file, func(t *testing.T) {
 			opts := py.DefaultContextOpts()
