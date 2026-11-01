@@ -12,6 +12,60 @@ import (
 type nativeFunc = func(py.Tuple) (py.Object, error)
 type methodAdder = func(string, string, nativeFunc)
 
+func (p *pixels) storage() *ebiten.Image {
+	if p.root != nil {
+		return p.root
+	}
+	return p.image
+}
+
+func surfaceRect(value py.Object) (image.Rectangle, error) {
+	coords, err := py.SequenceTuple(value)
+	if err != nil {
+		return image.Rectangle{}, err
+	}
+	if len(coords) != 4 {
+		return image.Rectangle{}, py.ExceptionNewf(py.TypeError, "expected four rectangle coordinates")
+	}
+	v := [4]int{}
+	for i, coord := range coords {
+		n, ok := coord.(py.Int)
+		if !ok {
+			return image.Rectangle{}, py.ExceptionNewf(py.TypeError, "rectangle coordinates must be integers")
+		}
+		v[i] = int(n)
+	}
+	return image.Rectangle{Min: image.Pt(v[0], v[1]), Max: image.Pt(v[0]+v[2], v[1]+v[3])}, nil
+}
+
+// Clip the requested source area without moving the pixels relative to the
+// requested destination. Both source and destination coordinates are local
+// to their surfaces, which may themselves be views of a shared image.
+func blitPixels(to, from *pixels, dest image.Point, area image.Rectangle) image.Rectangle {
+	source := area.Intersect(from.bounds())
+	target := to.target()
+	if source.Empty() || target == nil || from.image == nil {
+		return image.Rectangle{Min: dest, Max: dest}
+	}
+	dest = dest.Add(source.Min.Sub(area.Min))
+	changed := (image.Rectangle{Min: dest, Max: dest.Add(source.Size())}).Intersect(to.clipBounds())
+	if changed.Empty() {
+		return image.Rectangle{Min: dest, Max: dest}
+	}
+	sourceImage := from.image.SubImage(source.Add(from.image.Bounds().Min)).(*ebiten.Image)
+	if to.storage() == from.storage() {
+		snapshot := ebiten.NewImage(source.Dx(), source.Dy())
+		snapshot.DrawImage(sourceImage, nil)
+		defer snapshot.Deallocate()
+		sourceImage = snapshot
+	}
+	var options ebiten.DrawImageOptions
+	origin := to.image.Bounds().Min
+	options.GeoM.Translate(float64(dest.X+origin.X), float64(dest.Y+origin.Y))
+	target.DrawImage(sourceImage, &options)
+	return changed
+}
+
 // Surface coordinates are local, even when Ebitengine's SubImage has a
 // nonzero bounds origin. Clips are independent on each shared surface view.
 func (p *pixels) clipBounds() image.Rectangle {
@@ -57,22 +111,10 @@ func registerSurfaceMethods(add methodAdder) {
 			p.clip = nil
 			return py.None, nil
 		}
-		coords, e := py.SequenceTuple(a[1])
-		if e != nil {
-			return nil, e
+		r, err := surfaceRect(a[1])
+		if err != nil {
+			return nil, err
 		}
-		if len(coords) != 4 {
-			return nil, py.ExceptionNewf(py.TypeError, "expected four rectangle coordinates")
-		}
-		v := [4]int{}
-		for i, coord := range coords {
-			n, ok := coord.(py.Int)
-			if !ok {
-				return nil, py.ExceptionNewf(py.TypeError, "rectangle coordinates must be integers")
-			}
-			v[i] = int(n)
-		}
-		r := image.Rectangle{Min: image.Pt(v[0], v[1]), Max: image.Pt(v[0]+v[2], v[1]+v[3])}
 		r = r.Intersect(p.bounds())
 		p.clip = &r
 		return py.None, nil
@@ -88,7 +130,7 @@ func registerSurfaceMethods(add methodAdder) {
 			return newPixels(w, h), nil
 		}
 		r := image.Rect(x, y, x+w, y+h).Add(p.image.Bounds().Min)
-		return &pixels{image: p.image.SubImage(r).(*ebiten.Image)}, nil
+		return &pixels{image: p.image.SubImage(r).(*ebiten.Image), root: p.storage()}, nil
 	})
 	add("_scroll", "pii", func(a py.Tuple) (py.Object, error) {
 		p := a[0].(*pixels)

@@ -92,7 +92,8 @@ assert event_calls == 5
 		g.t.Errorf("got %d frames, want 6", system.frames)
 	}
 	g.t.Run("Scaletest", testScaletest)
-    g.t.Run("Scroll", testScroll)
+	g.t.Run("Scroll", testScroll)
+	g.t.Run("Liquid", testLiquid)
 	return ebiten.Termination
 }
 

@@ -22,6 +22,12 @@ go run ./cmd/web scroll.py
 go run ./cmd/web scroll.py data/chimp.png
 ```
 
+Run the liquid animation (any key or mouse click exits):
+
+```sh
+go run ./cmd/web liquid.py
+```
+
 The embedded runtime supports f-strings, including expressions, `!s`/`!r`/`!a`
 conversions, escaped braces, and numeric format specs such as `.4f`.
 

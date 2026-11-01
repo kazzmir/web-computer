@@ -31,6 +31,7 @@ type pixels struct {
 	image     *ebiten.Image
 	emptySize image.Point // Ebitengine images cannot have zero dimensions.
 	clip      *image.Rectangle
+	root      *ebiten.Image // Shared storage identity for safe overlapping blits.
 }
 
 func newPixels(w, h int) *pixels {
@@ -117,6 +118,7 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		}, 0, ""))
 	}
 	registerSurfaceMethods(add)
+	registerTransformMethods(add)
 	add("_color", "o", func(a py.Tuple) (py.Object, error) {
 		c, err := rgba(a[0])
 		if err != nil {
@@ -147,17 +149,17 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		}
 		return py.None, nil
 	})
-	add("_blit", "ppii", func(a py.Tuple) (py.Object, error) {
-		to := a[0].(*pixels)
-		target := to.target()
-		if target == nil || img(a[1]) == nil {
-			return py.None, nil
+	add("_blit", "ppiio", func(a py.Tuple) (py.Object, error) {
+		to, from := a[0].(*pixels), a[1].(*pixels)
+		area := from.bounds()
+		if a[4] != py.None {
+			var err error
+			area, err = surfaceRect(a[4])
+			if err != nil {
+				return nil, err
+			}
 		}
-		var o ebiten.DrawImageOptions
-		origin := to.image.Bounds().Min
-		o.GeoM.Translate(float64(integer(a[2])+origin.X), float64(integer(a[3])+origin.Y))
-		target.DrawImage(img(a[1]), &o)
-		return py.None, nil
+		return rectTuple(blitPixels(to, from, image.Pt(integer(a[2]), integer(a[3])), area)), nil
 	})
 	add("_get_at", "pii", func(a py.Tuple) (py.Object, error) {
 		x, y := integer(a[1]), integer(a[2])
@@ -394,7 +396,7 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 	}
 	py.RegisterModule(&py.ModuleImpl{
 		Info:    py.ModuleInfo{Name: "pygame.transform"},
-		CodeSrc: "from pygame import transform as _impl\nscale = _impl.scale\nsmoothscale = _impl.smoothscale\nflip = _impl.flip\nrotate = _impl.rotate\n",
+		CodeSrc: "from pygame import transform as _impl\nscale = _impl.scale\nsmoothscale = _impl.smoothscale\nscale2x = _impl.scale2x\nflip = _impl.flip\nrotate = _impl.rotate\n",
 	})
 	py.RegisterModule(&py.ModuleImpl{Info: py.ModuleInfo{Name: "pygame", Doc: "Pygame backed by Ebitengine"}, Methods: methods, Globals: globals, CodeSrc: source,
 		OnContextClosed: func(*py.Module) { closeAudio() },

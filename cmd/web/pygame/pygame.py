@@ -1,6 +1,8 @@
 # Python-facing objects; pixel operations and input are backed by Ebitengine.
 FULLSCREEN = -2147483648
 SCALED = 512
+HWSURFACE = 1
+DOUBLEBUF = 1073741824
 RLEACCEL = 16384
 QUIT = 256
 KEYDOWN = 768
@@ -78,6 +80,7 @@ class Surface:
     def convert(self): return self
     def convert_alpha(self): return self
     def get_size(self): return _size(self._pixels)
+    def get_bitsize(self): return 32
     def get_width(self): return self.get_size()[0]
     def get_height(self): return self.get_size()[1]
     def get_rect(self, **kwargs):
@@ -87,10 +90,12 @@ class Surface:
     def fill(self, color):
         _fill(self._pixels, color)
         return self.get_rect()
-    def blit(self, source, dest):
+    def blit(self, source, dest, area=None):
         if isinstance(dest, Rect): dest = dest.topleft
-        _blit(self._pixels, source._pixels, int(dest[0]), int(dest[1]))
-        return Rect(dest, source.get_size())
+        if area is not None:
+            area = area if isinstance(area, Rect) else Rect(area)
+            area = (area.x, area.y, area.w, area.h)
+        return Rect(_blit(self._pixels, source._pixels, int(dest[0]), int(dest[1]), area))
     def get_at(self, pos): return _get_at(self._pixels, int(pos[0]), int(pos[1]))
     def set_colorkey(self, color, flags=0): _colorkey(self._pixels, color)
     def get_clip(self): return Rect(_get_clip(self._pixels))
@@ -135,6 +140,9 @@ class _Transform:
         return dest_surface
     def scale(self, surface, size, dest_surface=None): return self._scale(surface, size, dest_surface, False)
     def smoothscale(self, surface, size, dest_surface=None): return self._scale(surface, size, dest_surface, True)
+    def scale2x(self, surface, dest_surface=None):
+        pixels = _scale2x(surface._pixels, None if dest_surface is None else dest_surface._pixels)
+        return _wrap(pixels) if dest_surface is None else dest_surface
     def flip(self, surface, x, y): return _wrap(_flip(surface._pixels, x, y))
     def rotate(self, surface, angle): return _wrap(_rotate(surface._pixels, angle))
 transform = _Transform()
