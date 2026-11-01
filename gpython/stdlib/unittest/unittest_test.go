@@ -14,6 +14,22 @@ func TestAssertionsAndDiscovery(t *testing.T) {
 import unittest
 case = unittest.TestCase()
 case.assertEqual(2, 2.0)
+case.assertAlmostEqual(1.0, 1.0 + 1e-9)
+case.assertAlmostEqual(1, 1.05, delta=0.1)
+case.assertAlmostEqual(1 + 1j, 1 + 1.000000001j)
+case.assertAlmostEqual(float('inf'), float('inf'))
+with case.assertRaises(AssertionError): case.assertAlmostEqual(1, 2)
+with case.assertRaises(AssertionError): case.assertAlmostEqual(1, 1.2, delta=0.1)
+with case.assertRaises(AssertionError): case.assertAlmostEqual(float('nan'), float('nan'))
+with case.assertRaises(AssertionError): case.assertAlmostEqual(float('inf'), -float('inf'))
+with case.assertRaises(TypeError): case.assertAlmostEqual(1, 2, places=3, delta=0.1)
+with case.subTest(label='passes'): case.assertEqual(1, 1)
+with case.assertRaises(AssertionError):
+    with case.subTest(label='must propagate'): case.fail('subtest failure')
+assert round(1.25, ndigits=1) == 1.2
+assert type(round(1.25)) is int
+assert round(42) == 42
+assert round(10**100) == 10**100
 case.assertTrue([1])
 case.assertFalse([])
 case.assertIsInstance(ValueError(), Exception)

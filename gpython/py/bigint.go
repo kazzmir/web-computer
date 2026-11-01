@@ -498,6 +498,9 @@ func (a *BigInt) M__complex__() (Object, error) {
 }
 
 func (a *BigInt) M__round__(digits Object) (Object, error) {
+	if digits == None {
+		return a, nil
+	}
 	if b, ok := ConvertToBigInt(digits); ok {
 		if (*big.Int)(b).Sign() >= 0 {
 			return a, nil

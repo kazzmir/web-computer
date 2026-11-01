@@ -386,10 +386,8 @@ same type as the number. ndigits may be negative.`
 
 func builtin_round(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Object, error) {
 	var number, ndigits py.Object
-	ndigits = py.Int(0)
-	// var kwlist = []string{"number", "ndigits"}
-	// FIXME py.ParseTupleAndKeywords(args, kwargs, "O|O:round", kwlist, &number, &ndigits)
-	err := py.UnpackTuple(args, nil, "round", 1, 2, &number, &ndigits)
+	ndigits = py.None
+	err := py.ParseTupleAndKeywords(args, kwargs, "O|O:round", []string{"number", "ndigits"}, &number, &ndigits)
 	if err != nil {
 		return nil, err
 	}

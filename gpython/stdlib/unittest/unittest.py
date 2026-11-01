@@ -15,6 +15,10 @@ class _AssertRaisesContext:
             raise AssertionError('exception message did not match ' + repr(self.regex))
         return True
 
+class _SubTestContext:
+    def __enter__(self): return self
+    def __exit__(self, kind, value, traceback): return False
+
 class TestCase:
     def __init__(self, methodName='runTest'):
         self._testMethodName = methodName
@@ -52,6 +56,20 @@ class TestCase:
     def assertEqual(self, first, second, msg=None):
         if first != second:
             self.fail(msg if msg is not None else repr(first) + ' != ' + repr(second))
+    def subTest(self, msg=None, **params):
+        # This runner remains fail-fast: never swallow subtest failures.
+        return _SubTestContext()
+    def assertAlmostEqual(self, first, second, places=None, msg=None, delta=None):
+        if first == second: return
+        if places is not None and delta is not None:
+            raise TypeError('specify delta or places, not both')
+        difference = abs(first - second)
+        if delta is not None:
+            if difference <= delta: return
+        else:
+            if places is None: places = 7
+            if round(difference, places) == 0: return
+        self.fail(msg if msg is not None else repr(first) + ' != ' + repr(second) + ' within tolerance')
     def assertIs(self, first, second, msg=None):
         if first is not second: self.fail(msg if msg is not None else 'objects are not identical')
     def assertIn(self, member, container, msg=None):

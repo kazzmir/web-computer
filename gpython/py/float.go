@@ -338,16 +338,77 @@ func (a Float) M__complex__() (Object, error) {
 }
 
 func (a Float) M__round__(digitsObj Object) (Object, error) {
-	digits := 0
-	if digitsObj != None {
+	value := float64(a)
+	if digitsObj == None {
+		if math.IsNaN(value) {
+			return nil, ExceptionNewf(ValueError, "cannot convert float NaN to integer")
+		}
+		if math.IsInf(value, 0) {
+			return nil, ExceptionNewf(OverflowError, "cannot convert float infinity to integer")
+		}
+		integer, _ := new(big.Float).SetFloat64(math.RoundToEven(value)).Int(nil)
+		return (*BigInt)(integer).MaybeInt(), nil
+	}
+	// Clamp arbitrary-size digit counts before converting to a machine int.
+	var digits Int
+	if n, ok := digitsObj.(*BigInt); ok {
+		switch {
+		case (*big.Int)(n).Cmp(big.NewInt(323)) > 0:
+			digits = 324
+		case (*big.Int)(n).Cmp(big.NewInt(-308)) < 0:
+			digits = -309
+		default:
+			digits = Int((*big.Int)(n).Int64())
+		}
+	} else {
 		var err error
-		digits, err = MakeGoInt(digitsObj)
+		digits, err = Index(digitsObj)
 		if err != nil {
 			return nil, err
 		}
 	}
-	scale := Float(math.Pow(10, float64(digits)))
-	return scale * Float(math.Floor(float64(a)/float64(scale))), nil
+	if math.IsNaN(value) || math.IsInf(value, 0) || digits > 323 {
+		return a, nil
+	}
+	if digits < -308 {
+		return Float(math.Copysign(0, value)), nil
+	}
+
+	// Round the exact binary value, not a rounded intermediate product by
+	// 10**digits. This preserves half-even behavior (e.g. round(2.675, 2)).
+	exponent := int64(digits)
+	if exponent < 0 {
+		exponent = -exponent
+	}
+	power := new(big.Int).Exp(big.NewInt(10), big.NewInt(exponent), nil)
+	scale := new(big.Rat).SetInt(power)
+	rational := new(big.Rat).SetFloat64(value)
+	if digits >= 0 {
+		rational.Mul(rational, scale)
+	} else {
+		rational.Quo(rational, scale)
+	}
+	quotient, remainder := new(big.Int), new(big.Int)
+	quotient.QuoRem(rational.Num(), rational.Denom(), remainder)
+	remainder.Abs(remainder).Lsh(remainder, 1)
+	comparison := remainder.Cmp(rational.Denom())
+	if comparison > 0 || (comparison == 0 && quotient.Bit(0) != 0) {
+		quotient.Add(quotient, big.NewInt(int64(rational.Sign())))
+	}
+	rational.SetInt(quotient)
+	if digits >= 0 {
+		rational.Quo(rational, scale)
+	} else {
+		rational.Mul(rational, scale)
+	}
+	rounded, _ := rational.Float64()
+	if math.IsInf(rounded, 0) {
+		return nil, ExceptionNewf(OverflowError, "rounded value too large to represent")
+	}
+	if rounded == 0 {
+		rounded = math.Copysign(0, value)
+	}
+	return Float(rounded), nil
 }
 
 // Rich comparison

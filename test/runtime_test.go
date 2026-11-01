@@ -18,6 +18,7 @@ func TestCPython(t *testing.T) {
 		{"test_keyword.py", 11},
 		{"test_generator_stop.py", 2},
 		{"test_int_literal.py", 6},
+		{"test_colorsys.py", 8},
 	} {
 		t.Run(suite.file, func(t *testing.T) {
 			ctx := py.NewContext(py.DefaultContextOpts())

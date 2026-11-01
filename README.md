@@ -111,9 +111,8 @@ fonts, and WAV sounds can also be loaded from filesystem paths. The pygame
 subset includes surfaces, rectangles, image transforms, sprite groups, mouse
 and keyboard input, text rendering, sound playback, and frame timing.
 
-Unmodified CPython unary-operator, long-expression, keyword, and generator-stop
-regression tests live in [`test/`](test/README.md). Run them against the embedded
-runtime without a display:
+Unmodified CPython language and standard-library regression tests live in
+[`test/`](test/README.md). Run them against the embedded runtime without a display:
 
 ```sh
 go test ./test -v

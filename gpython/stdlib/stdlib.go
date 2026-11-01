@@ -21,6 +21,7 @@ import (
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/array"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/binascii"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/builtin"
+	_ "github.com/kazzmir/web-computer/gpython/stdlib/colorsys"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/ctypes"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/future"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/glob"
