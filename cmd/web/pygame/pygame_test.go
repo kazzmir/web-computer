@@ -94,6 +94,8 @@ assert event_calls == 5
 	g.t.Run("Scaletest", testScaletest)
 	g.t.Run("Scroll", testScroll)
 	g.t.Run("Liquid", testLiquid)
+	g.t.Run("GL renderer", testGLRenderer)
+	g.t.Run("GLCube", testGLCube)
 	return ebiten.Termination
 }
 

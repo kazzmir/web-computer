@@ -82,6 +82,11 @@ func rgba(obj py.Object) (color.RGBA, error) {
 }
 
 func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
+	gl, err := newGLContext()
+	if err != nil {
+		return err
+	}
+	gl.registerModules()
 	start := time.Now()
 	methods, closeAudio := mediaMethods()
 	// Decode native arguments before entering a pixel operation, so malformed
@@ -117,6 +122,19 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 			return fn(args)
 		}, 0, ""))
 	}
+	add("_gl_mode", "pb", func(a py.Tuple) (py.Object, error) {
+		gl.bindSurface(a[0].(*pixels), bool(a[1].(py.Bool)))
+		return py.None, nil
+	})
+	add("_wait", "i", func(a py.Tuple) (py.Object, error) {
+		ms := a[0].(py.Int)
+		if ms < 0 {
+			return nil, py.ExceptionNewf(py.ValueError, "wait time must be nonnegative")
+		}
+		start := time.Now()
+		time.Sleep(time.Duration(ms) * time.Millisecond)
+		return py.Int(time.Since(start) / time.Millisecond), nil
+	})
 	registerSurfaceMethods(add)
 	registerTransformMethods(add)
 	add("_color", "o", func(a py.Tuple) (py.Object, error) {
@@ -294,6 +312,9 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 	}
 	add("_present", "p", func(a py.Tuple) (py.Object, error) {
 		display = a[0].(*pixels)
+		if err := gl.render(); err != nil {
+			return nil, err
+		}
 		present(display)
 		presentedSinceTick = true
 		return py.None, nil
@@ -391,7 +412,7 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		return events, nil
 	})
 	globals := py.StringDict{}
-	for name, key := range map[string]ebiten.Key{"K_ESCAPE": ebiten.KeyEscape, "K_w": ebiten.KeyW, "K_a": ebiten.KeyA, "K_s": ebiten.KeyS, "K_d": ebiten.KeyD, "K_UP": ebiten.KeyUp, "K_DOWN": ebiten.KeyDown, "K_LEFT": ebiten.KeyLeft, "K_RIGHT": ebiten.KeyRight} {
+	for name, key := range map[string]ebiten.Key{"K_ESCAPE": ebiten.KeyEscape, "K_f": ebiten.KeyF, "K_w": ebiten.KeyW, "K_a": ebiten.KeyA, "K_s": ebiten.KeyS, "K_d": ebiten.KeyD, "K_UP": ebiten.KeyUp, "K_DOWN": ebiten.KeyDown, "K_LEFT": ebiten.KeyLeft, "K_RIGHT": ebiten.KeyRight} {
 		globals[name] = py.Int(key)
 	}
 	py.RegisterModule(&py.ModuleImpl{
@@ -399,7 +420,7 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		CodeSrc: "from pygame import transform as _impl\nscale = _impl.scale\nsmoothscale = _impl.smoothscale\nscale2x = _impl.scale2x\nflip = _impl.flip\nrotate = _impl.rotate\n",
 	})
 	py.RegisterModule(&py.ModuleImpl{Info: py.ModuleInfo{Name: "pygame", Doc: "Pygame backed by Ebitengine"}, Methods: methods, Globals: globals, CodeSrc: source,
-		OnContextClosed: func(*py.Module) { closeAudio() },
+		OnContextClosed: func(*py.Module) { closeAudio(); gl.close() },
 	})
 	return nil
 }

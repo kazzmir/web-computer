@@ -1,0 +1,62 @@
+//kage:unit pixels
+package main
+
+// Each draw is an ordered stream of already-clipped primitives. Rasterizing
+// them together gives us a real per-pixel depth buffer on Ebitengine, which
+// has no built-in 3D depth attachment. xy are viewport coordinates, z is NDC
+// depth, w is reciprocal clip w; colors are premultiplied by reciprocal w.
+var Positions [84]vec4
+var Colors [84]vec4
+var Modes [28]vec4 // line?, depth function (0 disabled,1 less,2 lequal,3 always), blend?, width
+var Count int
+var ClearColor vec4
+
+func cross(a, b vec2) float { return a.x*b.y-a.y*b.x }
+
+func Fragment(dst vec4, src vec2, vertexColor vec4) vec4 {
+    point := dst.xy - imageDstOrigin()
+    result := ClearColor
+    depth := 1.0
+    for i := 0; i < 28; i++ {
+        if i >= Count { break }
+        if Modes[i].x == 3 { result = Colors[i*3]; continue }
+        if Modes[i].x == 4 { depth = 1; continue }
+        coverage := 1.0
+        a, b, c := Positions[i*3], Positions[i*3+1], Positions[i*3+2]
+        weights := vec3(0)
+        if Modes[i].x == 0 {
+            area := cross(b.xy-a.xy, c.xy-a.xy)
+            if abs(area) < 0.000001 { continue }
+            weights.x = cross(b.xy-point, c.xy-point) / area
+            weights.y = cross(c.xy-point, a.xy-point) / area
+            weights.z = 1-weights.x-weights.y
+            if min(weights.x, min(weights.y, weights.z)) < -0.000001 { continue }
+        } else {
+            ab := b.xy-a.xy
+            length2 := dot(ab, ab)
+            t := 0.0
+            if length2 > 0 { t = clamp(dot(point-a.xy, ab)/length2, 0, 1) }
+            delta := point-(a.xy+t*ab)
+            if Modes[i].x == 2 {
+                coverage = clamp(Modes[i].w/2+0.5-length(delta), 0, 1)
+                if coverage == 0 { continue }
+            } else if dot(delta, delta) > Modes[i].w*Modes[i].w/4 { continue }
+            weights = vec3(1-t, t, 0)
+        }
+        z := dot(weights, vec3(a.z, b.z, c.z))
+        if z < 0 || z > 1 { continue }
+        test := Modes[i].y
+        if test == 1 && z >= depth { continue }
+        if test == 2 && z > depth+0.000001 { continue }
+        invW := dot(weights, vec3(a.w, b.w, c.w))
+        if invW <= 0 { continue }
+        color := (weights.x*Colors[i*3]+weights.y*Colors[i*3+1]+weights.z*Colors[i*3+2])/invW
+        color = clamp(color, vec4(0), vec4(1))
+        if Modes[i].z != 0 {
+            color.a *= coverage
+            result = color*color.a + result*(1-color.a)
+        } else { result = color }
+        if test != 0 { depth = z }
+    }
+    return vec4(result.rgb*result.a, result.a)
+}

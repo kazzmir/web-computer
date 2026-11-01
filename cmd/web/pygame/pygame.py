@@ -3,6 +3,13 @@ FULLSCREEN = -2147483648
 SCALED = 512
 HWSURFACE = 1
 DOUBLEBUF = 1073741824
+OPENGL = 2
+RESIZABLE = 16
+GL_CONTEXT_MAJOR_VERSION = 17
+GL_CONTEXT_MINOR_VERSION = 18
+GL_CONTEXT_PROFILE_MASK = 21
+GL_CONTEXT_PROFILE_CORE = 1
+GL_CONTEXT_PROFILE_COMPATIBILITY = 2
 RLEACCEL = 16384
 QUIT = 256
 KEYDOWN = 768
@@ -116,11 +123,16 @@ def Color(*args):
     return _color(args[0] if len(args) == 1 else args)
 
 class _Display:
-    def __init__(self): self.surface = None
+    def __init__(self):
+        self.surface = None
+        self._gl_attributes = [0] * 32
     def init(self): pass
+    def gl_set_attribute(self, attribute, value): self._gl_attributes[int(attribute)] = int(value)
+    def gl_get_attribute(self, attribute): return self._gl_attributes[int(attribute)]
     def set_mode(self, size, flags=0):
         self.surface = Surface(size)
         _set_mode(int(size[0]), int(size[1]), not not (flags & FULLSCREEN))
+        _gl_mode(self.surface._pixels, not not (flags & OPENGL))
         return self.surface
     def get_surface(self): return self.surface
     def set_caption(self, caption): _caption(caption)
@@ -185,7 +197,8 @@ class _Clock:
         elapsed = now - self._last
         self._last = now
         return elapsed
-class _Time: pass
+class _Time:
+    def wait(self, milliseconds): return _wait(int(milliseconds))
 time = _Time()
 time.Clock = _Clock
 
