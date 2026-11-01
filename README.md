@@ -1,6 +1,19 @@
 Pygame implementation in Golang backed by Ebitengine.
 Closing a demo window stops its Python task and shuts down the runner.
 
+### Browser playground
+
+```sh
+./web/build.sh
+python3 -m http.server 8000 --directory web
+```
+
+Open <http://localhost:8000> for a Python editor on the left and a live result
+window/console on the right. Run starts a fresh WASM runtime; Stop discards it.
+The generated WASM binary is ignored by Git. See [`web/README.md`](web/README.md).
+
+### Native examples
+
 Run Aliens (arrow keys move, Space shoots, `f` toggles fullscreen, Escape exits):
 
 ```sh

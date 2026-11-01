@@ -1761,6 +1761,7 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 	var arg int32
 	opcodes := frame.Code.Code
 	for vm.why == whyNot {
+		yieldToHost()
 		if debugging {
 			debugf("* %4d:", frame.Lasti)
 		}

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Python / Web Computer</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header>
+    <div><span class="eyebrow">WEB COMPUTER</span><h1>Python playground</h1></div>
+    <div class="actions">
+      <button id="reset" class="secondary">Reset example</button>
+      <button id="stop" class="secondary" disabled>Stop</button>
+      <button id="run">▶ Run <span class="shortcut">Ctrl ↵</span></button>
+    </div>
+  </header>
+  <main>
+    <section class="editor-pane" aria-labelledby="editor-title">
+      <div class="pane-title"><h2 id="editor-title">editor.py</h2><span>Python · pygame</span></div>
+      <label for="source" class="sr-only">Python source code</label>
+      <textarea id="source" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-describedby="editor-help"></textarea>
+      <footer id="editor-help">Ctrl/Cmd + Enter to run · Tab inserts four spaces · Changes saved locally</footer>
+    </section>
+    <section class="result-pane" aria-labelledby="result-title">
+      <div class="pane-title"><h2 id="result-title">Result window</h2><span id="status" role="status" aria-live="polite">Ready</span></div>
+      <div id="viewport">
+        <div class="placeholder"><div class="window-icon">▣</div><h3>Your program goes here</h3><p>Write Python on the left, then press Run.<br>Click the result window to use keyboard controls.</p></div>
+      </div>
+      <div class="console-heading"><h2>Console</h2><button id="clear" class="secondary">Clear</button></div>
+      <pre id="console" aria-label="Program output" tabindex="0"></pre>
+      <footer>Graphics run with pygame + Ebitengine inside your browser.</footer>
+    </section>
+  </main>
+  <noscript>This playground needs JavaScript and WebAssembly enabled.</noscript>
+</body>
+</html>
