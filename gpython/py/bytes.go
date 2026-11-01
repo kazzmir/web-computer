@@ -31,6 +31,9 @@ func (o Bytes) Type() *Type {
 	return BytesType
 }
 
+func (o Bytes) M__len__() (Object, error)  { return Int(len(o)), nil }
+func (o Bytes) M__bool__() (Object, error) { return NewBool(len(o) != 0), nil }
+
 // BytesNew
 func BytesNew(metatype *Type, args Tuple, kwargs StringDict) (res Object, err error) {
 	var x Object

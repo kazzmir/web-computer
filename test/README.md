@@ -17,6 +17,7 @@ These test files are copied unchanged from
 | `test_unicode_identifiers.py` | 3 | NFKC identifier normalization, non-BMP names, variation selectors, invalid-character diagnostics |
 | `test_utf8source.py` | 3 | UTF-8 source/text, malformed source, byte-source Latin-1 encoding declarations |
 | `test_html.py` | 2 | HTML escaping, HTML5 named/numeric references, invalid code points, long/repeated references |
+| `test_secrets.py` | 11 | Digest comparison, secure random integers/choices, byte/hex/URL-safe tokens |
 
 The upstream license is retained in `LICENSE.cpython`. The runtime also embeds
 unchanged copies of `Lib/keyword.py` and `Lib/colorsys.py` from the same
@@ -39,6 +40,11 @@ The copied `test/__init__.py`, `tokenizedata/__init__.py`, and malformed-source
 fixtures support the upstream `test.*` imports. Syntax-error fixtures are data,
 not additional runnable test suites. Basic source/text codecs currently cover
 UTF-8, Latin-1, and ASCII; unsupported encodings fail explicitly.
+
+The `secrets` subset uses Go's `crypto/rand` and `crypto/hmac`, not the
+simulation-oriented `random` module. It supplies the tested public functions;
+`SystemRandom` and general buffer-protocol digest arguments are not provided.
+Digest comparison supports ASCII `str` and `bytes`.
 
 The runtime currently supplies a **limited, fail-fast `unittest` subset**:
 `TestCase`, `setUp`/`tearDown`, LIFO `addCleanup`/`doCleanups`, `assertTrue`,

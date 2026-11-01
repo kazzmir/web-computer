@@ -30,6 +30,7 @@ import (
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/math"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/os"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/random"
+	_ "github.com/kazzmir/web-computer/gpython/stdlib/secrets"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/string"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/sys"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/tempfile"
