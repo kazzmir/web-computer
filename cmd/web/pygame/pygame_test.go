@@ -11,7 +11,7 @@ import (
 
 type testSystem struct{ frames int }
 
-func (s *testSystem) Flip()                           { s.frames++ }
+func (s *testSystem) Flip() error                     { s.frames++; return nil }
 func (s *testSystem) AddDrawCall(func(*ebiten.Image)) {}
 func (s *testSystem) SetScreenSize(int, int)          {}
 

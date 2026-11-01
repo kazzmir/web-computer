@@ -23,7 +23,7 @@ import (
 var source string
 
 type GraphicsSystem interface {
-	Flip()
+	Flip() error
 	AddDrawCall(func(*ebiten.Image))
 	SetScreenSize(int, int)
 }
@@ -306,21 +306,23 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 	})
 	var display *pixels
 	presentedSinceTick := false
-	present := func(p *pixels) {
+	present := func(p *pixels) error {
 		im := p.image
 		system.AddDrawCall(func(screen *ebiten.Image) {
 			if im != nil {
 				screen.DrawImage(im, nil)
 			}
 		})
-		system.Flip()
+		return system.Flip()
 	}
 	add("_present", "p", func(a py.Tuple) (py.Object, error) {
 		display = a[0].(*pixels)
 		if err := gl.Render(); err != nil {
 			return nil, err
 		}
-		present(display)
+		if err := present(display); err != nil {
+			return nil, err
+		}
 		presentedSinceTick = true
 		return py.None, nil
 	})
@@ -335,7 +337,9 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		// Event-driven scripts may not flip while idle. Yield at tick in that
 		// case so Ebitengine can deliver input and keep the last screen drawn.
 		if !presentedSinceTick && display != nil {
-			present(display)
+			if err := present(display); err != nil {
+				return nil, err
+			}
 		}
 		presentedSinceTick = false
 		return py.None, nil

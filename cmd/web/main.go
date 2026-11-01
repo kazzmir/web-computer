@@ -1,6 +1,7 @@
 package main
 
 import (
+    "errors"
     "log"
     "os"
     // "reflect"
@@ -78,8 +79,20 @@ type Engine struct {
 }
 
 // invoked from python when the user calls pygame.display.flip() or update()
-func (engine *Engine) Flip() {
-    engine.Yield()
+func (engine *Engine) Flip() error {
+    err := engine.Yield()
+    if errors.Is(err, coroutine.CoroutineCancelled) {
+        // Unwind Python (including finally blocks) instead of letting it
+        // continue drawing and block at another yield after RunGame exits.
+        return py.ExceptionNewf(py.SystemExit, "window closed")
+    }
+    return err
+}
+
+// Stop joins the Python task before its interpreter and graphics are closed.
+func (engine *Engine) Stop() {
+    engine.Coroutine.Stop()
+    engine.Coroutine.Wait()
 }
 
 func (engine *Engine) AddDrawCall(draw func(*ebiten.Image)) {
@@ -168,7 +181,7 @@ func testGraphics() {
         ScreenHeight: 480,
     }
 
-    defer engine.Coroutine.Stop()
+    defer engine.Stop()
 
     err := pygame.RegisterPygameModule(engine, python)
     if err != nil {

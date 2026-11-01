@@ -1,4 +1,5 @@
 Pygame implementation in Golang backed by Ebitengine.
+Closing a demo window stops its Python task and shuts down the runner.
 
 Run the bundled Chimp example (Escape exits):
 
