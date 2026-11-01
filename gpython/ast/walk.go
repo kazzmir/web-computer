@@ -109,6 +109,11 @@ func Walk(ast Ast, Visit func(Ast) bool) {
 		// Targets []Expr
 		walkExprs(node.Targets)
 
+	case *AnnAssign:
+		walk(node.Target)
+		walk(node.Annotation)
+		walk(node.Value)
+
 	case *Assign:
 		// Targets []Expr
 		// Value   Expr

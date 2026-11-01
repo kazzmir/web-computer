@@ -1,6 +1,16 @@
 Pygame implementation in Golang backed by Ebitengine.
 Closing a demo window stops its Python task and shuts down the runner.
 
+Run Aliens (arrow keys move, Space shoots, `f` toggles fullscreen, Escape exits):
+
+```sh
+go run ./cmd/web aliens.py
+```
+
+Aliens includes sprite groups/collisions, dirty-rectangle clearing, score text,
+sound effects, and looping/fading WAV music. Headless Linux sessions without an
+audio device/server or explicit ALSA configuration disable sound automatically.
+
 Run the bundled Chimp example (Escape exits):
 
 ```sh
@@ -74,7 +84,9 @@ can be imported without initializing pygame or a graphics context.
 ### Runtime and tests
 
 The embedded runtime supports f-strings, including expressions, `!s`/`!r`/`!a`
-conversions, escaped braces, and numeric format specs such as `.4f`.
+conversions, escaped braces, and numeric format specs such as `.4f`. Named
+variable annotations, runtime `typing.List` metadata, and basic `random`
+functions are available independently of pygame.
 
 Scripts and their `data/` assets are embedded from `scripts/python/`. Images,
 fonts, and WAV sounds can also be loaded from filesystem paths. The pygame

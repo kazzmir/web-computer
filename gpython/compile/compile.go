@@ -203,9 +203,11 @@ func (c *compiler) compileAst(Ast ast.Ast, filename string, futureFlags int, don
 	c.SetLineno(Ast)
 	switch node := Ast.(type) {
 	case *ast.Module:
+		c.setupAnnotations(node.Body)
 		c.Stmts(c.docString(node.Body, false))
 	case *ast.Interactive:
 		c.interactive = true
+		c.setupAnnotations(node.Body)
 		c.Stmts(node.Body)
 	case *ast.Expression:
 		c.Expr(node.Body)
@@ -242,6 +244,7 @@ func (c *compiler) compileAst(Ast ast.Ast, filename string, futureFlags int, don
 		c.NameOp("__qualname__", ast.Store)
 
 		/* compile the body proper */
+		c.setupAnnotations(node.Body)
 		c.Stmts(c.docString(node.Body, false))
 
 		if SymTable.NeedsClassClosure {
@@ -1002,6 +1005,27 @@ func (c *compiler) Stmts(stmts []ast.Stmt) {
 	}
 }
 
+// Annotations are scope-local metadata. Nested functions/classes initialize
+// their own dictionaries; local variable annotations are never evaluated.
+func (c *compiler) setupAnnotations(body []ast.Stmt) {
+	found := false
+	for _, statement := range body {
+		ast.Walk(statement, func(node ast.Ast) bool {
+			switch node.(type) {
+			case *ast.FunctionDef, *ast.ClassDef:
+				return false
+			case *ast.AnnAssign:
+				found = true
+				return false
+			}
+			return true
+		})
+	}
+	if found {
+		c.Op(vm.SETUP_ANNOTATIONS)
+	}
+}
+
 // Compile statement
 func (c *compiler) Stmt(stmt ast.Stmt) {
 	c.SetLineno(stmt)
@@ -1038,6 +1062,17 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 	case *ast.Delete:
 		// Targets []Expr
 		c.Exprs(node.Targets)
+	case *ast.AnnAssign:
+		if node.Value != nil {
+			c.Expr(node.Value)
+			c.Expr(node.Target)
+		}
+		if c.SymTable.Type != symtable.FunctionBlock {
+			c.Expr(node.Annotation)
+			c.NameOp("__annotations__", ast.Load)
+			c.LoadConst(py.String(node.Target.(*ast.Name).Id))
+			c.Op(vm.STORE_SUBSCR)
+		}
 	case *ast.Assign:
 		// Targets []Expr
 		// Value   Expr

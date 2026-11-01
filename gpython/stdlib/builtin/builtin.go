@@ -977,7 +977,11 @@ func isinstance(obj py.Object, classOrTuple py.Object) (py.Bool, error) {
 		if classOrTuple.Type().ObjectType != py.TypeType {
 			return false, py.ExceptionNewf(py.TypeError, "isinstance() arg 2 must be a type or tuple of types")
 		}
-		return obj.Type() == classOrTuple, nil
+		target, ok := classOrTuple.(*py.Type)
+		if !ok {
+			return false, py.ExceptionNewf(py.TypeError, "isinstance() arg 2 must be a type or tuple of types")
+		}
+		return py.Bool(obj.Type().IsSubtype(target)), nil
 	}
 }
 

@@ -39,6 +39,38 @@ func init() {
 		return NoneType{}, nil
 	}, 0, "extend([item])")
 
+	ListType.Dict["remove"] = MustNewMethod("remove", func(self Object, args Tuple) (Object, error) {
+		var value Object
+		if err := UnpackTuple(args, nil, "remove", 1, 1, &value); err != nil {
+			return nil, err
+		}
+		list, ok := self.(*List)
+		if !ok {
+			return nil, ExceptionNewf(TypeError, "remove requires a list instance")
+		}
+		for i := 0; i < len(list.Items); i++ {
+			item := list.Items[i]
+			equal, err := Eq(item, value)
+			if err != nil {
+				return nil, err
+			}
+			truth, err := MakeBool(equal)
+			if err != nil {
+				return nil, err
+			}
+			if truth == True {
+				if i >= len(list.Items) {
+					return None, nil
+				}
+				copy(list.Items[i:], list.Items[i+1:])
+				list.Items[len(list.Items)-1] = nil
+				list.Items = list.Items[:len(list.Items)-1]
+				return None, nil
+			}
+		}
+		return nil, ExceptionNewf(ValueError, "list.remove(x): x not in list")
+	}, 0, "Remove the first matching value")
+
 	ListType.Dict["sort"] = MustNewMethod("sort", func(self Object, args Tuple, kwargs StringDict) (Object, error) {
 		const funcName = "sort"
 		l, isList := self.(*List)

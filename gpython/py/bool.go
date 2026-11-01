@@ -79,6 +79,16 @@ func convertToBool(other Object) (Bool, bool) {
 	return False, false
 }
 
+func (a Bool) M__sub__(other Object) (Object, error) {
+	value, _ := a.M__index__()
+	return value.M__sub__(other)
+}
+
+func (a Bool) M__rsub__(other Object) (Object, error) {
+	value, _ := a.M__index__()
+	return value.M__rsub__(other)
+}
+
 func (a Bool) M__eq__(other Object) (Object, error) {
 	if b, ok := convertToBool(other); ok {
 		return NewBool(a == b), nil

@@ -6,6 +6,8 @@
 
 package vm
 
+import "github.com/kazzmir/web-computer/gpython/py"
+
 // Globals
 var (
 	jumpTable [256]func(*Vm, int32) error
@@ -22,6 +24,12 @@ func init() {
 	jumpTable[DUP_TOP] = do_DUP_TOP
 	jumpTable[DUP_TOP_TWO] = do_DUP_TOP_TWO
 	jumpTable[NOP] = do_NOP
+	jumpTable[SETUP_ANNOTATIONS] = func(vm *Vm, arg int32) error {
+		if _, ok := vm.frame.Locals["__annotations__"]; !ok {
+			vm.frame.Locals["__annotations__"] = py.NewStringDict()
+		}
+		return nil
+	}
 	jumpTable[FORMAT_VALUE] = do_FORMAT_VALUE
 	jumpTable[BUILD_STRING] = do_BUILD_STRING
 

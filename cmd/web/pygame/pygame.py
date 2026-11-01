@@ -54,6 +54,19 @@ class Rect:
     size = property(_get_size, _set_size)
     w = property(lambda self: self.width, lambda self, value: setattr(self, 'width', int(value)))
     h = property(lambda self: self.height, lambda self, value: setattr(self, 'height', int(value)))
+    def _get_midbottom(self): return self.centerx, self.bottom
+    def _set_midbottom(self, value): self.centerx, self.bottom = value
+    midbottom = property(_get_midbottom, _set_midbottom)
+
+    def clamp_ip(self, bounds):
+        if self.width >= bounds.width: self.centerx = bounds.centerx
+        else: self.x = max(bounds.left, min(self.x, bounds.right-self.width))
+        if self.height >= bounds.height: self.centery = bounds.centery
+        else: self.y = max(bounds.top, min(self.y, bounds.bottom-self.height))
+    def clamp(self, bounds):
+        rect = self.copy()
+        rect.clamp_ip(bounds)
+        return rect
 
     def copy(self): return Rect(self.x, self.y, self.width, self.height)
 
@@ -86,6 +99,7 @@ class Surface:
 
     def convert(self): return self
     def convert_alpha(self): return self
+    def copy(self): return _wrap(_copy(self._pixels))
     def get_size(self): return _size(self._pixels)
     def get_bitsize(self): return 32
     def get_width(self): return self.get_size()[0]
@@ -129,7 +143,9 @@ class _Display:
     def init(self): pass
     def gl_set_attribute(self, attribute, value): self._gl_attributes[int(attribute)] = int(value)
     def gl_get_attribute(self, attribute): return self._gl_attributes[int(attribute)]
-    def set_mode(self, size, flags=0):
+    def mode_ok(self, size, flags=0, depth=0): return 32 if size[0] > 0 and size[1] > 0 else 0
+    def set_icon(self, surface): _icon(surface._pixels)
+    def set_mode(self, size, flags=0, depth=0):
         self.surface = Surface(size)
         _set_mode(int(size[0]), int(size[1]), not not (flags & FULLSCREEN))
         _gl_mode(self.surface._pixels, not not (flags & OPENGL))
@@ -141,6 +157,7 @@ class _Display:
 display = _Display()
 
 class _Image:
+    def get_extended(self): return True
     def load(self, filename): return _wrap(_load(filename))
 image = _Image()
 
@@ -155,7 +172,7 @@ class _Transform:
     def scale2x(self, surface, dest_surface=None):
         pixels = _scale2x(surface._pixels, None if dest_surface is None else dest_surface._pixels)
         return _wrap(pixels) if dest_surface is None else dest_surface
-    def flip(self, surface, x, y): return _wrap(_flip(surface._pixels, x, y))
+    def flip(self, surface, x, y): return _wrap(_flip(surface._pixels, not not x, not not y))
     def rotate(self, surface, angle): return _wrap(_rotate(surface._pixels, angle))
 transform = _Transform()
 
@@ -163,31 +180,6 @@ class _Mouse:
     def get_pos(self): return _mouse_pos()
     def set_visible(self, visible): return _mouse_visible(not not visible)
 mouse = _Mouse()
-
-class _Sprite:
-    def __init__(self): pass
-    def update(self): pass
-
-class _Group:
-    def __init__(self, *sprites):
-        self._sprites = []
-        self.add(*sprites)
-    def add(self, *sprites):
-        for s in sprites:
-            if isinstance(s, (tuple, list)):
-                self.add(*s)
-            elif s not in self._sprites:
-                self._sprites.append(s)
-    def update(self, *args):
-        for s in self._sprites: s.update(*args)
-    def draw(self, surface):
-        return [surface.blit(s.image, s.rect) for s in self._sprites]
-
-class _Sprites: pass
-sprite = _Sprites()
-sprite.Sprite = _Sprite
-sprite.Group = _Group
-sprite.RenderPlain = _Group
 
 class _Clock:
     def __init__(self): self._last = _ticks()
@@ -234,7 +226,13 @@ class _Draw:
 draw = _Draw()
 
 class _Font:
-    def __init__(self, filename, size): self._face = _font(filename, int(size))
+    def __init__(self, filename, size):
+        self._face = _font(filename, int(size))
+        self._italic = False
+    def set_italic(self, value):
+        self._italic = not not value
+        _font_italic(self._face, self._italic)
+    def get_italic(self): return self._italic
     def render(self, message, antialias, color):
         return _wrap(_render(self._face, message, antialias, color))
 class _Fonts: pass
@@ -244,10 +242,23 @@ font.Font = _Font
 class _Sound:
     def __init__(self, filename): self._sound = _sound(filename)
     def play(self): _play(self._sound)
+class _Music:
+    def load(self, filename): _music_load(filename)
+    def play(self, loops=0): _music_play(int(loops))
+    def stop(self): _music_stop()
+    def fadeout(self, milliseconds): _music_fadeout(int(milliseconds))
+    def get_busy(self): return _music_busy()
+
 class _Mixer:
-    def get_init(self): return (44100, -16, 2)
+    def __init__(self): self.music = _Music()
+    def pre_init(self, frequency=44100, size=-16, channels=2, buffer=512):
+        if frequency <= 0 or channels <= 0 or buffer <= 0: raise ValueError('invalid mixer settings')
+    def get_init(self): return _mixer_init()
 mixer = _Mixer()
 mixer.Sound = _Sound
+
+def get_sdl_version(): return (2, 0, 0)
+def get_error(): return _get_error()
 
 def init(): return 3, 0
 def quit():

@@ -44,6 +44,10 @@ func MakeBool(a Object) (Object, error) {
 		}
 	}
 
+	if res, ok, err := TypeCall0(a, "__bool__"); ok {
+		return res, err
+	}
+
 	if B, ok := a.(I__len__); ok {
 		res, err := B.M__len__()
 		if err != nil {
@@ -52,6 +56,12 @@ func MakeBool(a Object) (Object, error) {
 		if res != NotImplemented {
 			return MakeBool(res)
 		}
+	}
+	if res, ok, err := TypeCall0(a, "__len__"); ok {
+		if err != nil {
+			return nil, err
+		}
+		return MakeBool(res)
 	}
 
 	return True, nil

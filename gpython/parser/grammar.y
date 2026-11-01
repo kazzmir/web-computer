@@ -676,7 +676,19 @@ expr_stmt: testlist_star_expr ('=' (yield_expr|testlist_star_expr))*
 */
 
 expr_stmt:
-	testlist_star_expr augassign yield_expr_or_testlist
+    testlist_star_expr ':' test
+    {
+        if _, ok := $1.(*ast.Name); !ok { yylex.(*yyLex).SyntaxError("annotated assignment requires a name") }
+        setCtx(yylex, $1, ast.Store)
+        $$ = &ast.AnnAssign{StmtBase: ast.StmtBase{Pos: $<pos>$}, Target: $1, Annotation: $3}
+    }
+|   testlist_star_expr ':' test '=' yield_expr_or_testlist
+    {
+        if _, ok := $1.(*ast.Name); !ok { yylex.(*yyLex).SyntaxError("annotated assignment requires a name") }
+        setCtx(yylex, $1, ast.Store)
+        $$ = &ast.AnnAssign{StmtBase: ast.StmtBase{Pos: $<pos>$}, Target: $1, Annotation: $3, Value: $5}
+    }
+|   testlist_star_expr augassign yield_expr_or_testlist
 	{
 		target := $1
 		setCtx(yylex, target, ast.Store)

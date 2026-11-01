@@ -22,6 +22,9 @@ import (
 //go:embed pygame.py
 var source string
 
+//go:embed sprite.py
+var spriteSource string
+
 type GraphicsSystem interface {
 	Flip() error
 	AddDrawCall(func(*ebiten.Image))
@@ -90,6 +93,7 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 	gl.RegisterModules()
 	start := time.Now()
 	methods, closeAudio := mediaMethods()
+	lastError := ""
 	// Decode native arguments before entering a pixel operation, so malformed
 	// Python calls raise TypeError rather than panicking on Go assertions.
 	add := func(name string, signature string, fn func(py.Tuple) (py.Object, error)) {
@@ -120,7 +124,11 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 					return nil, py.ExceptionNewf(py.TypeError, "invalid argument %d to %s", i+1, name)
 				}
 			}
-			return fn(args)
+			result, err := fn(args)
+			if err != nil {
+				lastError = err.Error()
+			}
+			return result, err
 		}, 0, ""))
 	}
 	add("_gl_mode", "pb", func(a py.Tuple) (py.Object, error) {
@@ -139,6 +147,30 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		start := time.Now()
 		time.Sleep(time.Duration(ms) * time.Millisecond)
 		return py.Int(time.Since(start) / time.Millisecond), nil
+	})
+	add("_get_error", "", func(a py.Tuple) (py.Object, error) { return py.String(lastError), nil })
+	add("_copy", "p", func(a py.Tuple) (py.Object, error) {
+		p := a[0].(*pixels)
+		b := p.bounds()
+		out := newPixels(b.Dx(), b.Dy())
+		if p.image != nil {
+			out.image.DrawImage(p.image, nil)
+		}
+		if p.clip != nil {
+			clip := *p.clip
+			out.clip = &clip
+		}
+		return out, nil
+	})
+	add("_icon", "p", func(a py.Tuple) (py.Object, error) {
+		p := a[0].(*pixels)
+		if p.image == nil {
+			return nil, py.ExceptionNewf(py.ValueError, "icon must not be empty")
+		}
+		icon := image.NewRGBA(p.bounds())
+		p.image.ReadPixels(icon.Pix)
+		ebiten.SetWindowIcon([]image.Image{icon})
+		return py.None, nil
 	})
 	registerSurfaceMethods(add)
 	registerTransformMethods(add)
@@ -420,15 +452,19 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		}
 		return events, nil
 	})
-	globals := py.StringDict{}
-	for name, key := range map[string]ebiten.Key{"K_ESCAPE": ebiten.KeyEscape, "K_f": ebiten.KeyF, "K_w": ebiten.KeyW, "K_a": ebiten.KeyA, "K_s": ebiten.KeyS, "K_d": ebiten.KeyD, "K_UP": ebiten.KeyUp, "K_DOWN": ebiten.KeyDown, "K_LEFT": ebiten.KeyLeft, "K_RIGHT": ebiten.KeyRight} {
+	globals := py.StringDict{"error": py.OSError}
+	for name, key := range map[string]ebiten.Key{"K_ESCAPE": ebiten.KeyEscape, "K_f": ebiten.KeyF, "K_SPACE": ebiten.KeySpace, "K_w": ebiten.KeyW, "K_a": ebiten.KeyA, "K_s": ebiten.KeyS, "K_d": ebiten.KeyD, "K_UP": ebiten.KeyUp, "K_DOWN": ebiten.KeyDown, "K_LEFT": ebiten.KeyLeft, "K_RIGHT": ebiten.KeyRight} {
 		globals[name] = py.Int(key)
 	}
 	py.RegisterModule(&py.ModuleImpl{
 		Info:    py.ModuleInfo{Name: "pygame.transform"},
 		CodeSrc: "from pygame import transform as _impl\nscale = _impl.scale\nsmoothscale = _impl.smoothscale\nscale2x = _impl.scale2x\nflip = _impl.flip\nrotate = _impl.rotate\n",
 	})
-	py.RegisterModule(&py.ModuleImpl{Info: py.ModuleInfo{Name: "pygame", Doc: "Pygame backed by Ebitengine"}, Methods: methods, Globals: globals, CodeSrc: source,
+	py.RegisterModule(&py.ModuleImpl{
+		Info:    py.ModuleInfo{Name: "pygame.sprite"},
+		CodeSrc: "from pygame import sprite as _impl\nSprite = _impl.Sprite\nGroup = _impl.Group\nGroupSingle = _impl.GroupSingle\nRenderPlain = _impl.RenderPlain\nRenderUpdates = _impl.RenderUpdates\nspritecollide = _impl.spritecollide\ngroupcollide = _impl.groupcollide\n",
+	})
+	py.RegisterModule(&py.ModuleImpl{Info: py.ModuleInfo{Name: "pygame", Doc: "Pygame backed by Ebitengine"}, Methods: methods, Globals: globals, CodeSrc: source + "\n" + spriteSource,
 		OnContextClosed: func(*py.Module) { closeAudio(); gl.Close() },
 	})
 	return nil

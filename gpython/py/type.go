@@ -524,7 +524,15 @@ func TypeCall(self Object, name string, args Tuple, kwargs StringDict) (Object, 
 	if !ok {
 		return nil, false, nil
 	}
-	return t.CallMethod(name, args, kwargs)
+	// Special methods belong to the type, including inherited methods.
+	// Looking through the instance's MRO misses base-class implementations
+	// because ordinary instances do not have their own MRO.
+	fn := t.Type().NativeGetAttrOrNil(name)
+	if fn == nil {
+		return nil, false, nil
+	}
+	result, err := Call(fn, args, kwargs)
+	return result, true, err
 }
 
 // Calls TypeCall with 0 arguments

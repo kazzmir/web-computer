@@ -164,6 +164,8 @@ func opcodeStackEffect(opcode vm.OpCode, oparg uint32) int {
 			return -1
 		}
 		return 0
+	case vm.SETUP_ANNOTATIONS:
+		return 0
 	case vm.BUILD_MAP:
 		return 1
 	case vm.LOAD_ATTR:

@@ -305,6 +305,13 @@ type Delete struct {
 	Targets []Expr
 }
 
+type AnnAssign struct {
+	StmtBase
+	Target     Expr
+	Annotation Expr
+	Value      Expr
+}
+
 type Assign struct {
 	StmtBase
 	Targets []Expr
@@ -800,6 +807,7 @@ var FunctionDefType = StmtBaseType.NewType("FunctionDef", "FunctionDef Node", ni
 var ClassDefType = StmtBaseType.NewType("ClassDef", "ClassDef Node", nil, nil)
 var ReturnType = StmtBaseType.NewType("Return", "Return Node", nil, nil)
 var DeleteType = StmtBaseType.NewType("Delete", "Delete Node", nil, nil)
+var AnnAssignType = StmtBaseType.NewType("AnnAssign", "AnnAssign Node", nil, nil)
 var AssignType = StmtBaseType.NewType("Assign", "Assign Node", nil, nil)
 var AugAssignType = StmtBaseType.NewType("AugAssign", "AugAssign Node", nil, nil)
 var ForType = StmtBaseType.NewType("For", "For Node", nil, nil)
@@ -875,6 +883,7 @@ func (o *FunctionDef) Type() *py.Type    { return FunctionDefType }
 func (o *ClassDef) Type() *py.Type       { return ClassDefType }
 func (o *Return) Type() *py.Type         { return ReturnType }
 func (o *Delete) Type() *py.Type         { return DeleteType }
+func (o *AnnAssign) Type() *py.Type      { return AnnAssignType }
 func (o *Assign) Type() *py.Type         { return AssignType }
 func (o *AugAssign) Type() *py.Type      { return AugAssignType }
 func (o *For) Type() *py.Type            { return ForType }

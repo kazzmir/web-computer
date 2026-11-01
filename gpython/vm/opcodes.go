@@ -142,6 +142,8 @@ const (
 	SET_ADD     OpCode = 146
 	MAP_ADD     OpCode = 147
 
+	SETUP_ANNOTATIONS OpCode = 85 // Initialize scope-local variable annotation metadata.
+
 	LOAD_CLASSDEREF OpCode = 148 // New in Python 3.4
 
 	FORMAT_VALUE OpCode = 155 // Conversion flags and optional format spec

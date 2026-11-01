@@ -95,6 +95,8 @@ assert event_calls == 5
 	g.t.Run("Scroll", testScroll)
 	g.t.Run("Liquid", testLiquid)
 	g.t.Run("GLCube", testGLCube)
+	g.t.Run("Aliens", testAliens)
+	g.t.Run("Music", testMusic)
 	return ebiten.Termination
 }
 

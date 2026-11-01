@@ -250,6 +250,13 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 				}
 				st.AddDef(node, name, DefGlobal)
 			}
+		case *ast.AnnAssign:
+			st.Parse(node.Target)
+			st.Parse(node.Value)
+			if st.Type != FunctionBlock {
+				st.Parse(node.Annotation)
+			}
+			return false
 		case *ast.Name:
 			if node.Ctx == ast.Load {
 				st.AddDef(node, node.Id, DefUse)

@@ -25,10 +25,12 @@ import (
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/glob"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/math"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/os"
+	_ "github.com/kazzmir/web-computer/gpython/stdlib/random"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/string"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/sys"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/tempfile"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/time"
+	_ "github.com/kazzmir/web-computer/gpython/stdlib/typing"
 )
 
 func init() {
