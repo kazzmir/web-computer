@@ -1,4 +1,6 @@
-package pygame
+// Package opengl emulates a subset of OpenGL through Ebitengine Kage.
+// It is independent of pygame surfaces and Python numeric library packages.
+package opengl
 
 import (
 	_ "embed"
@@ -24,7 +26,7 @@ type glPrimitive struct {
 
 type glContext struct {
 	shader                                                  *ebiten.Shader
-	target                                                  *pixels
+	target                                                  *ebiten.Image
 	viewport                                                [4]int
 	primitives                                              []glPrimitive
 	clearColor, frameClear, currentColor                    glVector
@@ -45,6 +47,15 @@ type glContext struct {
 	arrayBuffer, vao, program                               int
 }
 
+// Context holds isolated GL state and renders into a caller-owned image.
+type Context = glContext
+
+func NewContext() (*Context, error)                   { return newGLContext() }
+func (g *glContext) RegisterModules()                 { g.registerModules() }
+func (g *glContext) BindSurface(target *ebiten.Image) { g.bindSurface(target, target != nil) }
+func (g *glContext) Render() error                    { return g.render() }
+func (g *glContext) Close()                           { g.close() }
+
 func newGLContext() (*glContext, error) {
 	shader, e := ebiten.NewShader([]byte(glShaderSource))
 	if e != nil {
@@ -54,11 +65,11 @@ func newGLContext() (*glContext, error) {
 		shaders: map[int]*glShader{}, programs: map[int]*glProgram{}, buffers: map[int][]byte{}, vaos: map[int]*glVAO{0: {attrs: map[int]glAttribute{}}}, uniforms: map[int]glUniform{}}
 	return g, nil
 }
-func (g *glContext) bindSurface(p *pixels, enabled bool) {
+func (g *glContext) bindSurface(p *ebiten.Image, enabled bool) {
 	g.target = nil
 	if enabled {
 		g.target = p
-		size := p.bounds().Size()
+		size := p.Bounds().Size()
 		g.viewport = [4]int{0, 0, size.X, size.Y}
 	}
 	g.primitives = nil
@@ -89,8 +100,8 @@ func (g *glContext) render() error {
 	for i, c := range g.frameClear {
 		clear[i] = float32(c)
 	}
-	size := g.target.bounds().Size()
-	g.target.image.DrawRectShader(size.X, size.Y, g.shader, &ebiten.DrawRectShaderOptions{Blend: ebiten.BlendCopy, Uniforms: map[string]any{
+	size := g.target.Bounds().Size()
+	g.target.DrawRectShader(size.X, size.Y, g.shader, &ebiten.DrawRectShaderOptions{Blend: ebiten.BlendCopy, Uniforms: map[string]any{
 		"Positions": positions, "Colors": colors, "Modes": modes, "Count": len(g.primitives), "ClearColor": clear,
 	}})
 	return nil
@@ -113,7 +124,7 @@ func (g *glContext) screenVertex(v glVertex) (glVector, glVector, bool) {
 		}
 	}
 	vp := g.viewport
-	pos := glVector{float64(vp[0]) + (v.clip[0]*inv+1)*float64(vp[2])/2, float64(g.target.bounds().Dy()) - float64(vp[1]) - (v.clip[1]*inv+1)*float64(vp[3])/2, (v.clip[2]*inv + 1) / 2, inv}
+	pos := glVector{float64(vp[0]) + (v.clip[0]*inv+1)*float64(vp[2])/2, float64(g.target.Bounds().Dy()) - float64(vp[1]) - (v.clip[1]*inv+1)*float64(vp[3])/2, (v.clip[2]*inv + 1) / 2, inv}
 	var color glVector
 	for i := 0; i < 4; i++ {
 		color[i] = v.color[i] * inv

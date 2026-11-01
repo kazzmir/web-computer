@@ -1,4 +1,4 @@
-package pygame
+package opengl
 
 import (
 	"encoding/binary"
@@ -8,6 +8,8 @@ import (
 
 	"github.com/kazzmir/web-computer/gpython/py"
 )
+
+type nativeFunc = func(py.Tuple) (py.Object, error)
 
 const (
 	glLines             = 1
@@ -128,7 +130,12 @@ func glOffset(v py.Object) (int, error) {
 	return n, nil
 }
 func glFlat(v py.Object) ([]float64, error) {
-	if data, e := py.GetAttrString(v, "_data"); e == nil {
+	// Consume the public array protocol rather than NumPy's internal storage.
+	if tolist, e := py.GetAttrString(v, "tolist"); e == nil {
+		data, e := py.Call(tolist, nil, nil)
+		if e != nil {
+			return nil, e
+		}
 		v = data
 	}
 	var out []float64
@@ -932,7 +939,6 @@ func (g *glContext) registerModules() {
 		*m = glMultiply(*m, glPerspective(v[0], v[1], v[2], v[3]))
 		return py.None, nil
 	}, 0, "")}})
-	registerGLDependencies()
 }
 
 func (g *glContext) fetchAttribute(loc, index int) (glVector, error) {

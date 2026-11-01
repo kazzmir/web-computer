@@ -1,4 +1,4 @@
-# Small, explicit ndarray subset for GL buffers and transformation matrices.
+# Small, explicit ndarray subset for numeric matrices and structured arrays.
 # No host pointers, native extensions, broadcasting, or arbitrary NumPy APIs.
 class _DType:
     def __init__(self, name, size, fields=None):

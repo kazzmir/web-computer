@@ -18,6 +18,7 @@ import (
 	"github.com/kazzmir/web-computer/gpython/repl"
 	"github.com/kazzmir/web-computer/gpython/repl/cli"
 
+	_ "github.com/kazzmir/web-computer/gpython/lib"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib"
 )
 

@@ -1,4 +1,4 @@
-package pygame
+package opengl
 
 import "math"
 

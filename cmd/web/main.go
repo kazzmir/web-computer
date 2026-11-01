@@ -10,6 +10,7 @@ import (
     "github.com/kazzmir/web-computer/lib/coroutine"
 
     "github.com/kazzmir/web-computer/gpython/py"
+    _ "github.com/kazzmir/web-computer/gpython/lib"
     _ "github.com/kazzmir/web-computer/gpython/stdlib"
 
     "github.com/hajimehoshi/ebiten/v2"

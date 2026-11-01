@@ -1,4 +1,5 @@
-package pygame
+// Package numpy provides a small, graphics-independent subset of NumPy.
+package numpy
 
 import (
 	_ "embed"
@@ -108,8 +109,8 @@ func arrayBytes(obj py.Object) ([]byte, error) {
 	return out, nil
 }
 
-func registerGLDependencies() {
-	py.RegisterModule(&py.ModuleImpl{Info: py.ModuleInfo{Name: "numpy", Doc: "Matrix and structured-buffer subset for the GL emulator"}, CodeSrc: numpySource, Methods: []*py.Method{
+func init() {
+	py.RegisterModule(&py.ModuleImpl{Info: py.ModuleInfo{Name: "numpy", Doc: "Numeric matrices and structured arrays (NumPy compatibility subset)"}, CodeSrc: numpySource, Methods: []*py.Method{
 		py.MustNewMethod("_array_bytes", func(self py.Object, args py.Tuple) (py.Object, error) {
 			var obj py.Object
 			if e := py.UnpackTuple(args, nil, "tobytes", 1, 1, &obj); e != nil {
@@ -122,5 +123,4 @@ func registerGLDependencies() {
 			return py.Bytes(bytes), nil
 		}, 0, ""),
 	}})
-	py.RegisterModule(&py.ModuleImpl{Info: py.ModuleInfo{Name: "ctypes", Doc: "Safe GL buffer offsets only; no native FFI"}, CodeSrc: "class c_void_p:\n    def __init__(self, value=None): self.value = value\n"})
 }

@@ -15,6 +15,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/kazzmir/web-computer/cmd/web/opengl"
 	"github.com/kazzmir/web-computer/gpython/py"
 )
 
@@ -82,11 +83,11 @@ func rgba(obj py.Object) (color.RGBA, error) {
 }
 
 func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
-	gl, err := newGLContext()
+	gl, err := opengl.NewContext()
 	if err != nil {
 		return err
 	}
-	gl.registerModules()
+	gl.RegisterModules()
 	start := time.Now()
 	methods, closeAudio := mediaMethods()
 	// Decode native arguments before entering a pixel operation, so malformed
@@ -123,7 +124,11 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		}, 0, ""))
 	}
 	add("_gl_mode", "pb", func(a py.Tuple) (py.Object, error) {
-		gl.bindSurface(a[0].(*pixels), bool(a[1].(py.Bool)))
+		if bool(a[1].(py.Bool)) {
+			gl.BindSurface(a[0].(*pixels).image)
+		} else {
+			gl.BindSurface(nil)
+		}
 		return py.None, nil
 	})
 	add("_wait", "i", func(a py.Tuple) (py.Object, error) {
@@ -312,7 +317,7 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 	}
 	add("_present", "p", func(a py.Tuple) (py.Object, error) {
 		display = a[0].(*pixels)
-		if err := gl.render(); err != nil {
+		if err := gl.Render(); err != nil {
 			return nil, err
 		}
 		present(display)
@@ -420,7 +425,7 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		CodeSrc: "from pygame import transform as _impl\nscale = _impl.scale\nsmoothscale = _impl.smoothscale\nscale2x = _impl.scale2x\nflip = _impl.flip\nrotate = _impl.rotate\n",
 	})
 	py.RegisterModule(&py.ModuleImpl{Info: py.ModuleInfo{Name: "pygame", Doc: "Pygame backed by Ebitengine"}, Methods: methods, Globals: globals, CodeSrc: source,
-		OnContextClosed: func(*py.Module) { closeAudio(); gl.close() },
+		OnContextClosed: func(*py.Module) { closeAudio(); gl.Close() },
 	})
 	return nil
 }

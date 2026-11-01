@@ -58,6 +58,18 @@ byte buffers, transpose, matrix multiplication, `eye`, and `zeros` only.
 `ctypes.c_void_p` represents safe buffer offsets; it does not expose native memory
 or FFI. No external Python packages are required.
 
+### Module layout
+
+- `cmd/web/pygame`: `pygame` and `pygame.*` modules and display integration.
+- `cmd/web/opengl`: the Ebitengine-backed `OpenGL.*` compatibility renderer.
+- `gpython/stdlib`: standard-library modules, including the limited `ctypes` module.
+- `gpython/lib/numpy`: graphics-independent NumPy compatibility.
+
+The GPython CLI and web application link the optional `gpython/lib` bundle.
+Other Go embedders can opt in with `_ "github.com/kazzmir/web-computer/gpython/lib"`
+(or import `gpython/lib/numpy` alone), alongside `gpython/stdlib`. NumPy and ctypes
+can be imported without initializing pygame or a graphics context.
+
 ### Runtime and tests
 
 The embedded runtime supports f-strings, including expressions, `!s`/`!r`/`!a`
