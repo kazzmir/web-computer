@@ -20,8 +20,13 @@
   <main>
     <section class="editor-pane" aria-labelledby="editor-title">
       <div class="pane-title"><h2 id="editor-title">editor.py</h2><span>Python · pygame</span></div>
+      <div class="example-bar">
+        <label for="examples">Example</label>
+        <select id="examples" aria-describedby="example-help"></select>
+        <p id="example-help"></p>
+      </div>
       <label for="source" class="sr-only">Python source code</label>
-      <textarea id="source" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-describedby="editor-help"></textarea>
+      <textarea id="source" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-describedby="editor-help example-help"></textarea>
       <footer id="editor-help">Ctrl/Cmd + Enter to run · Tab inserts four spaces · Changes saved locally</footer>
     </section>
     <section class="result-pane" aria-labelledby="result-title">

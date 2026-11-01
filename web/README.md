@@ -11,11 +11,22 @@ Open <http://localhost:8000>. Python code is on the left; the Ebitengine canvas
 and stdout/stderr console are on the right. Click **Run** (or Ctrl/Cmd+Enter).
 Click the result canvas for keyboard controls. **Stop** destroys that run; the
 next Run always gets a fresh iframe/Go runtime, since Ebitengine cannot restart
-in the same runtime. The editor is saved in this browser's local storage.
+in the same runtime. The editor and selected example are saved in this browser's local storage.
+
+The **Example** dropdown includes Chimp, Aliens, Liquid, Scroll, Scaletest,
+GL cube, and the SDL2 Video demo, alongside the welcome animation. Selecting
+one replaces the editor with its unchanged source; press Run to execute it.
+Reset example reloads the selected demo. Scaletest automatically receives
+`data/chimp.png` as an argument. Example filenames are preserved for tracebacks
+and `__file__`-relative asset loading; assets remain embedded in the WASM build.
+Click the canvas to enable keyboard/audio interaction. Some demos request
+fullscreen; press Escape to leave fullscreen and access the editor controls.
 
 `wasm_exec.js` is Go's standard runtime support (license in `LICENSE-Go`).
 `build.sh` refreshes it from `go env GOROOT` to match the compiler. The generated
 `web-computer.wasm` is ignored by Git: rebuild it after changing Go/Python code.
+The build also copies `scripts/python/*.py` into the ignored `web/examples/`
+directory, so there is no second checked-in copy of the example sources.
 Serve over HTTP, not `file://`; no npm packages or CDN are required.
 
 The runner sends editor text as data to the WASM application, not as HTML or
@@ -43,4 +54,5 @@ node smoke-test.mjs
 
 Set `BASE_URL` for another server address. The test checks actual animated
 canvas output, UTF-8 stdout, syntax/runtime errors, isolated reruns, stopping a
-tight loop, saved editor contents, and clean runtime shutdown.
+tight loop, saved editor contents, clean runtime shutdown, and all seven bundled
+examples (including filenames, scaler arguments, saved selection, and reset).

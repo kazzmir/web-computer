@@ -59,8 +59,48 @@ try {
   assert.match(await page.locator('#console').textContent(), /after stop/);
   await page.reload();
   assert.equal(await page.locator('#source').inputValue(), 'print("after stop")');
+  for (const id of ['chimp', 'aliens', 'liquid', 'scroll', 'scaletest', 'glcube', 'video']) {
+    await page.selectOption('#examples', id);
+    await page.waitForFunction((id) => document.querySelector('#editor-title').textContent === `${id}.py` && !document.querySelector('#source').readOnly, id);
+    const expected = await page.evaluate(async (id) => (await fetch(`examples/${id}.py`)).text(), id);
+    assert.equal(await page.locator('#source').inputValue(), expected, 'load the example unchanged');
+    await page.locator('#run').click();
+    await waitStatus('Running');
+    await page.waitForTimeout(1200);
+    assert.equal(await page.locator('#status').textContent(), 'Running', await page.locator('#console').textContent());
+    const canvas = page.frameLocator('#viewport iframe').locator('canvas');
+    await canvas.waitFor();
+    if (id === 'video') {
+      await canvas.click();
+      await canvas.press('Enter');
+      await page.waitForTimeout(600);
+      assert.equal(await page.locator('#status').textContent(), 'Running', await page.locator('#console').textContent());
+    }
+    await page.evaluate(async () => { if (document.fullscreenElement) await document.exitFullscreen(); });
+    await page.locator('#stop').click();
+  }
+  await page.selectOption('#examples', 'scaletest');
+  await page.waitForFunction(() => document.querySelector('#editor-title').textContent === 'scaletest.py' && !document.querySelector('#source').readOnly);
+  await run('import sys\nprint(__file__)\nprint(sys.argv)');
+  await waitStatus('Finished');
+  assert.match(await page.locator('#console').textContent(), /python\/scaletest\.py/);
+  assert.match(await page.locator('#console').textContent(), /data\/chimp\.png/);
+  await page.reload();
+  assert.equal(await page.locator('#examples').inputValue(), 'scaletest');
+  assert.match(await page.locator('#source').inputValue(), /print\(sys.argv\)/);
+  await page.locator('#reset').click();
+  await page.waitForFunction(() => !document.querySelector('#source').readOnly);
+  assert.match(await page.locator('#source').inputValue(), /def main\(imagefile/);
+  const beforeFailedLoad = await page.locator('#source').inputValue();
+  await page.route('**/examples/chimp.py', (route) => route.fulfill({ status: 404, body: 'missing' }));
+  await page.selectOption('#examples', 'chimp');
+  await waitStatus('Example unavailable');
+  assert.equal(await page.locator('#source').inputValue(), beforeFailedLoad, 'a failed load must preserve edits');
+  assert.equal(await page.locator('#examples').inputValue(), 'scaletest');
+  assert.match(await page.locator('#console').textContent(), /web\/build\.sh/);
+  await page.unroute('**/examples/chimp.py');
   assert.deepEqual(errors, [], 'no callbacks should reenter an exited Go runtime');
-  console.log('PASS: graphics, output, errors, reruns, Stop, and saved editor');
+  console.log('PASS: graphics, output, errors, reruns, Stop, saved editor, and seven bundled examples');
 } finally {
   await browser.close();
 }

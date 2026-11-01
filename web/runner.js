@@ -32,10 +32,18 @@ window.addEventListener('message', async (event) => {
       if (text) send('output', { text });
       return bytes.length;
     };
+    // Go's browser process shim has no cwd. Examples resolve __file__ through
+    // os.path.abspath; a virtual root lets the embedded asset loader resolve
+    // /python/data/... without pretending that browser files are writable.
+    globalThis.process.cwd = () => '/';
     globalThis.webComputerSource = message.source;
     cleanup = runtimeLifecycle();
     const go = new Go();
-    go.argv = ['web-computer.wasm', 'editor.py'];
+    const filename = message.filename ?? 'editor.py';
+    const args = message.args ?? [];
+    if (typeof filename !== 'string' || !/^[\w-]+\.py$/.test(filename)) throw new Error('Invalid Python filename');
+    if (!Array.isArray(args) || !args.every((arg) => typeof arg === 'string')) throw new Error('Invalid program arguments');
+    go.argv = ['web-computer.wasm', filename, ...args];
     go.exit = (code) => { flush(); exited = true; cleanup(); send('exit', { code }); };
     const response = await fetch('web-computer.wasm');
     if (!response.ok) throw new Error(`Cannot load web-computer.wasm (${response.status}). Run ./web/build.sh first.`);

@@ -9,8 +9,9 @@ python3 -m http.server 8000 --directory web
 ```
 
 Open <http://localhost:8000> for a Python editor on the left and a live result
-window/console on the right. Run starts a fresh WASM runtime; Stop discards it.
-The generated WASM binary is ignored by Git. See [`web/README.md`](web/README.md).
+window/console on the right. Choose bundled pygame demos from the Example
+dropdown. Run starts a fresh WASM runtime; Stop discards it.
+The generated WASM binary and copied example sources are ignored by Git. See [`web/README.md`](web/README.md).
 
 ### Native examples
 
