@@ -9,6 +9,7 @@ These test files are copied unchanged from
 | `test_longexp.py` | 1 | Compile and evaluate a list expression with 65,580 elements |
 | `test_keyword.py` | 11 | Reserved/soft keywords, name rejection, sorted lists, independent membership snapshots |
 | `test_generator_stop.py` | 2 | PEP 479 wrapping and exception cause/context/suppression |
+| `test_int_literal.py` | 6 | Hexadecimal, octal, binary, signed/unsigned boundaries, arbitrary-precision constants |
 
 The upstream license is retained in `LICENSE.cpython`. The runtime also embeds
 an unchanged copy of `Lib/keyword.py` from the same distribution. Async/await
