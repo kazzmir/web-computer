@@ -967,18 +967,18 @@ func isinstance(obj py.Object, classOrTuple py.Object) (py.Bool, error) {
 	switch class_tuple := classOrTuple.(type) {
 	case py.Tuple:
 		for idx := range class_tuple {
-			res, _ := isinstance(obj, class_tuple[idx])
-			if res {
-				return res, nil
+			res, err := isinstance(obj, class_tuple[idx])
+			if err != nil || res {
+				return res, err
 			}
 		}
 		return false, nil
 	default:
-		if classOrTuple.Type().ObjectType != py.TypeType {
-			return false, py.ExceptionNewf(py.TypeError, "isinstance() arg 2 must be a type or tuple of types")
-		}
 		target, ok := classOrTuple.(*py.Type)
-		if !ok {
+		// Native exception classes have legacy metatype chains, while user
+		// instances also use *py.Type. An initialized class has its own MRO;
+		// ordinary instances do not. Do not infer classhood from the metatype.
+		if !ok || len(target.Mro) == 0 || target.Mro[0] != target {
 			return false, py.ExceptionNewf(py.TypeError, "isinstance() arg 2 must be a type or tuple of types")
 		}
 		return py.Bool(obj.Type().IsSubtype(target)), nil
