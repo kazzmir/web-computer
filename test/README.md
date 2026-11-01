@@ -16,6 +16,7 @@ These test files are copied unchanged from
 | `test_typechecks.py` | 6 | Metaclass `__instancecheck__`/`__subclasscheck__`, virtual types, inheritance, tuple class arguments |
 | `test_unicode_identifiers.py` | 3 | NFKC identifier normalization, non-BMP names, variation selectors, invalid-character diagnostics |
 | `test_utf8source.py` | 3 | UTF-8 source/text, malformed source, byte-source Latin-1 encoding declarations |
+| `test_html.py` | 2 | HTML escaping, HTML5 named/numeric references, invalid code points, long/repeated references |
 
 The upstream license is retained in `LICENSE.cpython`. The runtime also embeds
 unchanged copies of `Lib/keyword.py` and `Lib/colorsys.py` from the same
