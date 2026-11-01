@@ -3,7 +3,7 @@ Welcome to a gpython embedded example,
     where your wildest Go-based python dreams come true!
 
 ==========================================================
-        Python 3.4 (github.com/go-python/gpython)
+        Python 3.4 (github.com/kazzmir/web-computer/gpython)
 ==========================================================
 
 Spring Break itinerary:
