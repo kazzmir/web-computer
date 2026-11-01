@@ -2,6 +2,7 @@
 package random
 
 import (
+	"math/big"
 	"math/rand"
 	"sync"
 	"time"
@@ -52,16 +53,29 @@ func init() {
 		if err := py.UnpackTuple(args, nil, "_randbelow", 1, 1, &obj); err != nil {
 			return nil, err
 		}
-		n, ok := obj.(py.Int)
-		if !ok || n <= 0 {
+		n, ok := py.ConvertToBigInt(obj)
+		if !ok || (*big.Int)(n).Sign() <= 0 {
 			return nil, py.ExceptionNewf(py.ValueError, "random range must be positive")
 		}
 		g := self.(*generator)
 		g.mu.Lock()
 		defer g.mu.Unlock()
-		return py.Int(g.rng.Int63n(int64(n))), nil
+		if bound := (*big.Int)(n); bound.IsInt64() {
+			return py.Int(g.rng.Int63n(bound.Int64())), nil
+		}
+		return (*py.BigInt)(new(big.Int).Rand(g.rng, (*big.Int)(n))).MaybeInt(), nil
 	}, 0, "")
 	py.RegisterModule(&py.ModuleImpl{Info: py.ModuleInfo{Name: "random", Doc: "Random numbers, selection, and integer ranges (compatibility subset)"}, Methods: []*py.Method{
+		py.MustNewMethod("_index", func(self py.Object, args py.Tuple) (py.Object, error) {
+			var value py.Object
+			if err := py.UnpackTuple(args, nil, "_index", 1, 1, &value); err != nil {
+				return nil, err
+			}
+			if n, ok := py.ConvertToBigInt(value); ok {
+				return n.MaybeInt(), nil
+			}
+			return py.Index(value)
+		}, 0, ""),
 		py.MustNewMethod("Random", func(self py.Object, args py.Tuple) (py.Object, error) {
 			if err := py.UnpackTuple(args, nil, "Random", 0, 0); err != nil {
 				return nil, err
@@ -78,9 +92,14 @@ def choice(seq):
     return seq[_inst._randbelow(len(seq))]
 
 def randrange(start, stop=None, step=1):
+    start = _index(start)
     if stop is None: start, stop = 0, start
+    else: stop = _index(stop)
+    step = _index(step)
     if step == 0: raise ValueError('zero step for randrange')
-    count = len(range(start, stop, step))
+    if step > 0: count = (stop - start + step - 1) // step
+    else: count = (start - stop - step - 1) // (-step)
+    if count <= 0: raise ValueError('empty range for randrange')
     return start + step * _inst._randbelow(count)
 
 def randint(a, b): return randrange(a, b+1)

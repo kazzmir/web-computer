@@ -1299,6 +1299,22 @@ const math_doc = `This module is always available.  It provides access to the
 mathematical functions defined by the C standard.`
 
 // Initialise the module
+func math_gcd(self py.Object, args py.Tuple) (py.Object, error) {
+	result := new(big.Int)
+	for _, value := range args {
+		n, ok := py.ConvertToBigInt(value)
+		if !ok {
+			index, err := py.Index(value)
+			if err != nil {
+				return nil, err
+			}
+			n, _ = py.ConvertToBigInt(index)
+		}
+		result.GCD(nil, nil, result, (*big.Int)(n))
+	}
+	return (*py.BigInt)(result).MaybeInt(), nil
+}
+
 func init() {
 	methods := []*py.Method{
 		py.MustNewMethod("acos", math_acos, 0, math_acos_doc),
@@ -1324,6 +1340,7 @@ func init() {
 		py.MustNewMethod("frexp", math_frexp, 0, math_frexp_doc),
 		py.MustNewMethod("fsum", math_fsum, 0, math_fsum_doc),
 		py.MustNewMethod("gamma", math_gamma, 0, math_gamma_doc),
+		py.MustNewMethod("gcd", math_gcd, 0, "Greatest common divisor of integer arguments."),
 		py.MustNewMethod("hypot", math_hypot, 0, math_hypot_doc),
 		py.MustNewMethod("isfinite", math_isfinite, 0, math_isfinite_doc),
 		py.MustNewMethod("isinf", math_isinf, 0, math_isinf_doc),

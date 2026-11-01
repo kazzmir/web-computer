@@ -582,12 +582,15 @@ doc="pow(x,y,z)"
 assert pow(1938019302983,283019283019238,91283091283012938) == 90917306668848727
 pow(193801930298311111111111111111111,28301928301923822222222222222222222,9128309128301293822222222222222222222) == 2810220059867374937460899006752893533
 assert pow(True, 10) == 1
+# Python 3.8+ supports negative modular exponents via modular inversion.
+assert pow(1,-1,1) == 0
+assert pow(3,-1,11) == 4
 try:
-    pow(1,-1,1)
-except TypeError:
+    pow(2,-1,4)
+except ValueError:
     pass
 else:
-    assert False, "TypeError not raised"
+    assert False, "ValueError not raised for a non-invertible base"
 
 doc="round"
 assert round(12345678, 10) == 12345678

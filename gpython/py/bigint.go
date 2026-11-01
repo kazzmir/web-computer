@@ -321,11 +321,29 @@ func (a *BigInt) M__rdivmod__(other Object) (Object, Object, error) {
 
 // Raise to the power a**b or if m != nil, a**b mod m
 func (a *BigInt) pow(b, m *BigInt) (Object, error) {
+	if m != nil {
+		if (*big.Int)(m).Sign() == 0 {
+			return nil, ExceptionNewf(ValueError, "pow() 3rd argument cannot be 0")
+		}
+		modulus := new(big.Int).Abs((*big.Int)(m))
+		base := new(big.Int).Set((*big.Int)(a))
+		exponent := new(big.Int).Set((*big.Int)(b))
+		if exponent.Sign() < 0 {
+			inverse := new(big.Int).ModInverse(base, modulus)
+			if inverse == nil {
+				return nil, ExceptionNewf(ValueError, "base is not invertible for the given modulus")
+			}
+			base = inverse
+			exponent.Neg(exponent)
+		}
+		result := new(big.Int).Exp(base, exponent, modulus)
+		if (*big.Int)(m).Sign() < 0 && result.Sign() != 0 {
+			result.Add(result, (*big.Int)(m))
+		}
+		return (*BigInt)(result).MaybeInt(), nil
+	}
 	// -ve power => make float
 	if (*big.Int)(b).Sign() < 0 {
-		if m != nil {
-			return nil, ExceptionNewf(TypeError, "pow() 2nd argument cannot be negative when 3rd argument specified")
-		}
 		fa, err := a.Float()
 		if err != nil {
 			return nil, err

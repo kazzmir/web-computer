@@ -289,6 +289,9 @@ func (a Float) M__pow__(other, modulus Object) (Object, error) {
 		return NotImplemented, nil
 	}
 	if b, ok := convertToFloat(other); ok {
+		if a == 0 && b < 0 && !math.IsInf(float64(b), -1) {
+			return nil, ExceptionNewf(ZeroDivisionError, "0.0 cannot be raised to a negative power")
+		}
 		return Float(math.Pow(float64(a), float64(b))), nil
 	}
 	return NotImplemented, nil
@@ -296,6 +299,9 @@ func (a Float) M__pow__(other, modulus Object) (Object, error) {
 
 func (a Float) M__rpow__(other Object) (Object, error) {
 	if b, ok := convertToFloat(other); ok {
+		if b == 0 && a < 0 && !math.IsInf(float64(a), -1) {
+			return nil, ExceptionNewf(ZeroDivisionError, "0.0 cannot be raised to a negative power")
+		}
 		return Float(math.Pow(float64(b), float64(a))), nil
 	}
 	return NotImplemented, nil
