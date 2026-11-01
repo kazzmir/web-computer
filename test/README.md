@@ -13,6 +13,7 @@ These test files are copied unchanged from
 | `test_colorsys.py` | 8 | RGB/HSV/HLS/YIQ values, round trips, clamping, near-white precision |
 | `test_keywordonlyarg.py` | 11 | Keyword-only binding/defaults, syntax validation, large signatures, mangling, evaluation order |
 | `test_pow.py` | 7 | Integer/float powers, modular inverses, negative moduli, reflected power, huge random exponents |
+| `test_typechecks.py` | 6 | Metaclass `__instancecheck__`/`__subclasscheck__`, virtual types, inheritance, tuple class arguments |
 
 The upstream license is retained in `LICENSE.cpython`. The runtime also embeds
 unchanged copies of `Lib/keyword.py` and `Lib/colorsys.py` from the same

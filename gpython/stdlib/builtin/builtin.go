@@ -46,7 +46,7 @@ func init() {
 		// py.MustNewMethod("id", builtin_id, 0, id_doc),
 		// py.MustNewMethod("input", builtin_input, 0, input_doc),
 		py.MustNewMethod("isinstance", builtin_isinstance, 0, isinstance_doc),
-		// py.MustNewMethod("issubclass", builtin_issubclass, 0, issubclass_doc),
+		py.MustNewMethod("issubclass", builtin_issubclass, 0, "Check a class against a class or tuple of classes."),
 		py.MustNewMethod("iter", builtin_iter, 0, iter_doc),
 		py.MustNewMethod("len", builtin_len, 0, len_doc),
 		py.MustNewMethod("locals", py.InternalMethodLocals, 0, locals_doc),
@@ -408,7 +408,8 @@ func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict
 	// fmt.Printf("__build_class__(self=%#v, args=%#v, kwargs=%#v\n", self, args, kwargs)
 	var prep, cell, cls py.Object
 	var mkw, ns py.StringDict
-	var meta, winner *py.Type
+	var meta py.Object
+	var winner *py.Type
 	var isclass bool
 	var err error
 
@@ -426,14 +427,15 @@ func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict
 	if !ok {
 		return nil, py.ExceptionNewf(py.TypeError, "__build_class__: name is not a string")
 	}
-	bases := args[2:]
+	// Call arguments may be a view into the caller's reusable VM stack.
+	// Class bases outlive this call and must own their storage.
+	bases := args[2:].Copy()
 
 	if kwargs != nil {
-		mkw = kwargs.Copy()      // Don't modify kwds passed in!
-		meta := mkw["metaclass"] // _PyDict_GetItemId(mkw, &PyId_metaclass)
-		if meta != nil {
+		mkw = kwargs.Copy() // Don't modify kwds passed in!
+		if explicit := mkw["metaclass"]; explicit != nil {
 			delete(mkw, "metaclass")
-			// metaclass is explicitly given, check if it's indeed a class
+			meta = explicit
 			_, isclass = meta.(*py.Type)
 		}
 	}
@@ -451,7 +453,7 @@ func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict
 	if isclass {
 		// meta is really a class, so check for a more derived
 		// metaclass, or possible metaclass conflicts:
-		winner, err = meta.CalculateMetaclass(bases)
+		winner, err = meta.(*py.Type).CalculateMetaclass(bases)
 		if err != nil {
 			return nil, err
 		}
@@ -461,15 +463,22 @@ func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict
 	}
 	// else: meta is not a class, so we cannot do the metaclass
 	// calculation, so we will use the explicitly given object as it is
-	prep = meta.Type().Dict["___prepare__"] // FIXME should be using _PyObject_GetAttr
-	if prep == nil {
+	prep, err = py.GetAttrString(meta, "__prepare__")
+	if err != nil && !py.IsException(py.AttributeError, err) {
+		return nil, err
+	}
+	if err != nil {
 		ns = py.NewStringDict()
 	} else {
 		nsObj, err := py.Call(prep, py.Tuple{name, bases}, mkw)
 		if err != nil {
 			return nil, err
 		}
-		ns = nsObj.(py.StringDict)
+		var ok bool
+		ns, ok = nsObj.(py.StringDict)
+		if !ok {
+			return nil, py.ExceptionNewf(py.TypeError, "__prepare__ must return a dict")
+		}
 	}
 	// fmt.Printf("Calling %v with %v and %v\n", fn.Name, fn.Globals, ns)
 	// fmt.Printf("Code = %#v\n", fn.Code)
@@ -978,6 +987,16 @@ func isinstance(obj py.Object, classOrTuple py.Object) (py.Bool, error) {
 		if !ok || len(target.Mro) == 0 || target.Mro[0] != target {
 			return false, py.ExceptionNewf(py.TypeError, "isinstance() arg 2 must be a type or tuple of types")
 		}
+		if obj.Type() == target {
+			return py.True, nil
+		}
+		if result, found, err := py.TypeCall1(target, "__instancecheck__", obj); found {
+			if err != nil {
+				return false, err
+			}
+			truth, err := py.ObjectIsTrue(result)
+			return py.Bool(truth), err
+		}
 		return py.Bool(obj.Type().IsSubtype(target)), nil
 	}
 }
@@ -991,6 +1010,42 @@ func builtin_isinstance(self py.Object, args py.Tuple) (py.Object, error) {
 	}
 
 	return isinstance(obj, classOrTuple)
+}
+
+func subclass(candidate, classInfo py.Object) (py.Bool, error) {
+	if classes, ok := classInfo.(py.Tuple); ok {
+		for _, class := range classes {
+			result, err := subclass(candidate, class)
+			if err != nil || result {
+				return result, err
+			}
+		}
+		return false, nil
+	}
+	if result, found, err := py.TypeCall1(classInfo, "__subclasscheck__", candidate); found {
+		if err != nil {
+			return false, err
+		}
+		truth, err := py.ObjectIsTrue(result)
+		return py.Bool(truth), err
+	}
+	target, ok := classInfo.(*py.Type)
+	if !ok || len(target.Mro) == 0 || target.Mro[0] != target {
+		return false, py.ExceptionNewf(py.TypeError, "issubclass() arg 2 must be a class or tuple of classes")
+	}
+	source, ok := candidate.(*py.Type)
+	if !ok || len(source.Mro) == 0 || source.Mro[0] != source {
+		return false, py.ExceptionNewf(py.TypeError, "issubclass() arg 1 must be a class")
+	}
+	return py.Bool(source.IsSubtype(target)), nil
+}
+
+func builtin_issubclass(self py.Object, args py.Tuple) (py.Object, error) {
+	var candidate, classInfo py.Object
+	if err := py.UnpackTuple(args, nil, "issubclass", 2, 2, &candidate, &classInfo); err != nil {
+		return nil, err
+	}
+	return subclass(candidate, classInfo)
 }
 
 const iter_doc = `iter(iterable) -> iterator

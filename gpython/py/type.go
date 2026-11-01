@@ -180,9 +180,10 @@ type Type struct {
 }
 
 var TypeType *Type = &Type{
-	Name: "type",
-	Doc:  "type(object) -> the object's type\ntype(name, bases, dict) -> a new type",
-	Dict: StringDict{},
+	Name:  "type",
+	Flags: TPFLAGS_BASETYPE,
+	Doc:   "type(object) -> the object's type\ntype(name, bases, dict) -> a new type",
+	Dict:  StringDict{},
 }
 
 var ObjectType = &Type{
@@ -841,6 +842,12 @@ func (t *Type) mro_internal() (err error) {
 				return err
 			}
 		} else {
+			if descriptor, ok := mro.(I__get__); ok {
+				mro, err = descriptor.M__get__(t, t.Type())
+				if err != nil {
+					return err
+				}
+			}
 			result, err = Call(mro, nil, nil)
 			if err != nil {
 				return err
@@ -1433,6 +1440,9 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 		new_type.New = ExceptionNew
 	}
 	new_type.Init = ObjectInit
+	if base.IsSubtype(TypeType) {
+		new_type.New, new_type.Init = TypeNew, TypeInit
+	}
 
 	// Keep name and slots alive in the extended type object
 	et := new_type

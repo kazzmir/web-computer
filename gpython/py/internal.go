@@ -244,6 +244,17 @@ func GetAttrString(self Object, key string) (res Object, err error) {
 		}
 	}
 
+	// Data descriptors on the type/metaclass take priority over instance or
+	// class dictionaries (notably type.__dict__ and object.__class__).
+	if attr := self.Type().NativeGetAttrOrNil(key); attr != nil {
+		getter, gets := attr.(I__get__)
+		_, sets := attr.(I__set__)
+		_, deletes := attr.(I__delete__)
+		if gets && (sets || deletes) {
+			return getter.M__get__(self, self.Type())
+		}
+	}
+
 	// Class attributes still honor descriptors. In particular, classmethod
 	// binds the class itself while staticmethod unwraps its callable. Walk
 	// the class MRO here as well so inherited factories use the derived class.
