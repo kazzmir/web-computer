@@ -41,6 +41,23 @@ Very expensive native operations, compilation, and huge allocations can still
 block or exhaust the tab. Stop/re-run discards interpreter state immediately;
 it does not guarantee execution of Python `finally` blocks.
 
+## GitHub Pages
+
+The [Pages workflow](../.github/workflows/pages.yml) builds and publishes the
+playground on pushes to `master` or `main`, or via **Actions → Publish playground
+to GitHub Pages → Run workflow**.
+
+In the repository, first choose **Settings → Pages → Build and deployment →
+Source: GitHub Actions**. The workflow uses Go from `go.mod`, builds the WASM
+binary, refreshes the matching `wasm_exec.js`, and copies the example sources.
+It uploads only the website assets as a Pages artifact, then deploys using the
+built-in GitHub token/OIDC; no custom secrets or `gh-pages` branch are needed.
+The generated WASM binary is never committed to Git.
+
+The deployed URL appears in the workflow's `github-pages` environment (normally
+`https://<owner>.github.io/<repository>/`). All asset URLs are relative, so
+repository subpaths work without configuration.
+
 ## Optional browser smoke test
 
 With the HTTP server running, install Playwright just for testing:
