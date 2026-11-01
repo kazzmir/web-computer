@@ -42,6 +42,11 @@ type Code struct {
 
 var CodeType = NewType("code", "code(argcount, kwonlyargcount, nlocals, stacksize, flags, codestring,\n      constants, names, varnames, filename, name, firstlineno,\n      lnotab[, freevars[, cellvars]])\n\nCreate a code object.  Not for the faint of heart.")
 
+func init() {
+	CodeType.Dict["co_argcount"] = &Property{Fget: func(self Object) (Object, error) { return Int(self.(*Code).Argcount), nil }}
+	CodeType.Dict["co_kwonlyargcount"] = &Property{Fget: func(self Object) (Object, error) { return Int(self.(*Code).Kwonlyargcount), nil }}
+}
+
 // Type of this object
 func (o *Code) Type() *Type {
 	return CodeType

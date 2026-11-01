@@ -123,6 +123,25 @@ func fieldsN(s string, n int) []string {
 }
 
 func init() {
+	StringType.Dict["join"] = MustNewMethod("join", func(self Object, args Tuple) (Object, error) {
+		var iterable Object
+		if err := UnpackTuple(args, nil, "join", 1, 1, &iterable); err != nil {
+			return nil, err
+		}
+		values, err := SequenceTuple(iterable)
+		if err != nil {
+			return nil, err
+		}
+		parts := make([]string, len(values))
+		for i, value := range values {
+			text, ok := value.(String)
+			if !ok {
+				return nil, ExceptionNewf(TypeError, "sequence item %d: expected str instance, %s found", i, value.Type().Name)
+			}
+			parts[i] = string(text)
+		}
+		return String(strings.Join(parts, string(self.(String)))), nil
+	}, 0, "Concatenate strings from an iterable using this separator.")
 	StringType.Dict["endswith"] = MustNewMethod("endswith", func(self Object, args Tuple) (Object, error) {
 		selfStr := string(self.(String))
 		suffix := []string{}

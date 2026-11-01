@@ -11,6 +11,7 @@ These test files are copied unchanged from
 | `test_generator_stop.py` | 2 | PEP 479 wrapping and exception cause/context/suppression |
 | `test_int_literal.py` | 6 | Hexadecimal, octal, binary, signed/unsigned boundaries, arbitrary-precision constants |
 | `test_colorsys.py` | 8 | RGB/HSV/HLS/YIQ values, round trips, clamping, near-white precision |
+| `test_keywordonlyarg.py` | 11 | Keyword-only binding/defaults, syntax validation, large signatures, mangling, evaluation order |
 
 The upstream license is retained in `LICENSE.cpython`. The runtime also embeds
 unchanged copies of `Lib/keyword.py` and `Lib/colorsys.py` from the same

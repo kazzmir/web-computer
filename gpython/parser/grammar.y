@@ -429,9 +429,8 @@ tfpdeftests:
 |	tfpdeftests ',' tfpdeftest
 	{
 		$$ = append($$, $3)
-		if $<expr>3 != nil {
-			$<exprs>$ = append($<exprs>$, $<expr>3)
-		}
+        // Keyword-only defaults stay aligned, including required parameters.
+		$<exprs>$ = append($<exprs>$, $<expr>3)
 	}
 
 tfpdeftests1:
@@ -469,10 +468,12 @@ typedargslist:
 	}
 |	tfpdeftests1 ',' '*' optional_tfpdef tfpdeftests
 	{
+        if $4 == nil && len($5) == 0 { yylex.(*yyLex).SyntaxError("named arguments must follow bare *") }
 		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Vararg: $4, Kwonlyargs: $5, KwDefaults: $<exprs>5}
 	}
 |	tfpdeftests1 ',' '*' optional_tfpdef tfpdeftests ',' STARSTAR tfpdef
 	{
+        if $4 == nil && len($5) == 0 { yylex.(*yyLex).SyntaxError("named arguments must follow bare *") }
 		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Vararg: $4, Kwonlyargs: $5, KwDefaults: $<exprs>5, Kwarg: $8}
 	}
 |	tfpdeftests1 ',' STARSTAR tfpdef
@@ -481,10 +482,12 @@ typedargslist:
 	}
 |	'*' optional_tfpdef tfpdeftests
 	{
+        if $2 == nil && len($3) == 0 { yylex.(*yyLex).SyntaxError("named arguments must follow bare *") }
 		$$ = &ast.Arguments{Pos: $<pos>$, Vararg: $2, Kwonlyargs: $3, KwDefaults: $<exprs>3}
 	}
 |	'*' optional_tfpdef tfpdeftests ',' STARSTAR tfpdef
 	{
+        if $2 == nil && len($3) == 0 { yylex.(*yyLex).SyntaxError("named arguments must follow bare *") }
 		$$ = &ast.Arguments{Pos: $<pos>$, Vararg: $2, Kwonlyargs: $3, KwDefaults: $<exprs>3, Kwarg: $6}
 	}
 |	STARSTAR tfpdef
@@ -522,9 +525,7 @@ vfpdeftests:
 |	vfpdeftests ',' vfpdeftest
 	{
 		$$ = append($$, $3)
-		if $<expr>3 != nil {
-			$<exprs>$ = append($<exprs>$, $<expr>3)
-		}
+		$<exprs>$ = append($<exprs>$, $<expr>3)
 	}
 
 vfpdeftests1:
@@ -562,10 +563,12 @@ varargslist:
 	}
 |	vfpdeftests1 ',' '*' optional_vfpdef vfpdeftests
 	{
+        if $4 == nil && len($5) == 0 { yylex.(*yyLex).SyntaxError("named arguments must follow bare *") }
 		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Vararg: $4, Kwonlyargs: $5, KwDefaults: $<exprs>5}
 	}
 |	vfpdeftests1 ',' '*' optional_vfpdef vfpdeftests ',' STARSTAR vfpdef
 	{
+        if $4 == nil && len($5) == 0 { yylex.(*yyLex).SyntaxError("named arguments must follow bare *") }
 		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Vararg: $4, Kwonlyargs: $5, KwDefaults: $<exprs>5, Kwarg: $8}
 	}
 |	vfpdeftests1 ',' STARSTAR vfpdef
@@ -574,10 +577,12 @@ varargslist:
 	}
 |	'*' optional_vfpdef vfpdeftests
 	{
+        if $2 == nil && len($3) == 0 { yylex.(*yyLex).SyntaxError("named arguments must follow bare *") }
 		$$ = &ast.Arguments{Pos: $<pos>$, Vararg: $2, Kwonlyargs: $3, KwDefaults: $<exprs>3}
 	}
 |	'*' optional_vfpdef vfpdeftests ',' STARSTAR vfpdef
 	{
+        if $2 == nil && len($3) == 0 { yylex.(*yyLex).SyntaxError("named arguments must follow bare *") }
 		$$ = &ast.Arguments{Pos: $<pos>$, Vararg: $2, Kwonlyargs: $3, KwDefaults: $<exprs>3, Kwarg: $6}
 	}
 |	STARSTAR vfpdef

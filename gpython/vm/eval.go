@@ -1951,7 +1951,7 @@ func pluralSuffix(plural bool) string {
 }
 
 // Format and error for missing arguments
-func formatMissing(kind string, co *py.Code, names []string) error {
+func formatMissing(kind, functionName string, names []string) error {
 	var name_str string
 	/* Deal with the joys of natural language. */
 	switch len(names) {
@@ -1968,7 +1968,7 @@ func formatMissing(kind string, co *py.Code, names []string) error {
 	}
 	return py.ExceptionNewf(py.TypeError,
 		"%s() missing %d required %s argument%s: %s",
-		co.Name,
+		functionName,
 		len(names),
 		kind,
 		pluralSuffix(len(names) != 1),
@@ -1976,7 +1976,7 @@ func formatMissing(kind string, co *py.Code, names []string) error {
 }
 
 // Format an error for missing arguments
-func missingArguments(co *py.Code, missing, defcount int, fastlocals []py.Object) error {
+func missingArguments(co *py.Code, functionName string, missing, defcount int, fastlocals []py.Object) error {
 	positional := defcount != -1
 	kind := chooseString(positional, "positional", "keyword-only")
 	var missing_names []string
@@ -1996,11 +1996,11 @@ func missingArguments(co *py.Code, missing, defcount int, fastlocals []py.Object
 			missing_names = append(missing_names, name)
 		}
 	}
-	return formatMissing(kind, co, missing_names)
+	return formatMissing(kind, functionName, missing_names)
 }
 
 // Format an error for too many positional arguments
-func tooManyPositional(co *py.Code, given, defcount int, fastlocals []py.Object) error {
+func tooManyPositional(co *py.Code, functionName string, given, defcount int, fastlocals []py.Object) error {
 	kwonly_given := 0
 
 	//assert((co.Flags & CO_VARARGS) == 0)
@@ -2026,7 +2026,7 @@ func tooManyPositional(co *py.Code, given, defcount int, fastlocals []py.Object)
 	}
 	return py.ExceptionNewf(py.TypeError,
 		"%s() takes %s positional argument%s but %d%s %s given",
-		co.Name,
+		functionName,
 		sig,
 		pluralSuffix(plural),
 		given,
@@ -2040,8 +2040,13 @@ func tooManyPositional(co *py.Code, given, defcount int, fastlocals []py.Object)
 //
 // Returns an Object and an error.  The error will be a py.ExceptionInfo
 //
-// This is the equivalent of PyEval_EvalCode with closure support
-func EvalCode(ctx py.Context, co *py.Code, globals, locals py.StringDict, args []py.Object, kws py.StringDict, defs []py.Object, kwdefs py.StringDict, closure py.Tuple) (retval py.Object, err error) {
+// This is the equivalent of PyEval_EvalCode with closure support. An optional
+// function qualified name is used for argument-binding errors, not tracebacks.
+func EvalCode(ctx py.Context, co *py.Code, globals, locals py.StringDict, args []py.Object, kws py.StringDict, defs []py.Object, kwdefs py.StringDict, closure py.Tuple, qualname ...string) (retval py.Object, err error) {
+	functionName := co.Name
+	if len(qualname) > 0 {
+		functionName = qualname[0]
+	}
 	total_args := int(co.Argcount + co.Kwonlyargcount)
 	n := len(args)
 	var kwdict py.StringDict
@@ -2088,18 +2093,18 @@ func EvalCode(ctx py.Context, co *py.Code, globals, locals py.StringDict, args [
 			}
 		}
 		if j >= total_args && kwdict == nil {
-			return nil, py.ExceptionNewf(py.TypeError, "%s() got an unexpected keyword argument '%s'", co.Name, keyword)
+			return nil, py.ExceptionNewf(py.TypeError, "%s() got an unexpected keyword argument '%s'", functionName, keyword)
 		}
 		kwdict[keyword] = value
 		continue
 	kw_found:
 		if fastlocals[j] != nil {
-			return nil, py.ExceptionNewf(py.TypeError, "%s() got multiple values for argument '%s'", co.Name, keyword)
+			return nil, py.ExceptionNewf(py.TypeError, "%s() got multiple values for argument '%s'", functionName, keyword)
 		}
 		fastlocals[j] = value
 	}
 	if len(args) > int(co.Argcount) && co.Flags&py.CO_VARARGS == 0 {
-		return nil, tooManyPositional(co, len(args), len(defs), fastlocals)
+		return nil, tooManyPositional(co, functionName, len(args), len(defs), fastlocals)
 	}
 	if len(args) < int(co.Argcount) {
 		m := int(co.Argcount) - len(defs)
@@ -2110,7 +2115,7 @@ func EvalCode(ctx py.Context, co *py.Code, globals, locals py.StringDict, args [
 			}
 		}
 		if missing != 0 {
-			return nil, missingArguments(co, missing, len(defs), fastlocals)
+			return nil, missingArguments(co, functionName, missing, len(defs), fastlocals)
 		}
 		i := 0
 		if n > m {
@@ -2138,7 +2143,7 @@ func EvalCode(ctx py.Context, co *py.Code, globals, locals py.StringDict, args [
 			missing++
 		}
 		if missing != 0 {
-			return nil, missingArguments(co, missing, -1, fastlocals)
+			return nil, missingArguments(co, functionName, missing, -1, fastlocals)
 		}
 	}
 

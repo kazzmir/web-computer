@@ -580,9 +580,14 @@ func (c *compiler) compileFunc(compilerScope compilerScopeType, Ast ast.Ast, Arg
 	if len(Args.KwDefaults) > len(Args.Kwonlyargs) {
 		panic("compile: more KwDefaults than Kwonlyargs")
 	}
-	for i := range Args.KwDefaults {
+	kwdefaults := uint32(0)
+	for i, value := range Args.KwDefaults {
+		if value == nil {
+			continue
+		}
 		c.LoadConst(py.String(Args.Kwonlyargs[i].Arg))
-		c.Expr(Args.KwDefaults[i])
+		c.Expr(value)
+		kwdefaults++
 	}
 
 	// Annotations
@@ -614,7 +619,6 @@ func (c *compiler) compileFunc(compilerScope compilerScopeType, Ast ast.Ast, Arg
 
 	// Make function or closure, leaving it on the stack
 	posdefaults := uint32(len(Args.Defaults))
-	kwdefaults := uint32(len(Args.KwDefaults))
 	args := uint32(posdefaults + (kwdefaults << 8) + (num_annotations << 16))
 	c.makeClosure(newC.Code, args, newC, newC.qualname)
 
