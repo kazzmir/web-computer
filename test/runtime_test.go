@@ -22,9 +22,14 @@ func TestCPython(t *testing.T) {
 		{"test_keywordonlyarg.py", 11},
 		{"test_pow.py", 7},
 		{"test_typechecks.py", 6},
+		{"test_unicode_identifiers.py", 3},
 	} {
 		t.Run(suite.file, func(t *testing.T) {
-			ctx := py.NewContext(py.DefaultContextOpts())
+			opts := py.DefaultContextOpts()
+			// Match running from the repository root so copied test.* fixtures
+			// are importable when `go test` runs with test/ as its cwd.
+			opts.SysPaths = append(append([]string{}, opts.SysPaths...), "..")
+			ctx := py.NewContext(opts)
 			defer ctx.Close()
 			if _, err := py.RunFile(ctx, suite.file, py.CompileOpts{}, nil); err != nil {
 				py.TracebackDump(err)

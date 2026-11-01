@@ -33,7 +33,7 @@ func init() {
 		py.MustNewMethod("chr", builtin_chr, 0, chr_doc),
 		py.MustNewMethod("compile", builtin_compile, 0, compile_doc),
 		py.MustNewMethod("delattr", builtin_delattr, 0, delattr_doc),
-		// py.MustNewMethod("dir", builtin_dir, 0, dir_doc),
+		py.MustNewMethod("dir", py.InternalMethodDir, 0, "Return sorted local names or visible object attributes."),
 		py.MustNewMethod("divmod", builtin_divmod, 0, divmod_doc),
 		py.MustNewMethod("eval", py.InternalMethodEval, 0, eval_doc),
 		py.MustNewMethod("exec", py.InternalMethodExec, 0, exec_doc),

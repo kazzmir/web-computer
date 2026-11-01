@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"path/filepath"
+	"unicode/utf8"
 )
 
 // A python Exception object
@@ -250,7 +252,13 @@ func MakeSyntaxError(r interface{}, filename string, lineno int, offset int, lin
 	e := MakeException(r)
 	e.Dict["filename"] = String(filename)
 	e.Dict["lineno"] = Int(lineno)
-	e.Dict["offset"] = Int(offset)
+	// AST/token columns are UTF-8 byte offsets, but SyntaxError.offset is a
+	// one-based character offset.
+	column := offset + 1
+	if offset >= 0 && offset <= len(line) {
+		column = utf8.RuneCountInString(line[:offset]) + 1
+	}
+	e.Dict["offset"] = Int(column)
 	e.Dict["line"] = String(line)
 	return e
 }
@@ -393,7 +401,18 @@ func (e *Exception) M__str__() (Object, error) {
 		return String(""), nil
 	}
 	if len(args) == 1 {
-		return Str(args[0])
+		message, err := Str(args[0])
+		if err != nil {
+			return nil, err
+		}
+		if e.Type().IsSubtype(SyntaxError) {
+			filename, hasFile := e.Dict["filename"].(String)
+			line, hasLine := e.Dict["lineno"].(Int)
+			if hasFile && hasLine {
+				return String(fmt.Sprintf("%s (%s, line %d)", message, filepath.Base(string(filename)), line)), nil
+			}
+		}
+		return message, nil
 	}
 	return Str(args)
 }

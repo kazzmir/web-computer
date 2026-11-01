@@ -242,7 +242,7 @@ func TestLex(t *testing.T) {
             {NUMBER, py.Int(1), ast.Pos{Lineno: 1, ColOffset: 0}},
             {ENDMARKER, nil, ast.Pos{Lineno: 1, ColOffset: 1}},
 		}},
-		{"01", "illegal decimal with leading zero 1:0", "eval", LexTokens{
+		{"01", "illegal decimal with leading zero 1:1", "eval", LexTokens{
             {EVAL_INPUT, nil, ast.Pos{Lineno: 0, ColOffset: 0}},
 		}},
 		{"1", "", "exec", LexTokens{
@@ -259,7 +259,7 @@ func TestLex(t *testing.T) {
             {NEWLINE, nil, ast.Pos{Lineno: 1, ColOffset: 5}},
             {ENDMARKER, nil, ast.Pos{Lineno: 1, ColOffset: 5}},
 		}},
-		{"01", "illegal decimal with leading zero 1:0", "exec", LexTokens{
+		{"01", "illegal decimal with leading zero 1:1", "exec", LexTokens{
             {FILE_INPUT, nil, ast.Pos{Lineno: 0, ColOffset: 0}},
 		}},
 		{"1\n 2\r\n  3\r\n4\n", "", "exec", LexTokens{
@@ -278,7 +278,7 @@ func TestLex(t *testing.T) {
             {NEWLINE, nil, ast.Pos{Lineno: 4, ColOffset: 1}},
             {ENDMARKER, nil, ast.Pos{Lineno: 5, ColOffset: 0}},
 		}},
-		{"if 1:\n  pass \n pass\n", "Inconsistent indent 3:1", "exec", LexTokens{
+		{"if 1:\n  pass \n pass\n", "Inconsistent indent 3:2", "exec", LexTokens{
             {FILE_INPUT, nil, ast.Pos{Lineno: 0, ColOffset: 0}},
             {IF, nil, ast.Pos{Lineno: 1, ColOffset: 0}},
             {NUMBER, py.Int(1), ast.Pos{Lineno: 1, ColOffset: 3}},
@@ -338,7 +338,7 @@ func TestLex(t *testing.T) {
             {NUMBER, py.Complex(complex(0, 6.1)), ast.Pos{Lineno: 1, ColOffset: 13}},
             {ENDMARKER, nil, ast.Pos{Lineno: 1, ColOffset: 17}},
 		}},
-		{"001", "illegal decimal with leading zero 1:0", "eval", LexTokens{
+		{"001", "illegal decimal with leading zero 1:1", "eval", LexTokens{
             {EVAL_INPUT, nil, ast.Pos{Lineno: 0, ColOffset: 0}},
 		}},
 		{"u'''1\n2\n'''", "", "eval", LexTokens{
@@ -346,7 +346,7 @@ func TestLex(t *testing.T) {
             {STRING, py.String("1\n2\n"), ast.Pos{Lineno: 1, ColOffset: 0}},
             {ENDMARKER, nil, ast.Pos{Lineno: 3, ColOffset: 3}},
 		}},
-		{"\"hello\n", "EOL while scanning string literal 1:1", "eval", LexTokens{
+		{"\"hello\n", "EOL while scanning string literal 1:2", "eval", LexTokens{
             {EVAL_INPUT, nil, ast.Pos{Lineno: 0, ColOffset: 0}},
 		}},
 		{"1 >>-3\na <<=+12", "", "eval", LexTokens{
@@ -362,7 +362,7 @@ func TestLex(t *testing.T) {
             {NUMBER, py.Int(12), ast.Pos{Lineno: 2, ColOffset: 6}},
             {ENDMARKER, nil, ast.Pos{Lineno: 2, ColOffset: 8}},
 		}},
-		{"$asdasd", "invalid syntax 1:0", "eval", LexTokens{
+		{"$asdasd", "invalid syntax 1:1", "eval", LexTokens{
             {EVAL_INPUT, nil, ast.Pos{Lineno: 0, ColOffset: 0}},
 		}},
 		{"if True:\n   pass\n\n", "", "single", LexTokens{

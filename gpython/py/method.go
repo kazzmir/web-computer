@@ -84,6 +84,7 @@ const (
 	InternalMethodImport
 	InternalMethodEval
 	InternalMethodExec
+	InternalMethodDir
 )
 
 var MethodType = NewType("method", "method object")

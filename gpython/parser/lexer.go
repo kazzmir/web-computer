@@ -18,6 +18,8 @@ import (
 	"strings"
 	"unicode"
 
+	"golang.org/x/text/unicode/norm"
+
 	"github.com/kazzmir/web-computer/gpython/ast"
 	"github.com/kazzmir/web-computer/gpython/py"
 )
@@ -542,6 +544,13 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 			}
 
 			// Nothing we recognise found
+			for _, character := range x.line {
+				if character >= 128 {
+					x.SyntaxErrorf("invalid character %q (U+%04X)", character, character)
+					return eof
+				}
+				break
+			}
 			x.SyntaxError("invalid syntax")
 			return eof
 		case checkEof:
@@ -653,7 +662,7 @@ func (x *yyLex) readIdentifierOrKeyword() (int, string) {
 	if ok {
 		return token, identifier
 	}
-	return NAME, identifier
+	return NAME, norm.NFKC.String(identifier)
 }
 
 // Read operator - returns token or eof for not found

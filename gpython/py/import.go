@@ -122,6 +122,24 @@ func ImportModuleLevelObject(ctx Context, name string, globals, locals StringDic
 // Dotted imports bind the child on its parent, but `import a.b` returns a.
 // A nonempty fromlist (as in `from a.b import c`) returns the child instead.
 func importedModule(ctx Context, name string, module *Module, fromlist Tuple) (Object, error) {
+	for _, object := range fromlist {
+		child, ok := object.(String)
+		if !ok {
+			return nil, ExceptionNewf(TypeError, "fromlist items must be strings")
+		}
+		if child == "*" || module.Globals[string(child)] != nil {
+			continue
+		}
+		fullName := name + "." + string(child)
+		packageFile := strings.HasSuffix(module.ModuleImpl.Info.FileDesc, "/__init__.py")
+		if !packageFile && GetModuleImpl(fullName) == nil {
+			continue
+		}
+		_, err := ImportModuleLevelObject(ctx, fullName, module.Globals, nil, Tuple{String("*")}, 0)
+		if err != nil && !IsException(FileNotFoundError, err) {
+			return nil, err
+		}
+	}
 	i := strings.LastIndex(name, ".")
 	if i < 0 {
 		return module, nil

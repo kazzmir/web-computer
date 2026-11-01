@@ -1588,6 +1588,8 @@ func callInternal(fn py.Object, args py.Tuple, kwargs py.StringDict, f *py.Frame
 		case py.InternalMethodNone:
 		case py.InternalMethodGlobals:
 			return f.Globals, nil
+		case py.InternalMethodDir:
+			return builtinDir(f, args, kwargs)
 		case py.InternalMethodLocals:
 			f.FastToLocals()
 			return f.Locals, nil
