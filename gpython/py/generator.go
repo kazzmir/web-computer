@@ -100,6 +100,26 @@ func (it *Generator) Send(arg Object) (Object, error) {
 	res, err := VmRunFrame(it.Frame)
 	it.Running = false
 	if err != nil {
+		// An escaping exception closes the generator, including when a
+		// previous resume yielded. Never execute its failed frame again.
+		it.Frame.Yielded = false
+		if IsException(StopIteration, err) {
+			// PEP 479: explicit StopIteration is an error, unlike normal
+			// generator return/exhaustion (handled below).
+			var cause *Exception
+			if info, ok := err.(ExceptionInfo); ok {
+				cause = MakeException(info.Value)
+				if info.Traceback != nil {
+					cause.Traceback = info.Traceback
+				}
+			} else {
+				cause = MakeException(err)
+			}
+			wrapped := ExceptionNewf(RuntimeError, "generator raised StopIteration")
+			wrapped.Cause, wrapped.Context = cause, cause
+			wrapped.SuppressContext = true
+			return nil, wrapped
+		}
 		return nil, err
 	}
 	if it.Frame.Yielded {

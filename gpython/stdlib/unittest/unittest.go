@@ -3,6 +3,7 @@ package unittest
 
 import (
 	_ "embed"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -16,8 +17,31 @@ func init() {
 	py.RegisterModule(&py.ModuleImpl{
 		Info:    py.ModuleInfo{Name: "unittest", FileDesc: "unittest.py", Doc: "Limited fail-fast TestCase assertions and module discovery"},
 		CodeSrc: source,
-		Methods: []*py.Method{py.MustNewMethod("_discover", discover, 0, "Discover TestCase methods in a loaded module.")},
+		Methods: []*py.Method{
+			py.MustNewMethod("_discover", discover, 0, "Discover TestCase methods in a loaded module."),
+			py.MustNewMethod("_regex_matches", regexMatches, 0, "Search using Go/RE2 regular-expression syntax."),
+		},
 	})
+}
+
+func regexMatches(self py.Object, args py.Tuple) (py.Object, error) {
+	var pattern, text py.Object
+	if err := py.UnpackTuple(args, nil, "_regex_matches", 2, 2, &pattern, &text); err != nil {
+		return nil, err
+	}
+	p, ok := pattern.(py.String)
+	if !ok {
+		return nil, py.ExceptionNewf(py.TypeError, "pattern must be a string")
+	}
+	s, ok := text.(py.String)
+	if !ok {
+		return nil, py.ExceptionNewf(py.TypeError, "text must be a string")
+	}
+	re, err := regexp.Compile(string(p))
+	if err != nil {
+		return nil, py.ExceptionNewf(py.ValueError, "unsupported or invalid regex: %v", err)
+	}
+	return py.NewBool(re.MatchString(string(s))), nil
 }
 
 func discover(self py.Object, args py.Tuple) (py.Object, error) {

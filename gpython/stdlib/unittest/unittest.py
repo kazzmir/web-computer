@@ -1,8 +1,9 @@
 # Intentionally small compatibility subset, not the full CPython unittest.
 # Failures propagate to the embedding runner; no test is silently skipped.
 class _AssertRaisesContext:
-    def __init__(self, expected):
+    def __init__(self, expected, regex=None):
         self.expected = expected
+        self.regex = regex
         self.exception = None
     def __enter__(self): return self
     def __exit__(self, kind, value, traceback):
@@ -10,6 +11,8 @@ class _AssertRaisesContext:
             raise AssertionError('expected exception was not raised')
         if not isinstance(value, self.expected): return False
         self.exception = value
+        if self.regex is not None and not _regex_matches(self.regex, str(value)):
+            raise AssertionError('exception message did not match ' + repr(self.regex))
         return True
 
 class TestCase:
@@ -49,6 +52,8 @@ class TestCase:
     def assertEqual(self, first, second, msg=None):
         if first != second:
             self.fail(msg if msg is not None else repr(first) + ' != ' + repr(second))
+    def assertIs(self, first, second, msg=None):
+        if first is not second: self.fail(msg if msg is not None else 'objects are not identical')
     def assertIn(self, member, container, msg=None):
         if member not in container:
             self.fail(msg if msg is not None else repr(member) + ' not found in ' + repr(container))
@@ -60,6 +65,11 @@ class TestCase:
         if not isinstance(obj, cls): self.fail(msg if msg is not None else 'unexpected instance type')
     def assertRaises(self, expected, callable=None, *args, **kwargs):
         context = _AssertRaisesContext(expected)
+        if callable is None: return context
+        with context:
+            callable(*args, **kwargs)
+    def assertRaisesRegex(self, expected, regex, callable=None, *args, **kwargs):
+        context = _AssertRaisesContext(expected, regex)
         if callable is None: return context
         with context:
             callable(*args, **kwargs)

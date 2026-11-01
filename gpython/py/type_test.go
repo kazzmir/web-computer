@@ -6,6 +6,14 @@ package py
 
 import "testing"
 
+func TestNativeMetaclasses(t *testing.T) {
+	for _, class := range []*Type{ObjectType, TypeType, IntType, BoolType, BaseException, ExceptionType, StopIteration, ValueError} {
+		if class.Type() != TypeType {
+			t.Errorf("type(%s) = %s, want type", class.Name, class.Type().Name)
+		}
+	}
+}
+
 func TestIsSubType(t *testing.T) {
 	for _, test := range []struct {
 		a    *Type

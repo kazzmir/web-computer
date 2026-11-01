@@ -364,14 +364,38 @@ func IsException(exception *Type, r interface{}) bool {
 	return t.IsSubtype(exception)
 }
 
-// FIXME prototype __getattr__ before we do introspection!
 func (e *Exception) M__getattr__(name string) (Object, error) {
-	return e.Args, nil // FIXME All attributes are args!
+	switch name {
+	case "__cause__":
+		if e.Cause != nil {
+			return e.Cause, nil
+		}
+		return None, nil
+	case "__context__":
+		if e.Context != nil {
+			return e.Context, nil
+		}
+		return None, nil
+	case "__suppress_context__":
+		return NewBool(e.SuppressContext), nil
+	case "__traceback__":
+		if e.Traceback != nil {
+			return e.Traceback, nil
+		}
+		return None, nil
+	}
+	return e.Args, nil // Legacy fallback for other exception attributes.
 }
 
 func (e *Exception) M__str__() (Object, error) {
-	msg := e.Args.(Tuple)[0]
-	return msg, nil
+	args := e.Args.(Tuple)
+	if len(args) == 0 {
+		return String(""), nil
+	}
+	if len(args) == 1 {
+		return Str(args[0])
+	}
+	return Str(args)
 }
 
 func (e *Exception) M__repr__() (Object, error) {

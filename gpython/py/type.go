@@ -296,8 +296,15 @@ func (t *Type) NewTypeFlags(Name string, Doc string, New NewFunc, Init InitFunc,
 		Init = t.Init
 	}
 	// FIXME inherit more stuff
+	// A subclass's metaclass is inherited from its base; the base itself is
+	// not the metaclass. During package initialization object.type is not
+	// wired up yet, so use type directly in that bootstrap case.
+	metaclass := t.ObjectType
+	if metaclass == nil {
+		metaclass = TypeType
+	}
 	tt := &Type{
-		ObjectType: t,
+		ObjectType: metaclass,
 		Name:       Name,
 		Doc:        Doc,
 		New:        New,
@@ -1419,8 +1426,13 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 	// Allocate the type object
 	_ = nslots // FIXME
 	new_type = metatype.Alloc()
-	new_type.New = ObjectNew   // FIXME metatype.New // FIXME?
-	new_type.Init = ObjectInit // FIXME metatype.New // FIXME?
+	new_type.New = ObjectNew
+	// Exception subclasses must allocate an Exception, not a generic Type
+	// instance, while still honoring a Python-defined __init__.
+	if base.IsSubtype(BaseException) {
+		new_type.New = ExceptionNew
+	}
+	new_type.Init = ObjectInit
 
 	// Keep name and slots alive in the extended type object
 	et := new_type
@@ -1647,9 +1659,10 @@ func ObjectInit(self Object, args Tuple, kwargs StringDict) error {
 
 	// Call the __init__ method if it exists
 	// FIXME this isn't the way cpython does it - it adjusts the function pointers
-	// Only do this for non built in types
-	if _, ok := self.(*Type); ok {
-		init := t.GetAttrOrNil("__init__")
+	// Python heap types can have native instance storage (e.g. Exception).
+	// Do not restrict initialization to the generic *Type instance wrapper.
+	if t.Flags&TPFLAGS_HEAPTYPE != 0 {
+		init := t.NativeGetAttrOrNil("__init__")
 		// fmt.Printf("init = %v\n", init)
 		if init != nil {
 			newArgs := make(Tuple, len(args)+1)

@@ -22,6 +22,7 @@ import (
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/binascii"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/builtin"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/ctypes"
+	_ "github.com/kazzmir/web-computer/gpython/stdlib/future"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/glob"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/keyword"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/math"

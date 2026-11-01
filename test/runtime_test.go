@@ -16,6 +16,7 @@ func TestCPython(t *testing.T) {
 		{"test_unary.py", 6},
 		{"test_longexp.py", 1},
 		{"test_keyword.py", 11},
+		{"test_generator_stop.py", 2},
 	} {
 		t.Run(suite.file, func(t *testing.T) {
 			ctx := py.NewContext(py.DefaultContextOpts())
