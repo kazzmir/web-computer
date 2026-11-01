@@ -6,6 +6,7 @@ These test files are copied unchanged from
 | File | Cases | Coverage |
 | --- | ---: | --- |
 | `test_unary.py` | 6 | Unary arithmetic, complex numbers, big integers, precedence, invalid operands |
+| `test_longexp.py` | 1 | Compile and evaluate a list expression with 65,580 elements |
 
 The upstream license is retained in `LICENSE.cpython`.
 
@@ -14,6 +15,7 @@ Run the tests against this repository's Python runtime (not the host Python):
 ```sh
 go test ./test -v
 go run ./gpython test/test_unary.py
+go run ./gpython test/test_longexp.py
 ```
 
 `runtime_test.go` checks exact case counts to guard against empty discovery.

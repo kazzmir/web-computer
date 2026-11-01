@@ -14,6 +14,7 @@ func TestCPython(t *testing.T) {
 		count py.Int
 	}{
 		{"test_unary.py", 6},
+		{"test_longexp.py", 1},
 	} {
 		t.Run(suite.file, func(t *testing.T) {
 			ctx := py.NewContext(py.DefaultContextOpts())

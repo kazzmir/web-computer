@@ -111,7 +111,14 @@ fonts, and WAV sounds can also be loaded from filesystem paths. The pygame
 subset includes surfaces, rectangles, image transforms, sprite groups, mouse
 and keyboard input, text rendering, sound playback, and frame timing.
 
-Tests require a display; on headless Linux use:
+Unmodified CPython unary-operator and long-expression regression tests live in
+[`test/`](test/README.md). Run them against the embedded runtime without a display:
+
+```sh
+go test ./test -v
+```
+
+Graphics tests require a display; on headless Linux use:
 
 ```sh
 xvfb-run -a go test ./cmd/...
