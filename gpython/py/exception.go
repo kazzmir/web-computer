@@ -112,6 +112,13 @@ func (e *Exception) Type() *Type {
 	return e.Base
 }
 
+func (e *Exception) GetDict() StringDict {
+	if e.Dict == nil {
+		e.Dict = make(StringDict)
+	}
+	return e.Dict
+}
+
 // Go error interface
 func (e *Exception) Error() string {
 	// FIXME is this really how exceptions get their message stored?

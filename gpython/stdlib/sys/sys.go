@@ -127,13 +127,20 @@ If it is another kind of object, it will be printed and the system
 exit status will be one (i.e., failure).`
 
 func sys_exit(self py.Object, args py.Tuple) (py.Object, error) {
-	var exit_code py.Object
+	var exit_code py.Object = py.None
 	err := py.UnpackTuple(args, nil, "exit", 0, 1, &exit_code)
 	if err != nil {
 		return nil, err
 	}
-	// Raise SystemExit so callers may catch it or clean up.
-	return py.ExceptionNew(py.SystemExit, args, nil)
+	// Constructing an exception is not the same as raising it: return it as
+	// the error so the VM unwinds instead of treating sys.exit as a value.
+	value, err := py.ExceptionNew(py.SystemExit, args, nil)
+	if err != nil {
+		return nil, err
+	}
+	exception := value.(*py.Exception)
+	exception.Dict["code"] = exit_code
+	return nil, exception
 }
 
 const getdefaultencoding_doc = `getdefaultencoding() -> string

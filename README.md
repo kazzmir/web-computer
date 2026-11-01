@@ -45,6 +45,24 @@ Run the GL cube (`f` toggles fullscreen; Escape exits):
 go run ./cmd/web glcube.py
 ```
 
+Run the SDL2 renderer/window demo:
+
+```sh
+go run ./cmd/web video.py
+```
+
+Choose Yes (Enter) in the startup dialog. Arrows move the alien, Space changes
+background color, `f` toggles fullscreen, and `s` saves `test.png` (a download in
+the browser). Escape exits; with the secondary panel focused, it closes only
+that panel. Drag title bars to move panels and the primary panel's bottom-right
+grip to resize it.
+
+Ebitengine supports one native window, so `pygame._sdl2.Window` uses interactive
+panels within a single host window, not additional OS windows. The compatibility
+subset includes window focus/close events, opacity/stacking, streaming textures,
+scaled images, renderer primitives/readback, and dialogs. There is one emulated
+`ebitengine` renderer driver; render-to-texture targets are not implemented.
+
 ### GL compatibility
 
 `OpenGL.GL` and `OpenGL.GLU` are emulated through Ebitengine, not PyOpenGL or

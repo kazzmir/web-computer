@@ -94,6 +94,11 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 	start := time.Now()
 	methods, closeAudio := mediaMethods()
 	lastError := ""
+	presentedSinceTick := false
+	video := newSDLDesktop(system, func() error {
+		presentedSinceTick = true
+		return system.Flip()
+	})
 	// Decode native arguments before entering a pixel operation, so malformed
 	// Python calls raise TypeError rather than panicking on Go assertions.
 	add := func(name string, signature string, fn func(py.Tuple) (py.Object, error)) {
@@ -131,6 +136,8 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 			return result, err
 		}, 0, ""))
 	}
+	video.register(add)
+	registerImageSave(add)
 	add("_gl_mode", "pb", func(a py.Tuple) (py.Object, error) {
 		if bool(a[1].(py.Bool)) {
 			gl.BindSurface(a[0].(*pixels).image)
@@ -194,15 +201,24 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		b := a[0].(*pixels).bounds()
 		return py.Tuple{py.Int(b.Dx()), py.Int(b.Dy())}, nil
 	})
-	add("_fill", "po", func(a py.Tuple) (py.Object, error) {
-		c, e := rgba(a[1])
-		if e != nil {
-			return nil, e
+	add("_fill", "poo", func(a py.Tuple) (py.Object, error) {
+		c, err := rgba(a[1])
+		if err != nil {
+			return nil, err
 		}
-		if im := a[0].(*pixels).target(); im != nil {
-			im.Fill(c)
+		p := a[0].(*pixels)
+		rect := p.clipBounds()
+		if a[2] != py.None {
+			area, err := surfaceRect(a[2])
+			if err != nil {
+				return nil, err
+			}
+			rect = rect.Intersect(area)
 		}
-		return py.None, nil
+		if p.image != nil && !rect.Empty() {
+			p.image.SubImage(rect.Add(p.image.Bounds().Min)).(*ebiten.Image).Fill(sdlColor(c))
+		}
+		return rectTuple(rect), nil
 	})
 	add("_blit", "ppiio", func(a py.Tuple) (py.Object, error) {
 		to, from := a[0].(*pixels), a[1].(*pixels)
@@ -337,7 +353,6 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		return py.None, nil
 	})
 	var display *pixels
-	presentedSinceTick := false
 	present := func(p *pixels) error {
 		im := p.image
 		system.AddDrawCall(func(screen *ebiten.Image) {
@@ -368,9 +383,15 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		}
 		// Event-driven scripts may not flip while idle. Yield at tick in that
 		// case so Ebitengine can deliver input and keep the last screen drawn.
-		if !presentedSinceTick && display != nil {
-			if err := present(display); err != nil {
-				return nil, err
+		if !presentedSinceTick {
+			if video.active() {
+				if err := video.present(); err != nil {
+					return nil, err
+				}
+			} else if display != nil {
+				if err := present(display); err != nil {
+					return nil, err
+				}
 			}
 		}
 		presentedSinceTick = false
@@ -378,6 +399,10 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 	})
 	add("_mouse_pos", "", func(a py.Tuple) (py.Object, error) {
 		x, y := ebiten.CursorPosition()
+		if video.focused != nil && !video.focused.destroyed {
+			pos := image.Pt(x, y).Sub(video.focused.position).Sub(image.Pt(sdlBorder, sdlTitle+sdlBorder))
+			x, y = pos.X, pos.Y
+		}
 		return py.Tuple{py.Int(x), py.Int(y)}, nil
 	})
 	add("_mouse_visible", "b", func(a py.Tuple) (py.Object, error) {
@@ -413,10 +438,11 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		return py.None, nil
 	})
 	add("_events", "", func(a py.Tuple) (py.Object, error) {
-		events := py.Tuple{}
+		events := video.poll()
+		owner := video.owner()
 		now := time.Now()
 		for _, key := range inpututil.AppendJustPressedKeys(nil) {
-			events = append(events, py.Tuple{py.Int(768), py.Int(key)})
+			events = append(events, py.Tuple{py.Int(768), py.Int(key), owner})
 			repeats[key] = now.Add(repeatDelay)
 		}
 		for key, next := range repeats {
@@ -425,12 +451,12 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 				continue
 			}
 			if repeatDelay > 0 && repeatInterval > 0 && !now.Before(next) {
-				events = append(events, py.Tuple{py.Int(768), py.Int(key)})
+				events = append(events, py.Tuple{py.Int(768), py.Int(key), owner})
 				repeats[key] = now.Add(repeatInterval)
 			}
 		}
 		for _, key := range inpututil.AppendJustReleasedKeys(nil) {
-			events = append(events, py.Tuple{py.Int(769), py.Int(key)})
+			events = append(events, py.Tuple{py.Int(769), py.Int(key), owner})
 		}
 		for _, button := range []ebiten.MouseButton{ebiten.MouseButtonLeft, ebiten.MouseButtonMiddle, ebiten.MouseButtonRight} {
 			n := py.Int(1)
@@ -441,18 +467,18 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 				n = 3
 			}
 			if inpututil.IsMouseButtonJustPressed(button) {
-				events = append(events, py.Tuple{py.Int(1025), n})
+				events = append(events, py.Tuple{py.Int(1025), n, owner})
 			}
 			if inpututil.IsMouseButtonJustReleased(button) {
-				events = append(events, py.Tuple{py.Int(1026), n})
+				events = append(events, py.Tuple{py.Int(1026), n, owner})
 			}
 		}
 		if ebiten.IsWindowBeingClosed() {
-			events = append(events, py.Tuple{py.Int(256), py.Int(0)})
+			events = append(events, py.Tuple{py.Int(256), py.Int(0), owner})
 		}
 		return events, nil
 	})
-	globals := py.StringDict{"error": py.OSError}
+	globals := py.StringDict{"error": py.OSError, "WINDOWCLOSE": py.Int(windowCloseEvent)}
 	for name, key := range map[string]ebiten.Key{"K_ESCAPE": ebiten.KeyEscape, "K_f": ebiten.KeyF, "K_SPACE": ebiten.KeySpace, "K_w": ebiten.KeyW, "K_a": ebiten.KeyA, "K_s": ebiten.KeyS, "K_d": ebiten.KeyD, "K_UP": ebiten.KeyUp, "K_DOWN": ebiten.KeyDown, "K_LEFT": ebiten.KeyLeft, "K_RIGHT": ebiten.KeyRight} {
 		globals[name] = py.Int(key)
 	}
@@ -465,7 +491,7 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 		CodeSrc: "from pygame import sprite as _impl\nSprite = _impl.Sprite\nGroup = _impl.Group\nGroupSingle = _impl.GroupSingle\nRenderPlain = _impl.RenderPlain\nRenderUpdates = _impl.RenderUpdates\nspritecollide = _impl.spritecollide\ngroupcollide = _impl.groupcollide\n",
 	})
 	py.RegisterModule(&py.ModuleImpl{Info: py.ModuleInfo{Name: "pygame", Doc: "Pygame backed by Ebitengine"}, Methods: methods, Globals: globals, CodeSrc: source + "\n" + spriteSource,
-		OnContextClosed: func(*py.Module) { closeAudio(); gl.Close() },
+		OnContextClosed: func(*py.Module) { video.close(); closeAudio(); gl.Close() },
 	})
 	return nil
 }

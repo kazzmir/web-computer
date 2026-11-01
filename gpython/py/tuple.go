@@ -110,7 +110,7 @@ func (a Tuple) M__add__(other Object) (Object, error) {
 	if b, ok := other.(Tuple); ok {
 		newTuple := make(Tuple, len(a)+len(b))
 		copy(newTuple, a)
-		copy(newTuple[len(b):], b)
+		copy(newTuple[len(a):], b)
 		return newTuple, nil
 	}
 

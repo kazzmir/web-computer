@@ -244,6 +244,18 @@ func GetAttrString(self Object, key string) (res Object, err error) {
 		}
 	}
 
+	// Class attributes still honor descriptors. In particular, classmethod
+	// binds the class itself while staticmethod unwraps its callable. Walk
+	// the class MRO here as well so inherited factories use the derived class.
+	if class, ok := self.(*Type); ok && class.Type().IsSubtype(TypeType) {
+		if attr := class.NativeGetAttrOrNil(key); attr != nil {
+			if descriptor, ok := attr.(I__get__); ok {
+				return descriptor.M__get__(None, class)
+			}
+			return attr, nil
+		}
+	}
+
 	// Look in the instance dictionary if it exists
 	if I, ok := self.(IGetDict); ok {
 		dict := I.GetDict()

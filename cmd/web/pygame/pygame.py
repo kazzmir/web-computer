@@ -108,9 +108,11 @@ class Surface:
         r = Rect((0, 0), self.get_size())
         for key in kwargs: setattr(r, key, kwargs[key])
         return r
-    def fill(self, color):
-        _fill(self._pixels, color)
-        return self.get_rect()
+    def fill(self, color, rect=None):
+        if rect is not None:
+            rect = rect if isinstance(rect, Rect) else Rect(rect)
+            rect = (rect.x, rect.y, rect.w, rect.h)
+        return Rect(_fill(self._pixels, color, rect))
     def blit(self, source, dest, area=None):
         if isinstance(dest, Rect): dest = dest.topleft
         if area is not None:
@@ -159,6 +161,7 @@ display = _Display()
 class _Image:
     def get_extended(self): return True
     def load(self, filename): return _wrap(_load(filename))
+    def save(self, surface, filename): _save(surface._pixels, filename)
 image = _Image()
 
 class _Transform:
@@ -182,15 +185,27 @@ class _Mouse:
 mouse = _Mouse()
 
 class _Clock:
-    def __init__(self): self._last = _ticks()
+    def __init__(self):
+        self._last = _ticks()
+        self._fps_start = self._last
+        self._frames = 0
+        self._fps = 0.0
+    def get_fps(self): return self._fps
     def tick(self, fps=0):
         _tick(int(fps))
         now = _ticks()
         elapsed = now - self._last
         self._last = now
+        self._frames += 1
+        if self._frames >= 10:
+            period = now - self._fps_start
+            self._fps = 1000.0 * self._frames / period if period else 0.0
+            self._frames = 0
+            self._fps_start = now
         return elapsed
 class _Time:
     def wait(self, milliseconds): return _wait(int(milliseconds))
+    def get_ticks(self): return _ticks()
 time = _Time()
 time.Clock = _Clock
 
@@ -198,9 +213,10 @@ class _Event: pass
 class _Events:
     def get(self):
         events = []
-        for kind, key in _events():
+        for kind, key, window in _events():
             e = _Event()
             e.type = kind
+            e.window = window
             e.key = key
             e.button = key
             if kind == MOUSEBUTTONDOWN or kind == MOUSEBUTTONUP: e.pos = mouse.get_pos()
@@ -262,5 +278,6 @@ def get_error(): return _get_error()
 
 def init(): return 3, 0
 def quit():
+    _sdl_quit()
     _audio_quit()
     mouse.set_visible(True)
