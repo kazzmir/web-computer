@@ -75,7 +75,25 @@ func SetNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 	return NewSet(), nil
 }
 
-var FrozenSetType = NewType("frozenset", "frozenset() -> empty frozenset object\nfrozenset(iterable) -> frozenset object\n\nBuild an immutable unordered collection of unique elements.")
+var FrozenSetType = NewTypeX("frozenset", "frozenset() -> empty frozenset object\nfrozenset(iterable) -> frozenset object\n\nBuild an immutable unordered collection of unique elements.", FrozenSetNew, nil)
+
+func FrozenSetNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
+	var iterable Object
+	if err := UnpackTuple(args, kwargs, "frozenset", 0, 1, &iterable); err != nil {
+		return nil, err
+	}
+	if iterable == nil {
+		return NewFrozenSet(), nil
+	}
+	if frozen, ok := iterable.(*FrozenSet); ok {
+		return frozen, nil
+	}
+	set, err := SequenceSet(iterable)
+	if err != nil {
+		return nil, err
+	}
+	return &FrozenSet{Set: *set}, nil
+}
 
 type FrozenSet struct {
 	Set
@@ -105,6 +123,23 @@ func (s *Set) Update(items []Object) {
 	for _, item := range items {
 		s.items[item] = SetValue{}
 	}
+}
+
+func (s *Set) M__contains__(value Object) (Object, error) {
+	for item := range s.items {
+		eq, err := Eq(item, value)
+		if err != nil {
+			return nil, err
+		}
+		equal, err := ObjectIsTrue(eq)
+		if err != nil {
+			return nil, err
+		}
+		if equal {
+			return True, nil
+		}
+	}
+	return False, nil
 }
 
 func (s *Set) M__len__() (Object, error) {

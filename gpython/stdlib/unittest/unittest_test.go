@@ -40,6 +40,28 @@ for invalid in (1, case, (str, 1)):
 assert isinstance(1, (int, 1))
 assert isinstance(TypeError(), (ValueError, Exception))
 
+cleanup_log = []
+cleanup = unittest.TestCase()
+cleanup.addCleanup(cleanup_log.append, 'first')
+cleanup.addCleanup(raise_type)
+cleanup.addCleanup(cleanup_log.append, 'last')
+with case.assertRaises(TypeError): cleanup.doCleanups()
+assert cleanup_log == ['last', 'first']
+assert cleanup.doCleanups() is True
+class SetupFailure(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(cleanup_log.append, 'setup cleanup')
+        raise_type()
+    def runTest(self): case.fail('body must not run after failed setup')
+    def tearDown(self): case.fail('teardown must not run after failed setup')
+with case.assertRaises(TypeError): SetupFailure().run()
+assert cleanup_log[-1] == 'setup cleanup'
+case.assertIn(1, [1, 2])
+case.assertListEqual([1, 2], [1, 2])
+with case.assertRaises(AssertionError): case.assertIn(3, [1, 2])
+with case.assertRaises(AssertionError): case.assertListEqual([1], [2])
+with case.assertRaises(AssertionError): case.assertListEqual((1,), [1])
+
 log = []
 class Base(unittest.TestCase):
     tag = 'base'

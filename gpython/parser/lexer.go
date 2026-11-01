@@ -643,6 +643,12 @@ func (x *yyLex) readIdentifierOrKeyword() (int, string) {
 	if identifier == "" {
 		return eof, ""
 	}
+	// Reserved since Python 3.7, even though async statements are not yet
+	// implemented by this parser. Never accept them as ordinary names.
+	if identifier == "async" || identifier == "await" {
+		x.SyntaxError("invalid syntax")
+		return eof, ""
+	}
 	token, ok := tokens[identifier]
 	if ok {
 		return token, identifier

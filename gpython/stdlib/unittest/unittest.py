@@ -13,15 +13,33 @@ class _AssertRaisesContext:
         return True
 
 class TestCase:
-    def __init__(self, methodName='runTest'): self._testMethodName = methodName
+    def __init__(self, methodName='runTest'):
+        self._testMethodName = methodName
+        self._cleanups = []
     def setUp(self): pass
     def tearDown(self): pass
+    def addCleanup(self, function, *args, **kwargs):
+        self._cleanups.append((function, args, kwargs))
+    def doCleanups(self):
+        error = None
+        while self._cleanups:
+            function, args, kwargs = self._cleanups[-1]
+            del self._cleanups[-1]
+            try:
+                function(*args, **kwargs)
+            except BaseException as exc:
+                if error is None: error = exc
+        if error is not None: raise error
+        return True
     def run(self):
-        self.setUp()
         try:
-            getattr(self, self._testMethodName)()
+            self.setUp()
+            try:
+                getattr(self, self._testMethodName)()
+            finally:
+                self.tearDown()
         finally:
-            self.tearDown()
+            self.doCleanups()
     def fail(self, msg=None):
         raise AssertionError(msg if msg is not None else 'test failed')
     def assertTrue(self, expr, msg=None):
@@ -31,6 +49,13 @@ class TestCase:
     def assertEqual(self, first, second, msg=None):
         if first != second:
             self.fail(msg if msg is not None else repr(first) + ' != ' + repr(second))
+    def assertIn(self, member, container, msg=None):
+        if member not in container:
+            self.fail(msg if msg is not None else repr(member) + ' not found in ' + repr(container))
+    def assertListEqual(self, first, second, msg=None):
+        if not isinstance(first, list) or not isinstance(second, list):
+            self.fail(msg if msg is not None else 'expected two lists')
+        self.assertEqual(first, second, msg)
     def assertIsInstance(self, obj, cls, msg=None):
         if not isinstance(obj, cls): self.fail(msg if msg is not None else 'unexpected instance type')
     def assertRaises(self, expected, callable=None, *args, **kwargs):
