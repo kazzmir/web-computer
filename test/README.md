@@ -23,6 +23,7 @@ These test files are copied unchanged from
 | `test_augassign.py` | 7 | All augmented arithmetic operators, custom/reflected/in-place slots, matrix operators, sequence mutation, numeric dictionary keys |
 | `test_errno.py` | 3 | Error constants, numeric reverse mapping, module-attribute consistency |
 | `test_print.py` | 9 | Output redirection, separators/endings, flush behavior/errors, stdout replacement, Python 2 migration hints |
+| `test_subclassinit.py` | 17 | PEP 487 subclass/descriptor hooks, cooperative MRO, class keywords, metaclass construction, descriptor error notes |
 
 The upstream license is retained in `LICENSE.cpython`. The runtime also embeds
 unchanged copies of `Lib/keyword.py` and `Lib/colorsys.py` from the same
@@ -77,10 +78,21 @@ provides real `captured_stdout`, exception-safe `swap_attr`, and `gc_collect`
 (using Go's garbage collector). It is not a copy of CPython's full test-support
 package and does not skip cases or suppress test failures.
 
+Class creation now initializes class cells before descriptor/subclass hooks,
+implicitly binds `__init_subclass__` as a class method, notifies descriptors from
+a namespace snapshot, and preserves hook exceptions with diagnostic notes.
+`super()` supports calling-frame inference and explicit class/instance binding
+through the C3 MRO. This is not complete `super` descriptor emulation.
+`types` provides `prepare_class` and `new_class` for ordinary type bases; PEP 560
+base resolution and the rest of `types` are not provided. Native container
+subclass instance storage remains limited (the `dict` subclass tests here test
+class creation, not dictionary-instance behavior).
+
 The runtime currently supplies a **limited, fail-fast `unittest` subset**:
 `TestCase`, `setUp`/`tearDown`, LIFO `addCleanup`/`doCleanups`, `assertTrue`,
 `assertFalse`, `assertEqual`, `assertAlmostEqual`, `assertIs`, `assertIn`,
-`assertListEqual`, `assertIsInstance`, `assertHasAttr`, callable/context-manager
+`assertListEqual`, `assertIsInstance`, `assertHasAttr`, `assertNotIn`,
+`assertCountEqual`, callable/context-manager
 `assertRaises`/`assertRaisesRegex`, `assertRegex`, fail-fast `subTest` contexts, and module-level
 `main()` discovery (including inherited test methods). Assertion failures and
 unexpected exceptions propagate to the runner. This is not full CPython

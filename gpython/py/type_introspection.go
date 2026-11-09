@@ -1,6 +1,14 @@
 package py
 
 func init() {
+	TypeType.Dict["__name__"] = &Property{Fget: func(self Object) (Object, error) { return String(self.(*Type).Name), nil }}
+	TypeType.Dict["__qualname__"] = &Property{Fget: func(self Object) (Object, error) {
+		class := self.(*Type)
+		if class.Qualname != "" {
+			return String(class.Qualname), nil
+		}
+		return String(class.Name), nil
+	}}
 	ObjectType.Dict["__class__"] = &Property{Fget: func(self Object) (Object, error) { return self.Type(), nil }}
 	dict := &Property{Fget: func(self Object) (Object, error) {
 		if object, ok := self.(IGetDict); ok {

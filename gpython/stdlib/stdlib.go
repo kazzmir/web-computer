@@ -38,6 +38,7 @@ import (
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/tempfile"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/testsupport"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/time"
+	_ "github.com/kazzmir/web-computer/gpython/stdlib/types"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/typing"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/unittest"
 	_ "github.com/kazzmir/web-computer/gpython/stdlib/xml"

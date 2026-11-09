@@ -30,6 +30,7 @@ var (
 )
 
 func init() {
+	StringDictType.Flags |= TPFLAGS_BASETYPE
 	StringDictType.Dict["items"] = MustNewMethod("items", func(self Object, args Tuple) (Object, error) {
 		err := UnpackTuple(args, nil, "items", 0, 0)
 		if err != nil {

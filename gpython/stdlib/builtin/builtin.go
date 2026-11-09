@@ -92,10 +92,10 @@ func init() {
 		"slice":        py.SliceType,
 		"staticmethod": py.StaticMethodType,
 		"str":          py.StringType,
-		// "super":          py.SuperType,
-		"tuple": py.TupleType,
-		"type":  py.TypeType,
-		"zip":   py.ZipType,
+		"super":        py.SuperType,
+		"tuple":        py.TupleType,
+		"type":         py.TypeType,
+		"zip":          py.ZipType,
 
 		// Exceptions
 		"ArithmeticError":           py.ArithmeticError,
@@ -515,11 +515,16 @@ func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict
 	// fmt.Printf("ns = %#v\n", ns)
 	if cell != nil {
 		// fmt.Printf("Calling %v\n", meta)
+		if classcell, ok := cell.(*py.Cell); ok {
+			ns["__classcell__"] = classcell
+		}
 		cls, err = py.Call(meta, py.Tuple{name, bases, ns}, mkw)
 		if err != nil {
 			return nil, err
 		}
-		if c, ok := cell.(*py.Cell); ok {
+		// type.__new__ fills the cell before descriptor/subclass hooks. A
+		// metaclass may deliberately return a different object afterwards.
+		if c, ok := cell.(*py.Cell); ok && c.Get() == nil {
 			c.Set(cls)
 		}
 	}

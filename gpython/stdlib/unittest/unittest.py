@@ -75,6 +75,19 @@ class TestCase:
     def assertIn(self, member, container, msg=None):
         if member not in container:
             self.fail(msg if msg is not None else repr(member) + ' not found in ' + repr(container))
+    def assertNotIn(self, member, container, msg=None):
+        if member in container:
+            self.fail(msg if msg is not None else repr(member) + ' unexpectedly found in ' + repr(container))
+    def assertCountEqual(self, first, second, msg=None):
+        remaining = list(second)
+        for item in first:
+            for i in range(len(remaining)):
+                if item == remaining[i]:
+                    del remaining[i]
+                    break
+            else:
+                self.fail(msg if msg is not None else 'element counts differ')
+        if remaining: self.fail(msg if msg is not None else 'element counts differ')
     def assertListEqual(self, first, second, msg=None):
         if not isinstance(first, list) or not isinstance(second, list):
             self.fail(msg if msg is not None else 'expected two lists')

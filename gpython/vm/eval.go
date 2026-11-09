@@ -1580,6 +1580,21 @@ func EvalGetFuncDesc(fn py.Object) string {
 //
 // Used to implement some interpreter magic like locals(), globals() etc
 func callInternal(fn py.Object, args py.Tuple, kwargs py.StringDict, f *py.Frame) (py.Object, error) {
+	if fn == py.SuperType && len(args) == 0 && len(kwargs) == 0 {
+		f.FastToLocals()
+		class := f.Locals["__class__"]
+		if class == nil {
+			return nil, py.ExceptionNewf(py.RuntimeError, "super(): __class__ cell not found")
+		}
+		if f.Code.Argcount == 0 {
+			return nil, py.ExceptionNewf(py.RuntimeError, "super(): no arguments")
+		}
+		self := f.Locals[string(f.Code.Varnames[0])]
+		if self == nil {
+			return nil, py.ExceptionNewf(py.RuntimeError, "super(): arg[0] deleted")
+		}
+		args = py.Tuple{class, self}
+	}
 	if method, ok := fn.(*py.Method); ok {
 		switch x := method.Internal(); x {
 		case py.InternalMethodNone:

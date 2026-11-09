@@ -385,7 +385,13 @@ func (t *Type) M__call__(args Tuple, kwargs StringDict) (Object, error) {
 		return nil, ExceptionNewf(TypeError, "cannot create '%s' instances", t.Name)
 	}
 
-	obj, err := t.New(t, args, kwargs)
+	var obj Object
+	var err error
+	if custom := pythonConstructorSlot(t.Lookup("__new__")); custom != nil {
+		obj, err = Call(custom, append(Tuple{t}, args...), kwargs)
+	} else {
+		obj, err = t.New(t, args, kwargs)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -400,6 +406,25 @@ func (t *Type) M__call__(args Tuple, kwargs StringDict) (Object, error) {
 		return obj, nil
 	}
 	objType := obj.Type()
+	initializer := objType.Lookup("__init__")
+	if custom := pythonConstructorSlot(initializer); custom != nil {
+		// Bind __init__ as a descriptor so a deliberately static initializer
+		// does not receive an unwanted instance argument.
+		if descriptor, ok := initializer.(I__get__); ok {
+			custom, err = descriptor.M__get__(obj, objType)
+			if err != nil {
+				return nil, err
+			}
+		}
+		result, err := Call(custom, args, kwargs)
+		if err != nil {
+			return nil, err
+		}
+		if result != None {
+			return nil, ExceptionNewf(TypeError, "__init__() should return None")
+		}
+		return obj, nil
+	}
 	if objType.Init != nil {
 		err = objType.Init(obj, args, kwargs)
 		if err != nil {
@@ -1252,12 +1277,12 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 	// SF bug 475327 -- if that didn't trigger, we need 3
 	// arguments. but PyArg_ParseTupleAndKeywords below may give
 	// a msg saying type() needs exactly 3.
-	if len(args)+len(kwargs) != 3 {
+	if len(args) != 3 {
 		return nil, ExceptionNewf(TypeError, "type() takes 1 or 3 arguments")
 	}
 
 	// Check arguments: (name, bases, dict)
-	err := ParseTupleAndKeywords(args, kwargs, "UOO:type", []string{"name", "bases", "dict"},
+	err := ParseTuple(args, "UOO:type",
 		&nameObj,
 		&basesObj,
 		&orig_dictObj)
@@ -1265,8 +1290,14 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 		return nil, err
 	}
 	name := nameObj.(String)
-	bases := basesObj.(Tuple)
-	orig_dict := orig_dictObj.(StringDict)
+	bases, ok := basesObj.(Tuple)
+	if !ok {
+		return nil, ExceptionNewf(TypeError, "type() argument 2 must be tuple")
+	}
+	orig_dict, ok := orig_dictObj.(StringDict)
+	if !ok {
+		return nil, ExceptionNewf(TypeError, "type() argument 3 must be dict")
+	}
 
 	// Determine the proper metatype to deal with this:
 	winner, err = metatype.CalculateMetaclass(bases)
@@ -1298,6 +1329,11 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 	}
 
 	dict := orig_dict.Copy()
+	for _, special := range []string{"__init_subclass__", "__class_getitem__"} {
+		if function, ok := dict[special].(*Function); ok {
+			dict[special] = &ClassMethod{Callable: function, Dict: NewStringDict()}
+		}
+	}
 
 	// Check for a __slots__ sequence variable in dict, and count it
 	slots, haveSlots := dict["__slots__"]
@@ -1464,7 +1500,8 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 
 	// Set __module__ in the dict
 	if _, ok := dict["__module__"]; !ok {
-		fmt.Printf("*** FIXME need to get the current vm globals somehow\n")
+		// Dynamic type creation has no calling-frame namespace here; do not
+		// emit a diagnostic into the Python program's standard output.
 		// tmp = PyEval_GetGlobals()
 		// if tmp != nil {
 		// 	tmp, ok := tmp["__name__"]
@@ -1496,16 +1533,10 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 		}
 	}
 
-	// Special-case __new__: if it's a plain function,
-	// make it a static function
-	// FIXME
-	// tmp = dict["__new__"]
-	// if tmp != nil && PyFunction_Check(tmp) {
-	// 	tmp = PyStaticMethod_New(tmp)
-	// 	if _PyDict_SetItemId(dict, &PyId___new__, tmp) < 0 {
-	// 		goto error
-	// 	}
-	// }
+	// __new__ is implicitly static, including when accessed on an instance.
+	if function, ok := dict["__new__"].(*Function); ok {
+		dict["__new__"] = &StaticMethod{Callable: function, Dict: NewStringDict()}
+	}
 
 	/*
 		// Add descriptors for custom slots from __slots__, or for __dict__
@@ -1589,24 +1620,14 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 		return nil, err
 	}
 
-	// Put the proper slots in place
-	// fixup_slot_dispatchers(new_type)
-
+	if err := new_type.finishClass(kwargs); err != nil {
+		return nil, err
+	}
 	return new_type, nil
 }
 
 func TypeInit(cls Object, args Tuple, kwargs StringDict) error {
-	if len(kwargs) != 0 {
-		return ExceptionNewf(TypeError, "type.__init__() takes no keyword arguments")
-	}
-
-	if len(args) != 1 && len(args) != 3 {
-		return ExceptionNewf(TypeError, "type.__init__() takes 1 or 3 arguments")
-	}
-
-	// Call object.__init__(self) now.
-	// XXX Could call super(type, cls).__init__() but what's the point?
-	return ObjectInit(cls, nil, nil)
+	return typeInitDefault(cls, args, kwargs)
 }
 
 // The base type of all types (eventually)... except itself.

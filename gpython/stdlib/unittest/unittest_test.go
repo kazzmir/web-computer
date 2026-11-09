@@ -33,6 +33,11 @@ assert round(10**100) == 10**100
 case.assertTrue([1])
 case.assertFalse([])
 case.assertIsInstance(ValueError(), Exception)
+case.assertNotIn('x', ['a', 'b'])
+with case.assertRaises(AssertionError): case.assertNotIn('a', ['a'])
+case.assertCountEqual([[1], [1], [2]], [[2], [1], [1]])
+with case.assertRaises(AssertionError): case.assertCountEqual([1, 1], [1])
+with case.assertRaises(AssertionError): case.assertCountEqual([], [1])
 case.assertHasAttr(case, 'fail')
 with case.assertRaises(AssertionError): case.assertHasAttr(case, 'missing')
 class Broken:

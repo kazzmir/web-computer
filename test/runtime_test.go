@@ -31,6 +31,7 @@ func TestCPython(t *testing.T) {
 		{"test_augassign.py", 7},
 		{"test_errno.py", 3},
 		{"test_print.py", 9},
+		{"test_subclassinit.py", 17},
 	} {
 		t.Run(suite.file, func(t *testing.T) {
 			opts := py.DefaultContextOpts()
