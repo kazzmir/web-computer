@@ -43,6 +43,7 @@ type Code struct {
 var CodeType = NewType("code", "code(argcount, kwonlyargcount, nlocals, stacksize, flags, codestring,\n      constants, names, varnames, filename, name, firstlineno,\n      lnotab[, freevars[, cellvars]])\n\nCreate a code object.  Not for the faint of heart.")
 
 func init() {
+	CodeType.Dict["co_flags"] = &Property{Fget: func(self Object) (Object, error) { return Int(self.(*Code).Flags), nil }}
 	CodeType.Dict["co_argcount"] = &Property{Fget: func(self Object) (Object, error) { return Int(self.(*Code).Argcount), nil }}
 	CodeType.Dict["co_kwonlyargcount"] = &Property{Fget: func(self Object) (Object, error) { return Int(self.(*Code).Kwonlyargcount), nil }}
 }
@@ -76,7 +77,7 @@ const (
 	CO_FUTURE_WITH_STATEMENT   = 0x8000
 	CO_FUTURE_PRINT_FUNCTION   = 0x10000
 	CO_FUTURE_UNICODE_LITERALS = 0x20000
-	CO_FUTURE_BARRY_AS_BDFL    = 0x40000
+	CO_FUTURE_BARRY_AS_BDFL    = 0x400000
 	CO_FUTURE_GENERATOR_STOP   = 0x800000
 
 	CO_COMPILER_FLAGS_MASK = CO_FUTURE_DIVISION | CO_FUTURE_ABSOLUTE_IMPORT | CO_FUTURE_WITH_STATEMENT | CO_FUTURE_PRINT_FUNCTION | CO_FUTURE_UNICODE_LITERALS | CO_FUTURE_BARRY_AS_BDFL | CO_FUTURE_GENERATOR_STOP

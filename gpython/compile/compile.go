@@ -108,7 +108,7 @@ func init() {
 // in addition to any features explicitly specified.
 func Compile(src, srcDesc string, mode py.CompileMode, futureFlags int, dont_inherit bool) (*py.Code, error) {
 	// Parse Ast
-	Ast, err := parser.Parse(bytes.NewBufferString(src), srcDesc, mode)
+	Ast, err := parser.ParseFlags(bytes.NewBufferString(src), srcDesc, mode, futureFlags)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func Compile(src, srcDesc string, mode py.CompileMode, futureFlags int, dont_inh
 	}
 	c := newCompiler(nil, compilerScopeModule)
 	c.Filename = srcDesc
-	err = c.compileAst(Ast, srcDesc, futureFlags, dont_inherit, SymTable)
+	err = c.compileAst(Ast, srcDesc, parser.FutureFlags(Ast, futureFlags), dont_inherit, SymTable)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func (c *compiler) newCompilerScope(compilerScope compilerScopeType, Ast ast.Ast
 		newSymTable.Symbols["__class__"] = symtable.Symbol{Scope: symtable.ScopeCell}
 	}
 
-	err := newC.compileAst(Ast, c.Code.Filename, 0, false, newSymTable)
+	err := newC.compileAst(Ast, c.Code.Filename, int(c.Code.Flags)&py.CO_COMPILER_FLAGS_MASK, false, newSymTable)
 	if err != nil {
 		panic(err)
 	}

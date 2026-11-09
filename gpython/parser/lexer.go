@@ -56,6 +56,7 @@ type yyLex struct {
 	brace         int        // number of open { }
 	mod           ast.Mod    // output
 	tokens        []int      // buffered tokens to output
+	comparisons   []comparisonToken
 }
 
 // Create a new lexer
@@ -672,6 +673,9 @@ func (x *yyLex) readOperator() int {
 		if len(x.line) >= i {
 			op := x.line[:i]
 			if tok, ok := operators[op]; ok {
+				if op == "!=" || op == "<>" {
+					x.comparisons = append(x.comparisons, comparisonToken{op, x.pos, x.lastLine})
+				}
 				x.cut(i)
 				return tok
 			}
@@ -974,6 +978,10 @@ func SetDebug(level int) {
 
 // Parse a file
 func Parse(in io.Reader, filename string, mode py.CompileMode) (mod ast.Mod, err error) {
+	return ParseFlags(in, filename, mode, 0)
+}
+
+func ParseFlags(in io.Reader, filename string, mode py.CompileMode, flags int) (mod ast.Mod, err error) {
 	lex, err := NewLex(in, filename, mode)
 	if err != nil {
 		return nil, err
@@ -987,6 +995,9 @@ func Parse(in io.Reader, filename string, mode py.CompileMode) (mod ast.Mod, err
 	err = lex.ErrorReturn()
 	if err != nil {
 		err = py.MakeSyntaxError(err, filename, lex.pos.Lineno, lex.pos.ColOffset, lex.lastLine)
+	}
+	if err == nil {
+		err = lex.checkComparisons(flags)
 	}
 	return lex.mod, err
 }

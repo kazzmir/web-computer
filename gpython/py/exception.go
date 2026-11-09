@@ -260,6 +260,7 @@ func MakeSyntaxError(r interface{}, filename string, lineno int, offset int, lin
 	}
 	e.Dict["offset"] = Int(column)
 	e.Dict["line"] = String(line)
+	e.Dict["text"] = String(line)
 	return e
 }
 

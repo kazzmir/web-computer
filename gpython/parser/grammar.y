@@ -1402,7 +1402,7 @@ comp_op:
 	}
 |	LTGT
 	{
-		yylex.(*yyLex).SyntaxError("invalid syntax")
+		$$ = ast.NotEq
 	}
 |	PLINGEQ
 	{

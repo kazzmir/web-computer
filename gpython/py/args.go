@@ -537,6 +537,10 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 			}
 			*result = arg
 		case 'i', 'n':
+			// bool is an int subclass at the Python API boundary.
+			if boolean, ok := arg.(Bool); ok {
+				arg, _ = boolean.M__index__()
+			}
 			if _, ok := arg.(Int); !ok {
 				return ExceptionNewf(TypeError, "%s() argument %d must be int, not %s", name, i+1, arg.Type().Name)
 			}

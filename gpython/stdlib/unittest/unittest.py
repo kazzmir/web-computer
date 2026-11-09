@@ -86,6 +86,9 @@ class TestCase:
         if callable is None: return context
         with context:
             callable(*args, **kwargs)
+    def assertRegex(self, text, regex, msg=None):
+        if not _regex_matches(regex, text):
+            self.fail(msg if msg is not None else repr(regex) + ' not found in ' + repr(text))
     def assertRaisesRegex(self, expected, regex, callable=None, *args, **kwargs):
         context = _AssertRaisesContext(expected, regex)
         if callable is None: return context

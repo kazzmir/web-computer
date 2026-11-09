@@ -2461,7 +2461,7 @@ yydefault:
 		yyDollar = yyS[yypt-1 : yypt+1]
 		//line grammar.y:1404
 		{
-			yylex.(*yyLex).SyntaxError("invalid syntax")
+			yyVAL.cmpop = ast.NotEq
 		}
 	case 210:
 		yyDollar = yyS[yypt-1 : yypt+1]

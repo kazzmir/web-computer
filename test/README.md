@@ -18,13 +18,15 @@ These test files are copied unchanged from
 | `test_utf8source.py` | 3 | UTF-8 source/text, malformed source, byte-source Latin-1 encoding declarations |
 | `test_html.py` | 2 | HTML escaping, HTML5 named/numeric references, invalid code points, long/repeated references |
 | `test_secrets.py` | 11 | Digest comparison, secure random integers/choices, byte/hex/URL-safe tokens |
+| `test_flufl.py` | 4 | Explicit compiler flags, future directives, comparison syntax, detailed diagnostics |
 
 The upstream license is retained in `LICENSE.cpython`. The runtime also embeds
 unchanged copies of `Lib/keyword.py` and `Lib/colorsys.py` from the same
 distribution. Async/await
 are reserved names; async statements themselves are not implemented yet.
-`__future__` currently advertises only `generator_stop`; PEP 479 behavior is
-mandatory, including without that future import.
+`__future__` advertises `generator_stop` and `barry_as_FLUFL`. PEP 479 behavior
+is mandatory even without its import. The latter is an opt-in comparison mode;
+ordinary code continues to use `!=` and rejects `<>`.
 
 Run the tests against this repository's Python runtime (not the host Python):
 
@@ -50,7 +52,7 @@ The runtime currently supplies a **limited, fail-fast `unittest` subset**:
 `TestCase`, `setUp`/`tearDown`, LIFO `addCleanup`/`doCleanups`, `assertTrue`,
 `assertFalse`, `assertEqual`, `assertAlmostEqual`, `assertIs`, `assertIn`,
 `assertListEqual`, `assertIsInstance`, callable/context-manager
-`assertRaises`/`assertRaisesRegex`, fail-fast `subTest` contexts, and module-level
+`assertRaises`/`assertRaisesRegex`, `assertRegex`, fail-fast `subTest` contexts, and module-level
 `main()` discovery (including inherited test methods). Assertion failures and
 unexpected exceptions propagate to the runner. This is not full CPython
 `unittest`: it has no result aggregation, CLI options, skips, or test suites;
