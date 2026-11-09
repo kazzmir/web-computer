@@ -139,6 +139,7 @@ const (
 	BitXor
 	BitAnd
 	FloorDiv
+	MatMult
 )
 
 func (o OperatorNumber) String() string {
@@ -149,6 +150,8 @@ func (o OperatorNumber) String() string {
 		return "Sub()"
 	case Mult:
 		return "Mult()"
+	case MatMult:
+		return "MatMult()"
 	case Div:
 		return "Div()"
 	case Modulo:

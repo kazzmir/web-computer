@@ -364,7 +364,7 @@ func do_INPLACE_TRUE_DIVIDE(vm *Vm, arg int32) error {
 func do_INPLACE_MODULO(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	return vm.setTopAndCheckErr(py.Mod(a, b))
+	return vm.setTopAndCheckErr(py.IMod(a, b))
 }
 
 // Implements in-place TOS = TOS1 + TOS.
@@ -585,12 +585,10 @@ func do_MAP_ADD(vm *Vm, i int32) error {
 	key := vm.TOP()
 	value := vm.SECOND()
 	vm.DROPN(2)
-	dictObj := vm.PEEK(int(i))
-	dict, err := py.DictCheckExact(dictObj)
-	if err != nil {
-		return err
+	dict, err := py.DictBuilderSet(vm.PEEK(int(i)), key, value)
+	if err == nil {
+		vm.SET_VALUE(int(i), dict)
 	}
-	_, err = dict.M__setitem__(key, value)
 	return err
 }
 
@@ -1247,11 +1245,10 @@ func do_STORE_MAP(vm *Vm, arg int32) error {
 	value := vm.SECOND()
 	dictObj := vm.THIRD()
 	vm.DROPN(2)
-	dict, err := py.DictCheckExact(dictObj)
-	if err != nil {
-		return err
+	dict, err := py.DictBuilderSet(dictObj, key, value)
+	if err == nil {
+		vm.SET_TOP(dict)
 	}
-	_, err = dict.M__setitem__(key, value)
 	return err
 }
 

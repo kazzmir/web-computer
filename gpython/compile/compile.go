@@ -1091,6 +1091,11 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		// Target Expr
 		// Op     OperatorNumber
 		// Value  Expr
+		switch node.Target.(type) {
+		case *ast.Name, *ast.Attribute, *ast.Subscript:
+		default:
+			c.panicSyntaxErrorf(node.Target, "illegal expression for augmented assignment")
+		}
 		setctx, ok := node.Target.(ast.SetCtxer)
 		if !ok {
 			panic("compile: can't set context in AugAssign")
@@ -1107,6 +1112,8 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 			op = vm.INPLACE_SUBTRACT
 		case ast.Mult:
 			op = vm.INPLACE_MULTIPLY
+		case ast.MatMult:
+			op = vm.INPLACE_MATRIX_MULTIPLY
 		case ast.Div:
 			op = vm.INPLACE_TRUE_DIVIDE
 		case ast.Modulo:
@@ -1702,6 +1709,8 @@ func (c *compiler) Expr(expr ast.Expr) {
 			op = vm.BINARY_SUBTRACT
 		case ast.Mult:
 			op = vm.BINARY_MULTIPLY
+		case ast.MatMult:
+			op = vm.BINARY_MATRIX_MULTIPLY
 		case ast.Div:
 			op = vm.BINARY_TRUE_DIVIDE
 		case ast.Modulo:

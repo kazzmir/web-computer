@@ -35,10 +35,10 @@ func init() {
 		if err != nil {
 			return nil, err
 		}
-		sMap := self.(StringDict)
-		o := make(Tuple, 0, len(sMap))
-		for k, v := range sMap {
-			o = append(o, Tuple{String(k), v})
+		entries := dictEntries(self)
+		o := make(Tuple, 0, len(entries))
+		for _, entry := range entries {
+			o = append(o, Tuple{entry[0], entry[1]})
 		}
 		return NewIterator(o), nil
 	}, 0, "items() -> list of D's (key, value) pairs, as 2-tuples")
@@ -48,10 +48,10 @@ func init() {
 		if err != nil {
 			return nil, err
 		}
-		sMap := self.(StringDict)
-		o := make(Tuple, 0, len(sMap))
-		for k := range sMap {
-			o = append(o, String(k))
+		entries := dictEntries(self)
+		o := make(Tuple, 0, len(entries))
+		for _, entry := range entries {
+			o = append(o, entry[0])
 		}
 		return NewIterator(o), nil
 	}, 0, "keys() -> list of D's keys, as a list")
@@ -61,10 +61,10 @@ func init() {
 		if err != nil {
 			return nil, err
 		}
-		sMap := self.(StringDict)
-		o := make(Tuple, 0, len(sMap))
-		for _, v := range sMap {
-			o = append(o, v)
+		entries := dictEntries(self)
+		o := make(Tuple, 0, len(entries))
+		for _, entry := range entries {
+			o = append(o, entry[1])
 		}
 		return NewIterator(o), nil
 	}, 0, "values() -> list of D's values, as a list")
@@ -77,20 +77,24 @@ func init() {
 		case length > 2:
 			return nil, ExceptionNewf(TypeError, "%s expected at most 2 arguments, got %d", "items()", length)
 		}
-		sMap := self.(StringDict)
-		if str, ok := args[0].(String); ok {
-			if res, ok := sMap[string(str)]; ok {
-				return res, nil
-			}
-
-			switch length {
-			case 2:
-				return args[1], nil
-			default:
-				return None, nil
+		// Namespace dictionaries still require string keys. GenericDict is
+		// the value-dictionary path for non-string keys.
+		if _, namespace := self.(StringDict); namespace {
+			if _, key := args[0].(String); !key {
+				return nil, ExceptionNewf(KeyError, "%v", args[0])
 			}
 		}
-		return nil, ExceptionNewf(KeyError, "%v", args[0])
+		value, err := GetItem(self, args[0])
+		if err == nil {
+			return value, nil
+		}
+		if !IsException(KeyError, err) {
+			return nil, err
+		}
+		if length == 2 {
+			return args[1], nil
+		}
+		return None, nil
 	}, 0, "gets(key, default) -> If there is a val corresponding to key, return val, otherwise default")
 }
 
@@ -104,27 +108,39 @@ func DictNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 	if len(args) > 1 {
 		return nil, ExceptionNewf(TypeError, "dict expects at most one argument")
 	}
-	out := NewStringDict()
+	var out Object = NewStringDict()
+	var entries []Tuple
 	if len(args) == 1 {
-		arg := args[0]
-		seq, err := SequenceList(arg)
-		if err != nil {
-			return nil, err
-		}
-		for _, i := range seq.Items {
-			switch z := i.(type) {
-			case Tuple:
-				if zStr, ok := z[0].(String); ok {
-					out[string(zStr)] = z[1]
+		switch arg := args[0].(type) {
+		case StringDict, *GenericDict:
+			entries = dictEntries(arg)
+		default:
+			sequence, err := SequenceList(arg)
+			if err != nil {
+				return nil, err
+			}
+			for _, item := range sequence.Items {
+				pair, err := SequenceTuple(item)
+				if err != nil {
+					return nil, err
 				}
-			default:
-				return nil, ExceptionNewf(TypeError, "non-tuple sequence")
+				if len(pair) != 2 {
+					return nil, ExceptionNewf(ValueError, "dictionary update sequence element has length %d; 2 is required", len(pair))
+				}
+				entries = append(entries, pair)
 			}
 		}
 	}
-	if len(kwargs) > 0 {
-		for k, v := range kwargs {
-			out[k] = v
+	for _, entry := range entries {
+		var err error
+		out, err = DictBuilderSet(out, entry[0], entry[1])
+		if err != nil {
+			return nil, err
+		}
+	}
+	for k, v := range kwargs {
+		if _, err := SetItem(out, String(k), v); err != nil {
+			return nil, err
 		}
 	}
 	return out, nil
@@ -245,6 +261,9 @@ func (d StringDict) M__setitem__(key, value Object) (Object, error) {
 }
 
 func (a StringDict) M__eq__(other Object) (Object, error) {
+	if generic, ok := other.(*GenericDict); ok {
+		return generic.M__eq__(a)
+	}
 	b, ok := other.(StringDict)
 	if !ok {
 		return NotImplemented, nil

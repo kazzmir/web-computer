@@ -26,7 +26,9 @@ const (
 
 	BINARY_POWER OpCode = 19
 
-	BINARY_MULTIPLY OpCode = 20
+	BINARY_MATRIX_MULTIPLY  OpCode = 16
+	INPLACE_MATRIX_MULTIPLY OpCode = 17
+	BINARY_MULTIPLY         OpCode = 20
 
 	BINARY_MODULO        OpCode = 22
 	BINARY_ADD           OpCode = 23

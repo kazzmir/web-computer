@@ -20,6 +20,7 @@ These test files are copied unchanged from
 | `test_secrets.py` | 11 | Digest comparison, secure random integers/choices, byte/hex/URL-safe tokens |
 | `test_flufl.py` | 4 | Explicit compiler flags, future directives, comparison syntax, detailed diagnostics |
 | `test_xml.py` | 2 | XML 1.0 name/text validation, Unicode boundaries, forbidden characters and surrogates |
+| `test_augassign.py` | 7 | All augmented arithmetic operators, custom/reflected/in-place slots, matrix operators, sequence mutation, numeric dictionary keys |
 
 The upstream license is retained in `LICENSE.cpython`. The runtime also embeds
 unchanged copies of `Lib/keyword.py` and `Lib/colorsys.py` from the same
@@ -52,6 +53,14 @@ The `xml` module supplies name/text validation only; DOM, SAX, etree, and XML
 parsers are not implemented. Python string code-point operations preserve lone
 surrogates; UTF-8 encoding rejects them unless an explicit error handler permits
 them.
+
+Matrix `@`/`@=` implements the special-method protocol; it does not implicitly
+add matrix operations to built-in sequences. Value-dictionary literals,
+comprehensions, and `dict(iterable)` promote to a generic-key representation
+when necessary. It supports immutable built-in keys using linear Python-equality
+lookup; custom hashable objects and NaN keys are not implemented. Namespace maps
+and dictionaries created with only string keys still use the string-only fast
+path and cannot later accept non-string keys through aliased mutation.
 
 The runtime currently supplies a **limited, fail-fast `unittest` subset**:
 `TestCase`, `setUp`/`tearDown`, LIFO `addCleanup`/`doCleanups`, `assertTrue`,

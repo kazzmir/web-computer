@@ -221,6 +221,11 @@ func (a *BigInt) M__imul__(other Object) (Object, error) {
 }
 
 func (a *BigInt) M__truediv__(other Object) (Object, error) {
+	switch other.(type) {
+	case Int, *BigInt, Float, Bool:
+	default:
+		return NotImplemented, nil
+	}
 	b, err := MakeFloat(other)
 	if err != nil {
 		return nil, err
@@ -237,6 +242,11 @@ func (a *BigInt) M__truediv__(other Object) (Object, error) {
 }
 
 func (a *BigInt) M__rtruediv__(other Object) (Object, error) {
+	switch other.(type) {
+	case Int, *BigInt, Float, Bool:
+	default:
+		return NotImplemented, nil
+	}
 	b, err := MakeFloat(other)
 	if err != nil {
 		return nil, err

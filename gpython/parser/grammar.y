@@ -223,7 +223,7 @@ func setCtxs(yylex yyLexer, exprs []ast.Expr, ctx ast.ExprContext) {
 
 %token '(' ')' '[' ']' ':' ',' ';' '+' '-' '*' '/' '|' '&' '<' '>' '=' '.' '%' '{' '}' '^' '~' '@'
 
-%token SINGLE_INPUT FILE_INPUT EVAL_INPUT
+%token SINGLE_INPUT FILE_INPUT EVAL_INPUT ATEQ
 
 // Note:  Changing the grammar specified in this file will most likely
 //        require corresponding changes in the parser module
@@ -793,6 +793,7 @@ augassign:
 	{
 		$$ = ast.Mult
 	}
+| ATEQ { $$ = ast.MatMult }
 |	DIVEQ
 	{
 		$$ = ast.Div
@@ -1498,6 +1499,7 @@ term:
 	{
 		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $1, Op: ast.Mult, Right: $3}
 	}
+| term '@' factor { $$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $1, Op: ast.MatMult, Right: $3} }
 |	term '/' factor
 	{
 		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $1, Op: ast.Div, Right: $3}
