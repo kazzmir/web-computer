@@ -19,7 +19,6 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 )
 
 type String string
@@ -47,7 +46,7 @@ func StringEscape(a String, ascii bool) string {
 	if !ascii {
 		out.WriteRune(quote)
 	}
-	for _, c := range s {
+	for _, c := range StringCodePoints(a) {
 		switch {
 		case c < 0x20:
 			switch c {
@@ -295,7 +294,9 @@ func (s String) M__bool__() (Object, error) {
 
 // len returns length of the string in unicode characters
 func (s String) len() int {
-	return utf8.RuneCountInString(string(s))
+	    count := 0
+    for len(s) > 0 { _, size := DecodeCodePoint(string(s)); s = s[size:]; count++ }
+    return count
 }
 
 func (s String) M__len__() (Object, error) {
@@ -559,10 +560,10 @@ func (a String) M__imod__(other Object) (Object, error) {
 // returns end of string if not found
 func (s String) pos(n int) int {
 	characterNumber := 0
-	for i := range s {
-		if characterNumber == n {
-			return i
-		}
+    for i := 0; i < len(s); {
+		if characterNumber == n { return i }
+        _, size := DecodeCodePoint(string(s[i:]))
+        i += size
 		characterNumber++
 	}
 	return len(s)
@@ -606,12 +607,12 @@ func (s String) M__getitem__(key Object) (Object, error) {
 			return String(newString), nil
 		}
 		// Unpack the string into a []rune to do this for speed
-		runeString := []rune(string(s))
+		runeString := StringCodePoints(s)
 		newString := make([]rune, slicelength)
 		for i, j := start, 0; j < slicelength; i, j = i+step, j+1 {
 			newString[j] = runeString[i]
 		}
-		return String(newString), nil
+		return StringFromCodePoints(newString), nil
 	}
 	i, err := IndexIntCheck(key, length)
 	if err != nil {
@@ -621,7 +622,7 @@ func (s String) M__getitem__(key Object) (Object, error) {
 		return s[i : i+1], nil
 	}
 	s = s[s.pos(i):]
-	_, runeSize := utf8.DecodeRuneInString(string(s))
+	_, runeSize := DecodeCodePoint(string(s))
 	return s[:runeSize], nil
 }
 

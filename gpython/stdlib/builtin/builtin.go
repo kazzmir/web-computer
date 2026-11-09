@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
-	"unicode/utf8"
 
 	"github.com/kazzmir/web-computer/gpython/compile"
 	"github.com/kazzmir/web-computer/gpython/py"
@@ -668,8 +667,8 @@ func builtin_ord(self, obj py.Object) (py.Object, error) {
 		}
 	case py.String:
 		size = len(x)
-		rune, runeSize := utf8.DecodeRuneInString(string(x))
-		if size == runeSize && rune != utf8.RuneError {
+		rune, runeSize := py.DecodeCodePoint(string(x))
+		if size == runeSize && size > 0 {
 			return py.Int(rune), nil
 		}
 	//case py.ByteArray:
@@ -1238,9 +1237,7 @@ func builtin_chr(self py.Object, args py.Tuple) (py.Object, error) {
 	if x < 0 || x >= 0x110000 {
 		return nil, py.ExceptionNewf(py.ValueError, "chr() arg not in range(0x110000)")
 	}
-	buf := make([]byte, 8)
-	n := utf8.EncodeRune(buf, rune(x))
-	return py.String(buf[:n]), nil
+	return py.StringFromCodePoint(rune(x)), nil
 }
 
 const locals_doc = `locals() -> dictionary

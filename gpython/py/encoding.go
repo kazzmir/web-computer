@@ -16,7 +16,26 @@ func encodingName(name string) string {
 func EncodeString(text String, encoding, errors string) (Bytes, error) {
 	name := encodingName(encoding)
 	if name == "utf8" {
-		return Bytes([]byte(text)), nil
+		if utf8.ValidString(string(text)) || errors == "surrogatepass" {
+			return Bytes([]byte(text)), nil
+		}
+		var result Bytes
+		for _, point := range StringCodePoints(text) {
+			if point < 0xd800 || point > 0xdfff {
+				result = append(result, []byte(string(point))...)
+				continue
+			}
+			switch errors {
+			case "ignore":
+			case "replace":
+				result = append(result, '?')
+			case "strict":
+				return nil, ExceptionNewf(UnicodeEncodeError, "'utf-8' codec can't encode character %U: surrogates not allowed", point)
+			default:
+				return nil, ExceptionNewf(LookupError, "unknown error handler name: %s", errors)
+			}
+		}
+		return result, nil
 	}
 	limit := rune(255)
 	switch name {
@@ -27,7 +46,7 @@ func EncodeString(text String, encoding, errors string) (Bytes, error) {
 		return nil, ExceptionNewf(LookupError, "unknown encoding: %s", encoding)
 	}
 	out := make(Bytes, 0, len(text))
-	for _, r := range text {
+	for _, r := range StringCodePoints(text) {
 		if r <= limit {
 			out = append(out, byte(r))
 			continue

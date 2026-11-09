@@ -19,6 +19,7 @@ These test files are copied unchanged from
 | `test_html.py` | 2 | HTML escaping, HTML5 named/numeric references, invalid code points, long/repeated references |
 | `test_secrets.py` | 11 | Digest comparison, secure random integers/choices, byte/hex/URL-safe tokens |
 | `test_flufl.py` | 4 | Explicit compiler flags, future directives, comparison syntax, detailed diagnostics |
+| `test_xml.py` | 2 | XML 1.0 name/text validation, Unicode boundaries, forbidden characters and surrogates |
 
 The upstream license is retained in `LICENSE.cpython`. The runtime also embeds
 unchanged copies of `Lib/keyword.py` and `Lib/colorsys.py` from the same
@@ -47,6 +48,10 @@ The `secrets` subset uses Go's `crypto/rand` and `crypto/hmac`, not the
 simulation-oriented `random` module. It supplies the tested public functions;
 `SystemRandom` and general buffer-protocol digest arguments are not provided.
 Digest comparison supports ASCII `str` and `bytes`.
+The `xml` module supplies name/text validation only; DOM, SAX, etree, and XML
+parsers are not implemented. Python string code-point operations preserve lone
+surrogates; UTF-8 encoding rejects them unless an explicit error handler permits
+them.
 
 The runtime currently supplies a **limited, fail-fast `unittest` subset**:
 `TestCase`, `setUp`/`tearDown`, LIFO `addCleanup`/`doCleanups`, `assertTrue`,

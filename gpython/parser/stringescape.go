@@ -33,7 +33,10 @@ func DecodeEscape(in *bytes.Buffer, byteMode bool) (out *bytes.Buffer, err error
 			if byteMode {
 				out.WriteByte(byte(cout))
 			} else {
-				out.WriteRune(rune(cout))
+				if cout > 0x10ffff {
+					return py.ExceptionNewf(py.ValueError, "illegal Unicode character")
+				}
+				out.WriteString(string(py.StringFromCodePoint(rune(cout))))
 			}
 		} else {
 			return py.ExceptionNewf(py.ValueError, "truncated \\%c escape at position %d", what, i-2)
