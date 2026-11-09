@@ -374,45 +374,9 @@ var _ I__setitem__ = (*List)(nil)
 
 // var _ richComparison = (*List)(nil)
 
-func (a *List) M__eq__(other Object) (Object, error) {
-	b, ok := other.(*List)
-	if !ok {
-		return NotImplemented, nil
-	}
-	if len(a.Items) != len(b.Items) {
-		return False, nil
-	}
-	for i := range a.Items {
-		eq, err := Eq(a.Items[i], b.Items[i])
-		if err != nil {
-			return nil, err
-		}
-		if eq == False {
-			return False, nil
-		}
-	}
-	return True, nil
-}
+func (a *List) M__eq__(other Object) (Object, error) { return a.compare(other, compareEQ) }
 
-func (a *List) M__ne__(other Object) (Object, error) {
-	b, ok := other.(*List)
-	if !ok {
-		return NotImplemented, nil
-	}
-	if len(a.Items) != len(b.Items) {
-		return True, nil
-	}
-	for i := range a.Items {
-		eq, err := Eq(a.Items[i], b.Items[i])
-		if err != nil {
-			return nil, err
-		}
-		if eq == False {
-			return True, nil
-		}
-	}
-	return False, nil
-}
+func (a *List) M__ne__(other Object) (Object, error) { return a.compare(other, compareNE) }
 
 type sortable struct {
 	l        *List

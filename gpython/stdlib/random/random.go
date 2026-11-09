@@ -103,5 +103,10 @@ def randrange(start, stop=None, step=1):
     return start + step * _inst._randbelow(count)
 
 def randint(a, b): return randrange(a, b+1)
+
+def shuffle(sequence):
+    for i in range(len(sequence)-1, 0, -1):
+        j = _inst._randbelow(i+1)
+        sequence[i], sequence[j] = sequence[j], sequence[i]
 `})
 }

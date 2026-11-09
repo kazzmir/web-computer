@@ -381,6 +381,12 @@ func (a *Type) IsSubtype(b *Type) bool {
 
 // Call type()
 func (t *Type) M__call__(args Tuple, kwargs StringDict) (Object, error) {
+	if !t.Type().IsSubtype(TypeType) {
+		if result, found, err := TypeCall(t, "__call__", append(Tuple{t}, args...), kwargs); found {
+			return result, err
+		}
+		return nil, ExceptionNewf(TypeError, "'%s' object is not callable", t.Type().Name)
+	}
 	if t.New == nil {
 		return nil, ExceptionNewf(TypeError, "cannot create '%s' instances", t.Name)
 	}
@@ -1776,18 +1782,26 @@ func ObjectNew(t *Type, args Tuple, kwargs StringDict) (Object, error) {
 
 // FIXME this should be the default?
 func (ty *Type) M__eq__(other Object) (Object, error) {
-	if otherTy, ok := other.(*Type); ok && ty == otherTy {
+	if result, found, err := TypeCall1(ty, "__eq__", other); found {
+		return result, err
+	}
+	if Identical(ty, other) {
 		return True, nil
 	}
-	return False, nil
+	return NotImplemented, nil
 }
 
 // FIXME this should be the default?
 func (ty *Type) M__ne__(other Object) (Object, error) {
-	if otherTy, ok := other.(*Type); ok && ty == otherTy {
-		return False, nil
+	if result, found, err := TypeCall1(ty, "__ne__", other); found {
+		return result, err
 	}
-	return True, nil
+	result, err := ty.M__eq__(other)
+	if err != nil || result == NotImplemented {
+		return result, err
+	}
+	truth, err := ObjectIsTrue(result)
+	return Bool(!truth), err
 }
 
 func (ty *Type) M__str__() (Object, error) {

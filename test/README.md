@@ -25,6 +25,7 @@ These test files are copied unchanged from
 | `test_print.py` | 9 | Output redirection, separators/endings, flush behavior/errors, stdout replacement, Python 2 migration hints |
 | `test_subclassinit.py` | 17 | PEP 487 subclass/descriptor hooks, cooperative MRO, class keywords, metaclass construction, descriptor error notes |
 | `test_decorators.py` | 16 | Method-wrapper metadata, arbitrary decorator expressions, ordering, memoization, function attributes, class decorators |
+| `test_richcmp.py` | 11 | All rich comparisons, arbitrary result objects, reflected methods, lexicographic lists, recursion errors and diagnostic messages |
 
 The upstream license is retained in `LICENSE.cpython`. The runtime also embeds
 unchanged copies of `Lib/keyword.py` and `Lib/colorsys.py` from the same
@@ -87,7 +88,9 @@ seek/tell, getvalue, flush/close, and context management. Only the default
 `io` class hierarchies are not implemented. The minimal `test.support` module
 provides real `captured_stdout`, exception-safe `swap_attr`, and `gc_collect`
 (using Go's garbage collector). It is not a copy of CPython's full test-support
-package and does not skip cases or suppress test failures.
+package and does not skip cases or suppress test failures. It also supplies
+`infinite_recursion` as a real temporary VM recursion-limit context/decorator;
+`no_tracing` is transparent because this runtime has no tracing facility.
 
 Class creation now initializes class cells before descriptor/subclass hooks,
 implicitly binds `__init_subclass__` as a class method, notifies descriptors from
@@ -98,6 +101,21 @@ through the C3 MRO. This is not complete `super` descriptor emulation.
 base resolution and the rest of `types` are not provided. Native container
 subclass instance storage remains limited (the `dict` subclass tests here test
 class creation, not dictionary-instance behavior).
+
+Rich comparisons preserve arbitrary return objects, honor reflected subtype
+priority, propagate exceptions, and fall back to identity only after both
+operands decline equality. Lists compare lexicographically and truth-test item
+comparison results. `bool(...)` now follows the truth protocol, validating
+`__bool__` results and rejecting negative lengths. `operator` supplies the six
+comparison functions/dunder aliases and `not_`; `collections` supplies a limited
+`UserList` wrapper, not its full container/ABC API. `random.shuffle` performs
+in-place Fisher-Yates shuffling using the context's generator.
+
+`sys.getrecursionlimit`/`setrecursionlimit` control per-context Python VM frame
+depth (default 1000), including generator frame execution. Counters unwind on
+errors and limits are isolated between contexts. Native-only recursive paths
+are not all covered by this frame guard; this is not complete CPython stack
+accounting.
 
 The runtime currently supplies a **limited, fail-fast `unittest` subset**:
 `TestCase`, `setUp`/`tearDown`, LIFO `addCleanup`/`doCleanups`, `assertTrue`,

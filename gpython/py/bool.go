@@ -9,11 +9,23 @@ package py
 type Bool bool
 
 var (
-	BoolType = NewType("bool", "bool(x) -> bool\n\nReturns True when the argument x is true, False otherwise.\nThe builtins True and False are the only two instances of the class bool.\nThe class bool is a subclass of the class int, and cannot be subclassed.")
+	BoolType = IntType.NewType("bool", "bool(x) -> bool\n\nReturns True when the argument x is true, False otherwise.\nThe builtins True and False are the only two instances of the class bool.\nThe class bool is a subclass of the class int, and cannot be subclassed.", nil, nil)
 	// Some well known bools
 	False = Bool(false)
 	True  = Bool(true)
 )
+
+func init() {
+	BoolType.New = func(cls *Type, args Tuple, kwargs StringDict) (Object, error) {
+		var value Object = False
+		if err := UnpackTuple(args, kwargs, "bool", 0, 1, &value); err != nil {
+			return nil, err
+		}
+		truth, err := ObjectIsTrue(value)
+		return Bool(truth), err
+	}
+	BoolType.Flags &^= TPFLAGS_BASETYPE
+}
 
 // Type of this object
 func (s Bool) Type() *Type {
@@ -90,17 +102,13 @@ func (a Bool) M__rsub__(other Object) (Object, error) {
 }
 
 func (a Bool) M__eq__(other Object) (Object, error) {
-	if b, ok := convertToBool(other); ok {
-		return NewBool(a == b), nil
-	}
-	return False, nil
+	value, _ := a.M__index__()
+	return value.M__eq__(other)
 }
 
 func (a Bool) M__ne__(other Object) (Object, error) {
-	if b, ok := convertToBool(other); ok {
-		return NewBool(a != b), nil
-	}
-	return True, nil
+	value, _ := a.M__index__()
+	return value.M__ne__(other)
 }
 
 func notEq(eq Object, err error) (Object, error) {

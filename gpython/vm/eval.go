@@ -1748,6 +1748,10 @@ func (vm *Vm) UnwindExceptHandler(frame *py.Frame, block *py.TryBlock) {
 //
 // This is the equivalent of PyEval_EvalFrame
 func RunFrame(frame *py.Frame) (res py.Object, err error) {
+	if err := frame.Context.Store().EnterFrame(); err != nil {
+		return nil, err
+	}
+	defer frame.Context.Store().LeaveFrame()
 	var vm = Vm{
 		frame:   frame,
 		context: frame.Context,

@@ -34,17 +34,22 @@ func ObjectIsTrue(o Object) (cmp bool, err error) {
 	}
 
 	var res Object
+	boolSlot, lenSlot := false, false
 	switch t := o.(type) {
 	case I__bool__:
+		boolSlot = true
 		res, err = t.M__bool__()
 	case I__len__:
+		lenSlot = true
 		res, err = t.M__len__()
 	case *Type:
 		var ok bool
 		if res, ok, err = TypeCall0(o, "__bool__"); ok {
+			boolSlot = true
 			break
 		}
 		if res, ok, err = TypeCall0(o, "__len__"); ok {
+			lenSlot = true
 			break
 		}
 		_ = ok // pass static-check
@@ -53,11 +58,22 @@ func ObjectIsTrue(o Object) (cmp bool, err error) {
 		return false, err
 	}
 
-	switch t := res.(type) {
-	case Bool:
-		return t == True, nil
-	case Int:
-		return t > 0, nil
+	if boolSlot {
+		value, ok := res.(Bool)
+		if !ok {
+			return false, ExceptionNewf(TypeError, "__bool__ should return bool, returned %s", res.Type().Name)
+		}
+		return bool(value), nil
+	}
+	if lenSlot {
+		length, err := IndexInt(res)
+		if err != nil {
+			return false, err
+		}
+		if length < 0 {
+			return false, ExceptionNewf(ValueError, "__len__() should return >= 0")
+		}
+		return length != 0, nil
 	}
 	return true, nil
 }

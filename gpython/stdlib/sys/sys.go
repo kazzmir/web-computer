@@ -340,19 +340,18 @@ stack and crashing Python.  The highest possible limit is platform-
 dependent.`
 
 func sys_setrecursionlimit(self py.Object, args py.Tuple) (py.Object, error) {
-	// int new_limit;
-	// if (!PyArg_ParseTuple(args, "i:setrecursionlimit", &new_limit)) {
-	//     return nil;
-	// }
-	// if (new_limit <= 0) {
-	//     PyErr_SetString(PyExc_ValueError,
-	//                     "recursion limit must be positive");
-	//     return nil;
-	// }
-	// Py_SetRecursionLimit(new_limit);
-	// Py_INCREF(Py_None);
-	// return Py_None;
-	return nil, py.NotImplementedError
+	var value py.Object
+	if err := py.UnpackTuple(args, nil, "setrecursionlimit", 1, 1, &value); err != nil {
+		return nil, err
+	}
+	limit, err := py.IndexInt(value)
+	if err != nil {
+		return nil, err
+	}
+	if err := self.(*py.Module).Context.Store().SetRecursionLimit(limit); err != nil {
+		return nil, err
+	}
+	return py.None, nil
 }
 
 // const hash_info_doc = `hash_info
@@ -410,8 +409,7 @@ of the Python interpreter stack.  This limit prevents infinite
 recursion from causing an overflow of the C stack and crashing Python.`
 
 func sys_getrecursionlimit(self py.Object) (py.Object, error) {
-	// return PyLong_FromLong(Py_GetRecursionLimit());
-	return nil, py.NotImplementedError
+	return py.Int(self.(*py.Module).Context.Store().RecursionLimit()), nil
 }
 
 const getsizeof_doc = `getsizeof(object, default) -> int

@@ -75,6 +75,7 @@ var (
 	TimeoutError              = OSError.NewType("TimeoutError", "Timeout expired.", nil, nil)
 	ReferenceError            = ExceptionType.NewType("ReferenceError", "Weak ref proxy used after referent went away.", nil, nil)
 	RuntimeError              = ExceptionType.NewType("RuntimeError", "Unspecified run-time error.", nil, nil)
+	RecursionError            = RuntimeError.NewType("RecursionError", "Maximum Python execution depth exceeded", nil, nil)
 	NotImplementedError       = RuntimeError.NewType("NotImplementedError", "Method or function hasn't been implemented yet.", nil, nil)
 	SyntaxError               = ExceptionType.NewType("SyntaxError", "Invalid syntax.", nil, nil)
 	IndentationError          = SyntaxError.NewType("IndentationError", "Improper indentation.", nil, nil)

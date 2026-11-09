@@ -47,6 +47,8 @@ type ModuleImpl struct {
 
 // ModuleStore is a container of Module imported into an owning py.Context.
 type ModuleStore struct {
+	recursionDepth int
+	recursionLimit int
 	// Registry of installed modules
 	modules map[string]*Module
 	// Builtin module

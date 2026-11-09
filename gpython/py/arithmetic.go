@@ -710,181 +710,29 @@ func IPow(a, b, c Object) (Object, error) {
 // Gt two python objects returning a boolean result
 //
 // Will raise TypeError if Gt can't be run on this object
-func Gt(a Object, b Object) (Object, error) {
-	// Try using a to gt
-	if A, ok := a.(I__gt__); ok {
-		res, err := A.M__gt__(b)
-		if err != nil {
-			return nil, err
-		}
-		if res != NotImplemented {
-			return res, nil
-		}
-	}
-
-	// Try using b to lt with reversed parameters
-	if B, ok := b.(I__lt__); ok {
-		res, err := B.M__lt__(a)
-		if err != nil {
-			return nil, err
-		}
-		if res != NotImplemented {
-			return res, nil
-		}
-	}
-
-	return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for >: '%s' and '%s'", a.Type().Name, b.Type().Name)
-}
+func Gt(a Object, b Object) (Object, error) { return richCompare(a, b, compareGT) }
 
 // Ge two python objects returning a boolean result
 //
 // Will raise TypeError if Ge can't be run on this object
-func Ge(a Object, b Object) (Object, error) {
-	// Try using a to ge
-	if A, ok := a.(I__ge__); ok {
-		res, err := A.M__ge__(b)
-		if err != nil {
-			return nil, err
-		}
-		if res != NotImplemented {
-			return res, nil
-		}
-	}
-
-	// Try using b to le with reversed parameters
-	if B, ok := b.(I__le__); ok {
-		res, err := B.M__le__(a)
-		if err != nil {
-			return nil, err
-		}
-		if res != NotImplemented {
-			return res, nil
-		}
-	}
-
-	return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for >=: '%s' and '%s'", a.Type().Name, b.Type().Name)
-}
+func Ge(a Object, b Object) (Object, error) { return richCompare(a, b, compareGE) }
 
 // Lt two python objects returning a boolean result
 //
 // Will raise TypeError if Lt can't be run on this object
-func Lt(a Object, b Object) (Object, error) {
-	// Try using a to lt
-	if A, ok := a.(I__lt__); ok {
-		res, err := A.M__lt__(b)
-		if err != nil {
-			return nil, err
-		}
-		if res != NotImplemented {
-			return res, nil
-		}
-	}
-
-	// Try using b to gt with reversed parameters
-	if B, ok := b.(I__gt__); ok {
-		res, err := B.M__gt__(a)
-		if err != nil {
-			return nil, err
-		}
-		if res != NotImplemented {
-			return res, nil
-		}
-	}
-
-	return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for <: '%s' and '%s'", a.Type().Name, b.Type().Name)
-}
+func Lt(a Object, b Object) (Object, error) { return richCompare(a, b, compareLT) }
 
 // Le two python objects returning a boolean result
 //
 // Will raise TypeError if Le can't be run on this object
-func Le(a Object, b Object) (Object, error) {
-	// Try using a to le
-	if A, ok := a.(I__le__); ok {
-		res, err := A.M__le__(b)
-		if err != nil {
-			return nil, err
-		}
-		if res != NotImplemented {
-			return res, nil
-		}
-	}
-
-	// Try using b to ge with reversed parameters
-	if B, ok := b.(I__ge__); ok {
-		res, err := B.M__ge__(a)
-		if err != nil {
-			return nil, err
-		}
-		if res != NotImplemented {
-			return res, nil
-		}
-	}
-
-	return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for <=: '%s' and '%s'", a.Type().Name, b.Type().Name)
-}
+func Le(a Object, b Object) (Object, error) { return richCompare(a, b, compareLE) }
 
 // Eq two python objects returning a boolean result
 //
 // Will raise TypeError if Eq can't be run on this object
-func Eq(a Object, b Object) (Object, error) {
-	// Try using a to eq
-	if A, ok := a.(I__eq__); ok {
-		res, err := A.M__eq__(b)
-		if err != nil {
-			return nil, err
-		}
-		if res != NotImplemented {
-			return res, nil
-		}
-	}
-
-	// Try using b to eq with reversed parameters
-	if B, ok := b.(I__eq__); ok {
-		res, err := B.M__eq__(a)
-		if err != nil {
-			return nil, err
-		}
-		if res != NotImplemented {
-			return res, nil
-		}
-	}
-
-	if a.Type() != b.Type() {
-		return False, nil
-	}
-
-	return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for ==: '%s' and '%s'", a.Type().Name, b.Type().Name)
-}
+func Eq(a Object, b Object) (Object, error) { return richCompare(a, b, compareEQ) }
 
 // Ne two python objects returning a boolean result
 //
 // Will raise TypeError if Ne can't be run on this object
-func Ne(a Object, b Object) (Object, error) {
-	// Try using a to ne
-	if A, ok := a.(I__ne__); ok {
-		res, err := A.M__ne__(b)
-		if err != nil {
-			return nil, err
-		}
-		if res != NotImplemented {
-			return res, nil
-		}
-	}
-
-	// Try using b to ne with reversed parameters
-	if B, ok := b.(I__ne__); ok {
-		res, err := B.M__ne__(a)
-		if err != nil {
-			return nil, err
-		}
-		if res != NotImplemented {
-			return res, nil
-		}
-	}
-
-	if a.Type() != b.Type() {
-		return True, nil
-	}
-
-	return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for !=: '%s' and '%s'", a.Type().Name, b.Type().Name)
-}
+func Ne(a Object, b Object) (Object, error) { return richCompare(a, b, compareNE) }

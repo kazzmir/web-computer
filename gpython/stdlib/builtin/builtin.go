@@ -143,6 +143,7 @@ func init() {
 		"ReferenceError":            py.ReferenceError,
 		"ResourceWarning":           py.ResourceWarning,
 		"RuntimeError":              py.RuntimeError,
+		"RecursionError":            py.RecursionError,
 		"RuntimeWarning":            py.RuntimeWarning,
 		"StopIteration":             py.StopIteration,
 		"SyntaxError":               py.SyntaxError,

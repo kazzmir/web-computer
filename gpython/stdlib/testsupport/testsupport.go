@@ -14,13 +14,17 @@ var source string
 
 func init() {
 	py.RegisterModule(&py.ModuleImpl{
-		Info: py.ModuleInfo{Name: "test.support", Doc: "Limited regression helpers: captured_stdout, swap_attr, gc_collect"},
+		Info: py.ModuleInfo{Name: "test.support", Doc: "Limited regression helpers: capture, attribute restoration, recursion limits, garbage collection"},
 		Methods: []*py.Method{py.MustNewMethod("gc_collect", func(self py.Object) (py.Object, error) {
 			runtime.GC()
 			runtime.Gosched()
 			runtime.GC()
 			return py.None, nil
-		}, 0, "Run Go's garbage collector and allow pending finalizers to run.")},
+		}, 0, "Run Go's garbage collector and allow pending finalizers to run."),
+			py.MustNewMethod("_recursion_depth", func(self py.Object) (py.Object, error) {
+				return py.Int(self.(*py.Module).Context.Store().RecursionDepth()), nil
+			}, 0, "Return the current Python VM execution depth."),
+		},
 		CodeSrc: source,
 	})
 }
