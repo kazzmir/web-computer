@@ -724,7 +724,13 @@ func builtin_hasattr(self py.Object, args py.Tuple) (py.Object, error) {
 		return nil, err
 	}
 	_, err = py.GetAttr(v, name)
-	return py.NewBool(err == nil), nil
+	if err == nil {
+		return py.True, nil
+	}
+	if py.IsException(py.AttributeError, err) {
+		return py.False, nil
+	}
+	return nil, err
 }
 
 const setattr_doc = `setattr(object, name, value)

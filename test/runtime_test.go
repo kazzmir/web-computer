@@ -29,6 +29,7 @@ func TestCPython(t *testing.T) {
 		{"test_flufl.py", 4},
 		{"test_xml.py", 2},
 		{"test_augassign.py", 7},
+		{"test_errno.py", 3},
 	} {
 		t.Run(suite.file, func(t *testing.T) {
 			opts := py.DefaultContextOpts()

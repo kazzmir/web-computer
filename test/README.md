@@ -21,6 +21,7 @@ These test files are copied unchanged from
 | `test_flufl.py` | 4 | Explicit compiler flags, future directives, comparison syntax, detailed diagnostics |
 | `test_xml.py` | 2 | XML 1.0 name/text validation, Unicode boundaries, forbidden characters and surrogates |
 | `test_augassign.py` | 7 | All augmented arithmetic operators, custom/reflected/in-place slots, matrix operators, sequence mutation, numeric dictionary keys |
+| `test_errno.py` | 3 | Error constants, numeric reverse mapping, module-attribute consistency |
 
 The upstream license is retained in `LICENSE.cpython`. The runtime also embeds
 unchanged copies of `Lib/keyword.py` and `Lib/colorsys.py` from the same
@@ -62,10 +63,15 @@ lookup; custom hashable objects and NaN keys are not implemented. Namespace maps
 and dictionaries created with only string keys still use the string-only fast
 path and cannot later accept non-string keys through aliased mutation.
 
+`errno` exposes a common POSIX subset using Go's target-platform `syscall`
+values (including Go's js/wasm table in browsers), not an exhaustive copy of
+all host C-library constants. Each context receives its own mutable `errorcode`
+dictionary; aliases map to one deterministic representative name.
+
 The runtime currently supplies a **limited, fail-fast `unittest` subset**:
 `TestCase`, `setUp`/`tearDown`, LIFO `addCleanup`/`doCleanups`, `assertTrue`,
 `assertFalse`, `assertEqual`, `assertAlmostEqual`, `assertIs`, `assertIn`,
-`assertListEqual`, `assertIsInstance`, callable/context-manager
+`assertListEqual`, `assertIsInstance`, `assertHasAttr`, callable/context-manager
 `assertRaises`/`assertRaisesRegex`, `assertRegex`, fail-fast `subTest` contexts, and module-level
 `main()` discovery (including inherited test methods). Assertion failures and
 unexpected exceptions propagate to the runner. This is not full CPython

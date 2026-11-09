@@ -79,6 +79,9 @@ class TestCase:
         if not isinstance(first, list) or not isinstance(second, list):
             self.fail(msg if msg is not None else 'expected two lists')
         self.assertEqual(first, second, msg)
+    def assertHasAttr(self, obj, name, msg=None):
+        if not hasattr(obj, name):
+            self.fail(msg if msg is not None else repr(obj) + ' has no attribute ' + repr(name))
     def assertIsInstance(self, obj, cls, msg=None):
         if not isinstance(obj, cls): self.fail(msg if msg is not None else 'unexpected instance type')
     def assertRaises(self, expected, callable=None, *args, **kwargs):

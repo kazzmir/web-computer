@@ -33,6 +33,13 @@ assert round(10**100) == 10**100
 case.assertTrue([1])
 case.assertFalse([])
 case.assertIsInstance(ValueError(), Exception)
+case.assertHasAttr(case, 'fail')
+with case.assertRaises(AssertionError): case.assertHasAttr(case, 'missing')
+class Broken:
+    @property
+    def value(self): raise RuntimeError('getter failure')
+with case.assertRaises(RuntimeError): case.assertHasAttr(Broken(), 'value')
+with case.assertRaises(TypeError): hasattr(case, 123)
 def raise_type(): raise TypeError('expected')
 case.assertRaises(TypeError, raise_type)
 case.assertRegex('expected', '^exp[a-z]+$')
