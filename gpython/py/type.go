@@ -1294,8 +1294,8 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 	if !ok {
 		return nil, ExceptionNewf(TypeError, "type() argument 2 must be tuple")
 	}
-	orig_dict, ok := orig_dictObj.(StringDict)
-	if !ok {
+	orig_dict, dictErr := DictCheckExact(orig_dictObj)
+	if dictErr != nil {
 		return nil, ExceptionNewf(TypeError, "type() argument 3 must be dict")
 	}
 

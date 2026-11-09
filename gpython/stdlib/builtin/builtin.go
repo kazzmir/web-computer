@@ -497,9 +497,8 @@ func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict
 		if err != nil {
 			return nil, err
 		}
-		var ok bool
-		ns, ok = nsObj.(py.StringDict)
-		if !ok {
+		ns, err = py.DictCheckExact(nsObj)
+		if err != nil {
 			return nil, py.ExceptionNewf(py.TypeError, "__prepare__ must return a dict")
 		}
 	}

@@ -389,5 +389,23 @@ func BuiltinImport(ctx Context, self Object, args Tuple, kwargs StringDict, curr
 	if fromlist == None {
 		fromlist = Tuple{}
 	}
-	return ImportModuleLevelObject(ctx, string(name.(String)), globals.(StringDict), locals.(StringDict), fromlist.(Tuple), int(level.(Int)))
+	globalNames := currentGlobal
+	if globals != None {
+		globalNames, err = DictCheck(globals)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var localNames StringDict
+	if locals != None {
+		localNames, err = DictCheck(locals)
+		if err != nil {
+			return nil, err
+		}
+	}
+	fromNames, err := SequenceTuple(fromlist)
+	if err != nil {
+		return nil, err
+	}
+	return ImportModuleLevelObject(ctx, string(name.(String)), globalNames, localNames, fromNames, int(level.(Int)))
 }

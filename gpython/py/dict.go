@@ -109,7 +109,7 @@ func DictNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 	if len(args) > 1 {
 		return nil, ExceptionNewf(TypeError, "dict expects at most one argument")
 	}
-	var out Object = NewStringDict()
+	var out Object = NewGenericDict()
 	var entries []Tuple
 	if len(args) == 1 {
 		switch arg := args[0].(type) {
@@ -164,11 +164,7 @@ func NewStringDictSized(n int) StringDict {
 
 // Checks that obj is exactly a dictionary and returns an error if not
 func DictCheckExact(obj Object) (StringDict, error) {
-	dict, ok := obj.(StringDict)
-	if !ok {
-		return nil, expectingDict
-	}
-	return dict, nil
+	return StringMapping(obj, false)
 }
 
 // Checks that obj is exactly a dictionary and returns an error if not

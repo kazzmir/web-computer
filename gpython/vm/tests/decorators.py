@@ -104,7 +104,7 @@ doc="test_staticmethod_function"
 @staticmethod
 def notamethod(x):
     return x
-self.assertRaises(TypeError, notamethod, 1)
+self.assertEqual(notamethod(1), 1)
 
 doc="test_dotted"
 # FIXME class decorator
@@ -176,19 +176,16 @@ self.assertEqual(double([10]), [10, 10])
 self.assertEqual(counts['double'], 4)
 
 doc="test_errors"
-# Test syntax restrictions - these are all compile-time errors:
-#
-for expr in [ "1+2", "x[3]", "(1, 2)" ]:
-    # Sanity check: is expr is a valid expression by itself?
-    compile(expr, "testexpr", "exec")
-
+# Modern Python allows arbitrary decorator expressions; non-callable results
+# fail at execution, not compilation.
+for expr in [ "1+2", "[1, 2][0]", "(1, 2)" ]:
     codestr = "@%s\ndef f(): pass" % expr
-    self.assertRaises(SyntaxError, compile, codestr, "test", "exec")
+    code = compile(codestr, "test", "exec")
+    self.assertRaises(TypeError, eval, code, {})
 
-# You can't put multiple decorators on a single line:
-#
-self.assertRaises(SyntaxError, compile,
-                  "@f1 @f2\ndef f(): pass", "test", "exec")
+# This is one matrix-multiplication expression, not two decorators.
+code = compile("@f1 @f2\ndef f(): pass", "test", "exec")
+self.assertRaises(TypeError, eval, code, dict(f1=1, f2=2))
 
 # Test runtime errors
 
@@ -198,7 +195,7 @@ context = dict(nullval=None, unimp=unimp)
 
 for expr, exc in [ ("undef", NameError),
                    ("nullval", TypeError),
-                   ("nullval.attr", NameError), # FIXME    ("nullval.attr", AttributeError),
+                   ("nullval.attr", AttributeError),
                    ("unimp", NotImplementedError)]:
     codestr = "@%s\ndef f(): pass\nassert f() is None" % expr
     code = compile(codestr, "test", "exec")

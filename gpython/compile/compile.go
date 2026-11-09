@@ -1695,6 +1695,10 @@ func (c *compiler) Expr(expr ast.Expr) {
 			}
 		}
 		c.Label(label)
+	case *ast.NamedExpr:
+		c.Expr(node.Value)
+		c.Op(vm.DUP_TOP)
+		c.Expr(node.Target)
 	case *ast.BinOp:
 		// Left  Expr
 		// Op    OperatorNumber

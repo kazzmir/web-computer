@@ -51,6 +51,9 @@ func ClassMethodNew(metatype *Type, args Tuple, kwargs StringDict) (res Object, 
 	if err != nil {
 		return nil, err
 	}
+	if err := copyMethodMetadata(c.Callable, c.Dict); err != nil {
+		return nil, err
+	}
 	return c, nil
 }
 

@@ -24,6 +24,7 @@ type Function struct {
 	KwDefaults  StringDict // NULL or a dict
 	Closure     Tuple      // NULL or a tuple of cell objects
 	Doc         Object     // The __doc__ attribute, can be anything
+	Module      Object     // Defining module name (independent of __dict__)
 	Name        string     // The __name__ attribute, a string object
 	Dict        StringDict // The __dict__ attribute, a dict or NULL
 	Weakreflist List       // List of weak references
@@ -78,6 +79,7 @@ func NewFunction(ctx Context, code *Code, globals StringDict, qualname string) *
 		Globals:  globals,
 		Name:     code.Name,
 		Doc:      doc,
+		Module:   globals["__name__"],
 		Dict:     make(StringDict),
 	}
 }
@@ -101,6 +103,26 @@ func (f *Function) M__get__(instance, owner Object) (Object, error) {
 
 // Properties
 func init() {
+	FunctionType.Dict["__module__"] = &Property{
+		Fget: func(self Object) (Object, error) {
+			value := self.(*Function).Module
+			if value == nil {
+				return None, nil
+			}
+			return value, nil
+		},
+		Fset: func(self, value Object) error { self.(*Function).Module = value; return nil },
+	}
+	FunctionType.Dict["__doc__"] = &Property{
+		Fget: func(self Object) (Object, error) {
+			value := self.(*Function).Doc
+			if value == nil {
+				return None, nil
+			}
+			return value, nil
+		},
+		Fset: func(self, value Object) error { self.(*Function).Doc = value; return nil },
+	}
 	FunctionType.Dict["__code__"] = &Property{
 		Fget: func(self Object) (Object, error) {
 			return self.(*Function).Code, nil
@@ -145,8 +167,8 @@ func init() {
 		},
 		Fset: func(self, value Object) error {
 			f := self.(*Function)
-			kwdefaults, ok := value.(StringDict)
-			if !ok {
+			kwdefaults, err := DictCheckExact(value)
+			if err != nil {
 				return ExceptionNewf(TypeError, "__kwdefaults__ must be set to a dict object")
 			}
 			f.KwDefaults = kwdefaults
@@ -159,12 +181,16 @@ func init() {
 	}
 	FunctionType.Dict["__annotations__"] = &Property{
 		Fget: func(self Object) (Object, error) {
-			return self.(*Function).Annotations, nil
+			function := self.(*Function)
+			if function.Annotations == nil {
+				function.Annotations = NewStringDict()
+			}
+			return function.Annotations, nil
 		},
 		Fset: func(self, value Object) error {
 			f := self.(*Function)
-			annotations, ok := value.(StringDict)
-			if !ok {
+			annotations, err := DictCheckExact(value)
+			if err != nil {
 				return ExceptionNewf(TypeError, "__annotations__ must be set to a dict object")
 			}
 			f.Annotations = annotations
@@ -181,8 +207,8 @@ func init() {
 		},
 		Fset: func(self, value Object) error {
 			f := self.(*Function)
-			dict, ok := value.(StringDict)
-			if !ok {
+			dict, err := DictCheckExact(value)
+			if err != nil {
 				return ExceptionNewf(TypeError, "__dict__ must be set to a dict object")
 			}
 			f.Dict = dict

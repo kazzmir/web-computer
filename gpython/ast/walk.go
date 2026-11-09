@@ -222,6 +222,9 @@ func Walk(ast Ast, Visit func(Ast) bool) {
 		// Values []Expr
 		walkExprs(node.Values)
 
+	case *NamedExpr:
+		walk(node.Value)
+		walk(node.Target)
 	case *BinOp:
 		// Left  Expr
 		// Op    OperatorNumber

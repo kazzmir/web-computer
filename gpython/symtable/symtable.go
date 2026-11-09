@@ -395,6 +395,18 @@ func (st *SymTable) newTmpName(node ast.Ast) {
 }
 
 func (st *SymTable) parseComprehension(Ast ast.Ast, scopeName string, generators []ast.Comprehension, elt ast.Expr, value ast.Expr) {
+	// Assignment expressions in comprehensions bind in the containing scope,
+	// unlike ordinary comprehension targets. Reject that unimplemented scope
+	// rule explicitly rather than silently assigning to the wrong namespace.
+	ast.Walk(Ast, func(node ast.Ast) bool {
+		if _, lambda := node.(*ast.Lambda); lambda {
+			return false
+		}
+		if named, ok := node.(*ast.NamedExpr); ok {
+			st.panicSyntaxErrorf(named, "assignment expressions in comprehensions are not implemented")
+		}
+		return true
+	})
 	_, isGenerator := Ast.(*ast.GeneratorExp)
 	needsTmp := !isGenerator
 	outermost := generators[0]

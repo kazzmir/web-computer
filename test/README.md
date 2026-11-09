@@ -24,6 +24,7 @@ These test files are copied unchanged from
 | `test_errno.py` | 3 | Error constants, numeric reverse mapping, module-attribute consistency |
 | `test_print.py` | 9 | Output redirection, separators/endings, flush behavior/errors, stdout replacement, Python 2 migration hints |
 | `test_subclassinit.py` | 17 | PEP 487 subclass/descriptor hooks, cooperative MRO, class keywords, metaclass construction, descriptor error notes |
+| `test_decorators.py` | 16 | Method-wrapper metadata, arbitrary decorator expressions, ordering, memoization, function attributes, class decorators |
 
 The upstream license is retained in `LICENSE.cpython`. The runtime also embeds
 unchanged copies of `Lib/keyword.py` and `Lib/colorsys.py` from the same
@@ -59,11 +60,21 @@ them.
 
 Matrix `@`/`@=` implements the special-method protocol; it does not implicitly
 add matrix operations to built-in sequences. Value-dictionary literals,
-comprehensions, and `dict(iterable)` promote to a generic-key representation
-when necessary. It supports immutable built-in keys using linear Python-equality
-lookup; custom hashable objects and NaN keys are not implemented. Namespace maps
-and dictionaries created with only string keys still use the string-only fast
-path and cannot later accept non-string keys through aliased mutation.
+comprehensions, and `dict(...)` use a generic-key representation when necessary.
+Empty `{}` and constructor-created dictionaries now accept later non-string
+keys without breaking aliases (including tuple-key memoization). String-key
+storage is shared with native namespace APIs so `exec`/`eval` mutations remain
+visible. Immutable built-in keys use Python equality; custom hashable objects,
+NaN keys, and full insertion-order guarantees are not implemented. Native
+namespace maps and nonempty string-only literals still use the string-only
+fast path and cannot later accept non-string keys through aliased mutation.
+
+Decorators accept general expressions, including assignment expressions.
+Assignment expressions currently support name targets in parentheses,
+decorators, and `if`/`elif`/`while` conditions; comprehension binding rules are
+not implemented and are explicitly rejected. `str.format` supports automatic,
+numbered and named fields, attribute/index access, escaped braces, conversions,
+and nested format specifications, sharing the existing value-formatting engine.
 
 `errno` exposes a common POSIX subset using Go's target-platform `syscall`
 values (including Go's js/wasm table in browsers), not an exhaustive copy of

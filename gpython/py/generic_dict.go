@@ -5,12 +5,39 @@ import (
 	"strings"
 )
 
-// GenericDict backs dictionaries containing non-string keys. Namespace maps
-// remain StringDicts. Lookup is linear for now, using Python equality rather
-// than Go map-key equality (so e.g. 1, True and 1.0 share a key).
-type GenericDict struct{ entries []Tuple }
+// GenericDict backs general-key value dictionaries. String keys share a live
+// StringDict namespace view; other keys use linear Python equality rather than
+// Go map-key equality (so e.g. 1, True and 1.0 share a key).
+type GenericDict struct {
+	entries []Tuple    // non-string keys
+	names   StringDict // shared with native namespace APIs
+}
 
-func NewGenericDict() *GenericDict { return &GenericDict{} }
+func NewGenericDict() *GenericDict { return &GenericDict{names: NewStringDict()} }
+
+func (d *GenericDict) allEntries() []Tuple {
+	entries := make([]Tuple, 0, len(d.entries)+len(d.names))
+	entries = append(entries, d.entries...)
+	for key, value := range d.names {
+		entries = append(entries, Tuple{String(key), value})
+	}
+	return entries
+}
+
+// StringMapping provides a live namespace view. Keyword argument mappings
+// must reject non-string keys rather than silently discard them.
+func StringMapping(value Object, keywords bool) (StringDict, error) {
+	if generic, ok := value.(*GenericDict); ok {
+		if keywords && len(generic.entries) > 0 {
+			return nil, ExceptionNewf(TypeError, "keywords must be strings")
+		}
+		return generic.names, nil
+	}
+	if names, ok := value.(StringDict); ok {
+		return names, nil
+	}
+	return nil, expectingDict
+}
 
 // DictBuilderSet may promote a not-yet-published literal/constructor result.
 // It must not be used for mutation of dictionaries that already have aliases.
@@ -19,7 +46,7 @@ func DictBuilderSet(dict, key, value Object) (Object, error) {
 		if _, isString := key.(String); !isString {
 			promoted := NewGenericDict()
 			for k, v := range strings {
-				promoted.entries = append(promoted.entries, Tuple{String(k), v})
+				promoted.names[k] = v
 			}
 			dict = promoted
 		}
@@ -30,7 +57,7 @@ func DictBuilderSet(dict, key, value Object) (Object, error) {
 func (d *GenericDict) Type() *Type { return StringDictType }
 func dictEntries(obj Object) []Tuple {
 	if d, ok := obj.(*GenericDict); ok {
-		return d.entries
+		return d.allEntries()
 	}
 	d := obj.(StringDict)
 	entries := make([]Tuple, 0, len(d))
@@ -84,6 +111,10 @@ func (d *GenericDict) find(key Object) (int, error) {
 	return -1, nil
 }
 func (d *GenericDict) M__setitem__(key, value Object) (Object, error) {
+	if name, ok := key.(String); ok {
+		d.names[string(name)] = value
+		return None, nil
+	}
 	i, err := d.find(key)
 	if err != nil {
 		return nil, err
@@ -96,6 +127,13 @@ func (d *GenericDict) M__setitem__(key, value Object) (Object, error) {
 	return None, nil
 }
 func (d *GenericDict) M__getitem__(key Object) (Object, error) {
+	if name, ok := key.(String); ok {
+		value, found := d.names[string(name)]
+		if !found {
+			return nil, ExceptionNewf(KeyError, "%v", key)
+		}
+		return value, nil
+	}
 	i, err := d.find(key)
 	if err != nil {
 		return nil, err
@@ -106,6 +144,13 @@ func (d *GenericDict) M__getitem__(key Object) (Object, error) {
 	return d.entries[i][1], nil
 }
 func (d *GenericDict) M__delitem__(key Object) (Object, error) {
+	if name, ok := key.(String); ok {
+		if _, found := d.names[string(name)]; !found {
+			return nil, ExceptionNewf(KeyError, "%v", key)
+		}
+		delete(d.names, string(name))
+		return None, nil
+	}
 	i, err := d.find(key)
 	if err != nil {
 		return nil, err
@@ -117,21 +162,25 @@ func (d *GenericDict) M__delitem__(key Object) (Object, error) {
 	return None, nil
 }
 func (d *GenericDict) M__contains__(key Object) (Object, error) {
+	if name, ok := key.(String); ok {
+		_, found := d.names[string(name)]
+		return Bool(found), nil
+	}
 	i, err := d.find(key)
 	return Bool(i >= 0), err
 }
-func (d *GenericDict) M__len__() (Object, error)  { return Int(len(d.entries)), nil }
-func (d *GenericDict) M__bool__() (Object, error) { return Bool(len(d.entries) > 0), nil }
+func (d *GenericDict) M__len__() (Object, error)  { return Int(len(d.entries) + len(d.names)), nil }
+func (d *GenericDict) M__bool__() (Object, error) { return Bool(len(d.entries)+len(d.names) > 0), nil }
 func (d *GenericDict) M__iter__() (Object, error) {
-	keys := make(Tuple, 0, len(d.entries))
-	for _, e := range d.entries {
+	keys := make(Tuple, 0, len(d.entries)+len(d.names))
+	for _, e := range d.allEntries() {
 		keys = append(keys, e[0])
 	}
 	return NewIterator(keys), nil
 }
 func (d *GenericDict) M__repr__() (Object, error) {
-	parts := make([]string, 0, len(d.entries))
-	for _, e := range d.entries {
+	parts := make([]string, 0, len(d.entries)+len(d.names))
+	for _, e := range d.allEntries() {
 		k, err := ReprAsString(e[0])
 		if err != nil {
 			return nil, err
@@ -152,10 +201,10 @@ func (d *GenericDict) M__eq__(other Object) (Object, error) {
 		return NotImplemented, nil
 	}
 	entries := dictEntries(other)
-	if len(entries) != len(d.entries) {
+	if len(entries) != len(d.entries)+len(d.names) {
 		return False, nil
 	}
-	for _, e := range d.entries {
+	for _, e := range d.allEntries() {
 		value, err := GetItem(other, e[0])
 		if err != nil {
 			if IsException(KeyError, err) {

@@ -223,7 +223,8 @@ func setCtxs(yylex yyLexer, exprs []ast.Expr, ctx ast.ExprContext) {
 
 %token '(' ')' '[' ']' ':' ',' ';' '+' '-' '*' '/' '|' '&' '<' '>' '=' '.' '%' '{' '}' '^' '~' '@'
 
-%token SINGLE_INPUT FILE_INPUT EVAL_INPUT ATEQ
+%token SINGLE_INPUT FILE_INPUT EVAL_INPUT ATEQ COLONEQ
+%type <expr> namedexpr_test
 
 // Note:  Changing the grammar specified in this file will most likely
 //        require corresponding changes in the parser module
@@ -330,17 +331,13 @@ optional_arglist_call:
 	}
 
 decorator:
-	'@' dotted_name optional_arglist_call NEWLINE
-	{
-		fn := &ast.Name{ExprBase: ast.ExprBase{Pos: $<pos>$}, Id: ast.Identifier($2), Ctx: ast.Load}
-		if $3 == nil {
-			$$ = fn
-		} else {
-			call := *$3
-			call.Func = fn
-			$$ = &call
-		}
-	}
+    '@' namedexpr_test NEWLINE { $$ = $2 }
+
+namedexpr_test:
+    test { $$ = $1 }
+| NAME COLONEQ test {
+    $$ = &ast.NamedExpr{ExprBase:ast.ExprBase{Pos:$<pos>$}, Target:&ast.Name{ExprBase:ast.ExprBase{Pos:$<pos>$},Id:ast.Identifier($1),Ctx:ast.Store},Value:$3}
+}
 
 decorators:
 	decorator
@@ -1118,7 +1115,7 @@ elifs:
 		$$ = nil
 		$<lastif>$ = nil
 	}
-|	elifs ELIF test ':' suite
+|	elifs ELIF namedexpr_test ':' suite
 	{
 		elifs := $$
 		newif := &ast.If{StmtBase: ast.StmtBase{Pos: $<pos>$}, Test: $3, Body: $5}
@@ -1140,7 +1137,7 @@ optional_else:
 	}
 
 if_stmt:
-	IF test ':' suite elifs optional_else
+	IF namedexpr_test ':' suite elifs optional_else
 	{
 		newif := &ast.If{StmtBase: ast.StmtBase{Pos: $<pos>$}, Test: $2, Body: $4}
 		$$ = newif
@@ -1161,7 +1158,7 @@ if_stmt:
 	}
 
 while_stmt:
-	WHILE test ':' suite optional_else
+	WHILE namedexpr_test ':' suite optional_else
 	{
 		$$ = &ast.While{StmtBase: ast.StmtBase{Pos: $<pos>$}, Test: $2, Body: $4, Orelse: $5}
 	}
@@ -1567,6 +1564,9 @@ atom:
 	{
 		$$ = &ast.Tuple{ExprBase: ast.ExprBase{Pos: $<pos>$}, Ctx: ast.Load}
 	}
+| '(' NAME COLONEQ test ')' {
+    $$ = &ast.NamedExpr{ExprBase:ast.ExprBase{Pos:$<pos>$},Target:&ast.Name{ExprBase:ast.ExprBase{Pos:$<pos>$},Id:ast.Identifier($2),Ctx:ast.Store},Value:$4}
+}
 |	'(' yield_expr ')'
 	{
 		$$ = $2

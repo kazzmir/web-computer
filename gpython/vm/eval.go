@@ -1008,7 +1008,11 @@ func do_BUILD_LIST(vm *Vm, count int32) error {
 // Pushes a new dictionary object onto the stack. The dictionary is
 // pre-sized to hold count entries.
 func do_BUILD_MAP(vm *Vm, count int32) error {
-	vm.PUSH(py.NewStringDictSized(int(count)))
+	if count == 0 {
+		vm.PUSH(py.NewGenericDict())
+	} else {
+		vm.PUSH(py.NewStringDictSized(int(count)))
+	}
 	return nil
 }
 
@@ -1046,9 +1050,9 @@ func do_COMPARE_OP(vm *Vm, opname int32) error {
 		in, err = py.SequenceContains(b, a)
 		r = py.NewBool(!in)
 	case PyCmp_IS:
-		r = py.NewBool(a == b)
+		r = py.NewBool(py.Identical(a, b))
 	case PyCmp_IS_NOT:
-		r = py.NewBool(a != b)
+		r = py.NewBool(!py.Identical(a, b))
 	case PyCmp_EXC_MATCH:
 		if bTuple, ok := b.(py.Tuple); ok {
 			for _, exc := range bTuple {
@@ -1673,9 +1677,9 @@ func (vm *Vm) Call(argc int32, starArgs py.Object, starKwargs py.Object) error {
 			kwargs = py.NewStringDict()
 		}
 		// FIXME should be some sort of dictionary iterator...
-		starKwargsDict, ok := starKwargs.(py.StringDict)
-		if !ok {
-			return py.ExceptionNewf(py.SystemError, "FIXME can't use %T as **kwargs", starKwargs)
+		starKwargsDict, err := py.StringMapping(starKwargs, true)
+		if err != nil {
+			return err
 		}
 		for k, v := range starKwargsDict {
 			if _, ok := kwargs[k]; ok {

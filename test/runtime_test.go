@@ -32,6 +32,7 @@ func TestCPython(t *testing.T) {
 		{"test_errno.py", 3},
 		{"test_print.py", 9},
 		{"test_subclassinit.py", 17},
+		{"test_decorators.py", 16},
 	} {
 		t.Run(suite.file, func(t *testing.T) {
 			opts := py.DefaultContextOpts()

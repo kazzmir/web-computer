@@ -212,6 +212,7 @@ var operators = map[string]int{
 	"*=": STAREQ,
 	"+=": PLUSEQ,
 	"@=": ATEQ,
+	":=": COLONEQ,
 	"-=": MINUSEQ,
 	"->": MINUSGT,
 	"//": DIVDIV,
