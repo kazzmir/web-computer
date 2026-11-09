@@ -37,26 +37,30 @@ const tabSize = 8
 // The parser uses the type <prefix>Lex as a lexer.  It must provide
 // the methods Lex(*<prefix>SymType) int and Error(string).
 type yyLex struct {
-	reader        *bufio.Reader
-	filename      string     // name of the file being read
-	line          string     // current line being parsed
-	lastLine      string     // last line that was parsed
-	pos           ast.Pos    // current position within file
-	yylval        *yySymType // last token
-	eof           bool       // flag to show EOF was read
-	error         bool       // set if an error has ocurred
-	errorString   string     // the string of the error
-	indentStack   []int      // indent stack to control INDENT / DEDENT tokens
-	state         int        // current state of state machine
-	currentIndent string     // whitespace at start of current line
-	interactive   bool       // set if mode "single" reading interactive input
-	exec          bool       // set if mode "exec" reading from file
-	bracket       int        // number of open [ ]
-	parenthesis   int        // number of open ( )
-	brace         int        // number of open { }
-	mod           ast.Mod    // output
-	tokens        []int      // buffered tokens to output
-	comparisons   []comparisonToken
+	lastToken      int
+	previousToken  int
+	lastIdentifier string
+	printStatement bool
+	reader         *bufio.Reader
+	filename       string     // name of the file being read
+	line           string     // current line being parsed
+	lastLine       string     // last line that was parsed
+	pos            ast.Pos    // current position within file
+	yylval         *yySymType // last token
+	eof            bool       // flag to show EOF was read
+	error          bool       // set if an error has ocurred
+	errorString    string     // the string of the error
+	indentStack    []int      // indent stack to control INDENT / DEDENT tokens
+	state          int        // current state of state machine
+	currentIndent  string     // whitespace at start of current line
+	interactive    bool       // set if mode "single" reading interactive input
+	exec           bool       // set if mode "exec" reading from file
+	bracket        int        // number of open [ ]
+	parenthesis    int        // number of open ( )
+	brace          int        // number of open { }
+	mod            ast.Mod    // output
+	tokens         []int      // buffered tokens to output
+	comparisons    []comparisonToken
 }
 
 // Create a new lexer
@@ -383,6 +387,15 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 	// Clear out the yySymType on each token (copied from rsc's cc)
 	*yylval = yySymType{}
 	x.yylval = yylval
+	defer func() {
+		statementStart := x.previousToken == FILE_INPUT || x.previousToken == SINGLE_INPUT || x.previousToken == EVAL_INPUT || x.previousToken == NEWLINE || x.previousToken == INDENT || x.previousToken == DEDENT || x.previousToken == ':' || x.previousToken == ';'
+		if statementStart && x.lastToken == NAME && x.lastIdentifier == "print" && (ret == NAME || ret == STRING || ret == NUMBER) {
+			x.printStatement = true
+		}
+		x.previousToken = x.lastToken
+		x.lastToken = ret
+		x.lastIdentifier = yylval.str
+	}()
 	if yyDebug >= 2 {
 		defer func() {
 			lt := newLexToken(ret, yylval)
@@ -938,6 +951,9 @@ foundEndOfString:
 
 // The parser calls this method on a parse error.
 func (x *yyLex) Error(s string) {
+	if x.printStatement && (x.errorString == "" || x.errorString == "invalid syntax") {
+		x.errorString = "Missing parentheses in call to 'print'. Did you mean print(...)?"
+	}
 	x.error = true
 	if yyDebug >= 1 {
 		log.Printf("Parse error: %s", s)

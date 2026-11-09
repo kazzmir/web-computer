@@ -188,33 +188,54 @@ func builtin_print(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Obje
 	var (
 		sepObj py.Object = py.String(" ")
 		endObj py.Object = py.String("\n")
-		flush  py.Object
+		flush  py.Object = py.False
 	)
 	sysModule, err := self.(*py.Module).Context.GetModule("sys")
 	if err != nil {
 		return nil, err
 	}
-	stdout := sysModule.Globals["stdout"]
+	var stdout py.Object = py.None
 	kwlist := []string{"sep", "end", "file", "flush"}
-	err = py.ParseTupleAndKeywords(nil, kwargs, "|ssOO:print", kwlist, &sepObj, &endObj, &stdout, &flush)
+	err = py.ParseTupleAndKeywords(nil, kwargs, "|OOOO:print", kwlist, &sepObj, &endObj, &stdout, &flush)
 	if err != nil {
 		return nil, err
 	}
-	sep := sepObj.(py.String)
-	end := endObj.(py.String)
-
+	shouldFlush, err := py.ObjectIsTrue(flush)
+	if err != nil {
+		return nil, err
+	}
+	if stdout == py.None {
+		stdout = sysModule.Globals["stdout"]
+	}
+	if stdout == py.None {
+		return py.None, nil
+	}
+	if sepObj == py.None {
+		sepObj = py.String(" ")
+	}
+	if endObj == py.None {
+		endObj = py.String("\n")
+	}
+	sep, ok := sepObj.(py.String)
+	if !ok {
+		return nil, py.ExceptionNewf(py.TypeError, "sep must be None or a string, not %s", sepObj.Type().Name)
+	}
+	end, ok := endObj.(py.String)
+	if !ok {
+		return nil, py.ExceptionNewf(py.TypeError, "end must be None or a string, not %s", endObj.Type().Name)
+	}
 	write, err := py.GetAttrString(stdout, "write")
 	if err != nil {
 		return nil, err
 	}
 
 	for i, v := range args {
-		v, err := py.Str(v)
+		text, err := py.StrAsString(v)
 		if err != nil {
 			return nil, err
 		}
 
-		_, err = py.Call(write, py.Tuple{v}, nil)
+		_, err = py.Call(write, py.Tuple{py.String(text)}, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -232,10 +253,13 @@ func builtin_print(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Obje
 		return nil, err
 	}
 
-	if shouldFlush, _ := py.MakeBool(flush); shouldFlush == py.True {
+	if shouldFlush {
 		fflush, err := py.GetAttrString(stdout, "flush")
-		if err == nil {
-			return py.Call(fflush, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := py.Call(fflush, nil, nil); err != nil {
+			return nil, err
 		}
 	}
 

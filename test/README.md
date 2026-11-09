@@ -22,6 +22,7 @@ These test files are copied unchanged from
 | `test_xml.py` | 2 | XML 1.0 name/text validation, Unicode boundaries, forbidden characters and surrogates |
 | `test_augassign.py` | 7 | All augmented arithmetic operators, custom/reflected/in-place slots, matrix operators, sequence mutation, numeric dictionary keys |
 | `test_errno.py` | 3 | Error constants, numeric reverse mapping, module-attribute consistency |
+| `test_print.py` | 9 | Output redirection, separators/endings, flush behavior/errors, stdout replacement, Python 2 migration hints |
 
 The upstream license is retained in `LICENSE.cpython`. The runtime also embeds
 unchanged copies of `Lib/keyword.py` and `Lib/colorsys.py` from the same
@@ -67,6 +68,14 @@ path and cannot later accept non-string keys through aliased mutation.
 values (including Go's js/wasm table in browsers), not an exhaustive copy of
 all host C-library constants. Each context receives its own mutable `errorcode`
 dictionary; aliases map to one deterministic representative name.
+
+`io` currently supplies a limited `StringIO` text stream with write/read,
+seek/tell, getvalue, flush/close, and context management. Only the default
+`newline='\\n'` mode is supported; file wrappers, binary streams, and full
+`io` class hierarchies are not implemented. The minimal `test.support` module
+provides real `captured_stdout`, exception-safe `swap_attr`, and `gc_collect`
+(using Go's garbage collector). It is not a copy of CPython's full test-support
+package and does not skip cases or suppress test failures.
 
 The runtime currently supplies a **limited, fail-fast `unittest` subset**:
 `TestCase`, `setUp`/`tearDown`, LIFO `addCleanup`/`doCleanups`, `assertTrue`,
