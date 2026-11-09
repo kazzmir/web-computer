@@ -24,6 +24,12 @@ def captured_stdout():
 # This runtime has no tracing facility, so tests already execute without tracing.
 def no_tracing(function): return function
 
+# These guards concern CPython's C stack or Emscripten/WASI builds, not Go's
+# runtime stack. The tests still run, using the interpreter recursion guard.
+def skip_if_huge_c_stack(depth=150000): return no_tracing
+def skip_wasi_stack_overflow(): return no_tracing
+def skip_emscripten_stack_overflow(): return no_tracing
+
 class infinite_recursion:
     def __init__(self, max_depth=None):
         self.max_depth = 50 if max_depth is None else max_depth

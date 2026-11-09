@@ -37,9 +37,25 @@ func (t *Type) M__irshift__(v Object) (Object, error)   { return t.callBinarySlo
 func (t *Type) M__and__(v Object) (Object, error)       { return t.callBinarySlot("__and__", v) }
 func (t *Type) M__rand__(v Object) (Object, error)      { return t.callBinarySlot("__rand__", v) }
 func (t *Type) M__iand__(v Object) (Object, error)      { return t.callBinarySlot("__iand__", v) }
-func (t *Type) M__or__(v Object) (Object, error)        { return t.callBinarySlot("__or__", v) }
-func (t *Type) M__ror__(v Object) (Object, error)       { return t.callBinarySlot("__ror__", v) }
-func (t *Type) M__ior__(v Object) (Object, error)       { return t.callBinarySlot("__ior__", v) }
-func (t *Type) M__xor__(v Object) (Object, error)       { return t.callBinarySlot("__xor__", v) }
-func (t *Type) M__rxor__(v Object) (Object, error)      { return t.callBinarySlot("__rxor__", v) }
-func (t *Type) M__ixor__(v Object) (Object, error)      { return t.callBinarySlot("__ixor__", v) }
+func (t *Type) M__or__(v Object) (Object, error) {
+	if result, found, err := TypeCall1(t, "__or__", v); found {
+		return result, err
+	}
+	if t.Type().IsSubtype(TypeType) {
+		return NewUnion(t, v)
+	}
+	return NotImplemented, nil
+}
+func (t *Type) M__ror__(v Object) (Object, error) {
+	if result, found, err := TypeCall1(t, "__ror__", v); found {
+		return result, err
+	}
+	if t.Type().IsSubtype(TypeType) {
+		return NewUnion(v, t)
+	}
+	return NotImplemented, nil
+}
+func (t *Type) M__ior__(v Object) (Object, error)  { return t.callBinarySlot("__ior__", v) }
+func (t *Type) M__xor__(v Object) (Object, error)  { return t.callBinarySlot("__xor__", v) }
+func (t *Type) M__rxor__(v Object) (Object, error) { return t.callBinarySlot("__rxor__", v) }
+func (t *Type) M__ixor__(v Object) (Object, error) { return t.callBinarySlot("__ixor__", v) }

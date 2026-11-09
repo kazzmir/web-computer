@@ -1006,37 +1006,6 @@ check against. This is equivalent to isinstance(x, A) or isinstance(x, B)
 or ... etc.
 `
 
-func isinstance(obj py.Object, classOrTuple py.Object) (py.Bool, error) {
-	switch class_tuple := classOrTuple.(type) {
-	case py.Tuple:
-		for idx := range class_tuple {
-			res, err := isinstance(obj, class_tuple[idx])
-			if err != nil || res {
-				return res, err
-			}
-		}
-		return false, nil
-	default:
-		target, ok := classOrTuple.(*py.Type)
-		// User instances also use *py.Type. An initialized class has its own
-		// MRO; ordinary instances do not.
-		if !ok || len(target.Mro) == 0 || target.Mro[0] != target {
-			return false, py.ExceptionNewf(py.TypeError, "isinstance() arg 2 must be a type or tuple of types")
-		}
-		if obj.Type() == target {
-			return py.True, nil
-		}
-		if result, found, err := py.TypeCall1(target, "__instancecheck__", obj); found {
-			if err != nil {
-				return false, err
-			}
-			truth, err := py.ObjectIsTrue(result)
-			return py.Bool(truth), err
-		}
-		return py.Bool(obj.Type().IsSubtype(target)), nil
-	}
-}
-
 func builtin_isinstance(self py.Object, args py.Tuple) (py.Object, error) {
 	var obj py.Object
 	var classOrTuple py.Object
@@ -1045,35 +1014,7 @@ func builtin_isinstance(self py.Object, args py.Tuple) (py.Object, error) {
 		return nil, err
 	}
 
-	return isinstance(obj, classOrTuple)
-}
-
-func subclass(candidate, classInfo py.Object) (py.Bool, error) {
-	if classes, ok := classInfo.(py.Tuple); ok {
-		for _, class := range classes {
-			result, err := subclass(candidate, class)
-			if err != nil || result {
-				return result, err
-			}
-		}
-		return false, nil
-	}
-	if result, found, err := py.TypeCall1(classInfo, "__subclasscheck__", candidate); found {
-		if err != nil {
-			return false, err
-		}
-		truth, err := py.ObjectIsTrue(result)
-		return py.Bool(truth), err
-	}
-	target, ok := classInfo.(*py.Type)
-	if !ok || len(target.Mro) == 0 || target.Mro[0] != target {
-		return false, py.ExceptionNewf(py.TypeError, "issubclass() arg 2 must be a class or tuple of classes")
-	}
-	source, ok := candidate.(*py.Type)
-	if !ok || len(source.Mro) == 0 || source.Mro[0] != source {
-		return false, py.ExceptionNewf(py.TypeError, "issubclass() arg 1 must be a class")
-	}
-	return py.Bool(source.IsSubtype(target)), nil
+	return instanceCheck(obj, classOrTuple, 0, typeCheckBudget(self))
 }
 
 func builtin_issubclass(self py.Object, args py.Tuple) (py.Object, error) {
@@ -1081,7 +1022,7 @@ func builtin_issubclass(self py.Object, args py.Tuple) (py.Object, error) {
 	if err := py.UnpackTuple(args, nil, "issubclass", 2, 2, &candidate, &classInfo); err != nil {
 		return nil, err
 	}
-	return subclass(candidate, classInfo)
+	return subclassCheck(candidate, classInfo, 0, typeCheckBudget(self))
 }
 
 const iter_doc = `iter(iterable) -> iterator

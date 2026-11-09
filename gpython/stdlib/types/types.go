@@ -10,5 +10,5 @@ import (
 var source string
 
 func init() {
-	py.RegisterModule(&py.ModuleImpl{Info: py.ModuleInfo{Name: "types", Doc: "Dynamic class preparation/creation subset"}, CodeSrc: source})
+	py.RegisterModule(&py.ModuleImpl{Info: py.ModuleInfo{Name: "types", Doc: "Dynamic class preparation/creation and runtime alias metadata subset"}, Globals: py.StringDict{"UnionType": py.UnionType, "GenericAlias": py.GenericAliasType}, CodeSrc: source})
 }

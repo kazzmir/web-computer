@@ -1,6 +1,15 @@
 package py
 
 func init() {
+	TypeType.Dict["__bases__"] = &Property{Fget: func(self Object) (Object, error) { return self.(*Type).Bases.Copy(), nil }}
+	TypeType.Dict["__mro__"] = &Property{Fget: func(self Object) (Object, error) { return self.(*Type).Mro.Copy(), nil }}
+	TypeType.Dict["__base__"] = &Property{Fget: func(self Object) (Object, error) {
+		base := self.(*Type).Base
+		if base == nil {
+			return None, nil
+		}
+		return base, nil
+	}}
 	TypeType.Dict["__name__"] = &Property{Fget: func(self Object) (Object, error) { return String(self.(*Type).Name), nil }}
 	TypeType.Dict["__qualname__"] = &Property{Fget: func(self Object) (Object, error) {
 		class := self.(*Type)

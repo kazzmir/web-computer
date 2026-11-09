@@ -26,6 +26,7 @@ These test files are copied unchanged from
 | `test_subclassinit.py` | 17 | PEP 487 subclass/descriptor hooks, cooperative MRO, class keywords, metaclass construction, descriptor error notes |
 | `test_decorators.py` | 16 | Method-wrapper metadata, arbitrary decorator expressions, ordering, memoization, function attributes, class decorators |
 | `test_richcmp.py` | 11 | All rich comparisons, arbitrary result objects, reflected methods, lexicographic lists, recursion errors and diagnostic messages |
+| `test_isinstance.py` | 23 | Class-like proxies, spoofed classes, error masking, unions/generic aliases, cyclic bases and nested tuple recursion guards |
 
 The upstream license is retained in `LICENSE.cpython`. The runtime also embeds
 unchanged copies of `Lib/keyword.py` and `Lib/colorsys.py` from the same
@@ -91,14 +92,18 @@ provides real `captured_stdout`, exception-safe `swap_attr`, and `gc_collect`
 package and does not skip cases or suppress test failures. It also supplies
 `infinite_recursion` as a real temporary VM recursion-limit context/decorator;
 `no_tracing` is transparent because this runtime has no tracing facility.
+The CPython-C-stack/Emscripten/WASI-specific stack guard decorators also run
+all tests here: those implementation-specific skip conditions do not apply
+to Go, whose type-check recursion is explicitly bounded.
 
 Class creation now initializes class cells before descriptor/subclass hooks,
 implicitly binds `__init_subclass__` as a class method, notifies descriptors from
 a namespace snapshot, and preserves hook exceptions with diagnostic notes.
 `super()` supports calling-frame inference and explicit class/instance binding
 through the C3 MRO. This is not complete `super` descriptor emulation.
-`types` provides `prepare_class` and `new_class` for ordinary type bases; PEP 560
-base resolution and the rest of `types` are not provided. Native container
+`types` provides `prepare_class` and `new_class` for ordinary type bases,
+along with the runtime alias types described below. PEP 560 base resolution
+and the rest of the `types` API are not provided. Native container
 subclass instance storage remains limited (the `dict` subclass tests here test
 class creation, not dictionary-instance behavior).
 
@@ -116,6 +121,16 @@ depth (default 1000), including generator frame execution. Counters unwind on
 errors and limits are isolated between contexts. Native-only recursive paths
 are not all covered by this frame guard; this is not complete CPython stack
 accounting.
+
+`isinstance`/`issubclass` support class-like `__bases__` proxies and instance
+`__class__` properties, preserve non-`AttributeError` getter failures, and bound
+recursive tuple/base traversal using the context's recursion limit. Runtime
+`|` unions flatten/deduplicate members and preserve left-to-right short-circuit
+checks, including errors for parameterized generics. `list[int]` and other
+basic container subscriptions expose generic-alias metadata; unsubscripted
+`typing.List`/`typing.Tuple` support runtime checks. Full typing (TypeVars,
+substitution, protocols, hash behavior, and alias construction APIs) is not
+implemented. `types.UnionType`/`GenericAlias` expose the runtime metadata types.
 
 The runtime currently supplies a **limited, fail-fast `unittest` subset**:
 `TestCase`, `setUp`/`tearDown`, LIFO `addCleanup`/`doCleanups`, `assertTrue`,

@@ -200,6 +200,16 @@ func GetItem(self Object, key Object) (Object, error) {
 	} else if res, ok, err := TypeCall1(self, "__getitem__", key); ok {
 		return res, err
 	}
+	if class, ok := self.(*Type); ok && class.Type().IsSubtype(TypeType) {
+		method, err := GetAttrString(class, "__class_getitem__")
+		if err == nil {
+			return Call(method, Tuple{key}, nil)
+		}
+		if !IsException(AttributeError, err) {
+			return nil, err
+		}
+		return nil, ExceptionNewf(TypeError, "type '%s' is not subscriptable", class.Name)
+	}
 	return nil, ExceptionNewf(TypeError, "'%s' object is not subscriptable", self.Type().Name)
 }
 
