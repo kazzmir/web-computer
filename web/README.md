@@ -50,6 +50,11 @@ with ambiguous or shadowed bindings are deliberately omitted rather than guessed
 Wildcard imports and dynamic namespace operations suppress the index. Tooltips never execute code and disappear on edits,
 scrolling, or Escape.
 
+Double-click a resolved user-defined function identifier to move the cursor to its
+definition and scroll it into view. This also works before the documentation
+index's debounce finishes. Built-ins, Pygame functions, and unresolved names keep
+the usual double-click word selection.
+
 ### Debugging
 
 Click a line number in the editor gutter to toggle a red breakpoint, then click

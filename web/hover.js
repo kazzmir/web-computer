@@ -77,6 +77,26 @@ source.addEventListener('pointermove', (event) => {
     source.setAttribute('aria-describedby', [...ids].join(' '));
   }, 350);
 });
+source.addEventListener('dblclick', (event) => {
+  // An explicit navigation action must also work immediately after typing,
+  // before the debounced documentation index has caught up.
+  if (index?.text !== source.value) {
+    clearTimeout(analysisTimer);
+    index = indexFunctions(source.value);
+  }
+  const info = functionAtOffset(index, offsetAtPoint(event));
+  if (info?.origin !== 'This file' || !Number.isInteger(info.definitionStart)) return;
+  event.preventDefault();
+  hide();
+  source.focus({ preventScroll: true });
+  source.setSelectionRange(info.definitionStart, info.definitionStart);
+  const line = index.text.slice(0, info.definitionStart).split('\n').length - 1;
+  const style = getComputedStyle(source);
+  source.scrollTop = Math.max(0, parseFloat(style.paddingTop) + line * parseFloat(style.lineHeight) - source.clientHeight / 3);
+  source.scrollLeft = 0;
+  // Synchronize the gutter and syntax overlay immediately, not a frame later.
+  source.dispatchEvent(new Event('scroll'));
+});
 source.addEventListener('input', refreshFunctionIndex);
 for (const type of ['pointerleave', 'pointerdown', 'scroll', 'blur']) source.addEventListener(type, hide);
 document.addEventListener('keydown', hide);

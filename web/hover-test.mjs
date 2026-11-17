@@ -31,6 +31,7 @@ async function hover(offset) {
   }, offset);
   await page.mouse.move(0, 0);
   await page.mouse.move(point.x, point.y);
+  return point;
 }
 try {
   await page.goto(process.env.BASE_URL ?? 'http://localhost:8000');
@@ -135,6 +136,59 @@ thing.print(1)
   await hover(shadowedPygame.lastIndexOf('load'));
   await page.waitForTimeout(420);
   assert.equal(await tooltip.isVisible(), false, 'reassigned pygame aliases must not show stale API docs');
+  // Double-click navigation targets the callee's own definition, not the
+  // enclosing def, and works in either direction across a scrolled document.
+  const spacer = Array.from({ length: 70 }, (_, i) => `# spacer ${i}`).join('\n');
+  for (const navigationCode of [
+    `def f(value):\n    return value\n${spacer}\ndef g():\n    f(3)\ng()`,
+    `def g():\n    f(3)\n${spacer}\ndef f(value):\n    return value\ng()`,
+  ]) {
+    await fill(navigationCode);
+    const point = await hover(navigationCode.indexOf('f(3)'));
+    await page.mouse.dblclick(point.x, point.y);
+    const definition = navigationCode.indexOf('f(value)');
+    const state = await page.locator('#source').evaluate((element, definition) => {
+      const row = element.value.slice(0, definition).split('\n').length - 1;
+      const style = getComputedStyle(element);
+      const top = parseFloat(style.paddingTop) + row * parseFloat(style.lineHeight) - element.scrollTop;
+      return { selection: [element.selectionStart, element.selectionEnd], top, height: element.clientHeight, focused: document.activeElement === element, scroll: element.scrollTop };
+    }, definition);
+    assert.deepEqual(state.selection, [definition, definition], 'double-click must place the cursor at the callee definition');
+    assert(state.top >= 0 && state.top < state.height, 'definition must be visible');
+    assert(state.focused);
+    assert.equal(await page.locator('#source').inputValue(), navigationCode, 'navigation must not edit the source');
+    assert.equal(await page.locator('#gutter').evaluate((element) => element.scrollTop), state.scroll);
+    assert.equal(await page.locator('#syntax-layer').evaluate((element) => element.scrollTop), state.scroll);
+    assert.equal(await tooltip.isVisible(), false);
+  }
+  for (const [text, name] of [
+    ['print("hello")', 'print'],
+    ['import pygame as pg\npg.image.load("x")', 'load'],
+    ['unknown(3)', 'unknown'],
+  ]) {
+    await fill(text);
+    const point = await hover(text.lastIndexOf(name));
+    await page.mouse.dblclick(point.x, point.y);
+    assert.equal(await page.locator('#source').evaluate((element) => element.value.slice(element.selectionStart, element.selectionEnd)), name, 'non-user functions should retain ordinary word selection');
+  }
+  await page.locator('#syntax-toggle').click();
+  const plainNavigation = 'def plain():\n    pass\nplain()';
+  await fill(plainNavigation);
+  const plainPoint = await hover(plainNavigation.lastIndexOf('plain'));
+  await page.mouse.dblclick(plainPoint.x, plainPoint.y);
+  assert.deepEqual(await page.locator('#source').evaluate((element) => [element.selectionStart, element.selectionEnd]), [4, 4], 'navigation must also work with highlighting disabled');
+  await page.locator('#syntax-toggle').click();
+  // Dispatch input and double-click in one task: no debounce timeout can run
+  // before the navigation handler rebuilds its stale index.
+  await page.locator('#source').evaluate((element) => {
+    element.value = 'def fresh():\n    pass\nfresh()';
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.scrollTop = element.scrollLeft = 0;
+    const style = getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+    element.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, clientX: rect.left + parseFloat(style.paddingLeft) + 4, clientY: rect.top + parseFloat(style.paddingTop) + 2.5 * parseFloat(style.lineHeight) }));
+  });
+  assert.deepEqual(await page.locator('#source').evaluate((element) => [element.selectionStart, element.selectionEnd]), [4, 4], 'navigation must work before analysis debounce completes');
   const scrolled = Array.from({ length: 70 }, (_, i) => `# line ${i}`).join('\n') + '\n\tprint("scroll")';
   await fill(scrolled);
   await hover(scrolled.lastIndexOf('print') + 2);
@@ -149,7 +203,7 @@ thing.print(1)
   await page.locator('#source').press('Backspace');
   assert.equal(await tooltip.isVisible(), false, 'edits should dismiss stale documentation immediately');
   assert.deepEqual(errors, []);
-  console.log('Function hover browser tests passed');
+  console.log('Function hover and definition navigation browser tests passed');
 } finally {
   await browser.close();
 }
