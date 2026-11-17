@@ -69,14 +69,14 @@
       </section>
       <div id="console-divider" class="horizontal-divider" role="separator" tabindex="0" aria-label="Resize runtime and console" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" title="Drag to resize · Up/Down to adjust · Double-click to reset"></div>
       <section id="console-pane" aria-label="Console">
-        <div class="console-heading"><h2>Console</h2><button id="clear" class="secondary">Clear</button></div>
-        <pre id="console" aria-label="Program and debugger output" tabindex="0"></pre>
         <form id="debug-evaluator" hidden aria-label="Debugger expression evaluator">
           <label for="debug-expression" class="sr-only">Debugger expression</label>
           <span aria-hidden="true">&gt;&gt;&gt;</span>
           <input id="debug-expression" type="text" maxlength="10000" placeholder="Pause debugging to evaluate" autocomplete="off" spellcheck="false" required disabled>
           <button id="evaluate-expression" type="submit" disabled>Evaluate</button>
         </form>
+        <div class="console-heading"><h2>Console</h2><button id="clear" class="secondary">Clear</button></div>
+        <pre id="console" aria-label="Program and debugger output" tabindex="0"></pre>
       </section>
       </div>
     </section>

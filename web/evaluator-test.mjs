@@ -35,6 +35,13 @@ try {
   for (const line of [3, 6]) await page.locator(`#gutter button[data-line="${line}"]`).click();
   await page.locator('#debug').click();
   await status('Paused at line 6');
+  const placement = await page.evaluate(() => ({
+    evaluatorTop: document.querySelector('#debug-evaluator').getBoundingClientRect().top,
+    evaluatorBottom: document.querySelector('#debug-evaluator').getBoundingClientRect().bottom,
+    debuggerBottom: document.querySelector('#debugger').getBoundingClientRect().bottom,
+    consoleTop: document.querySelector('#console-pane .console-heading').getBoundingClientRect().top,
+  }));
+  assert(placement.evaluatorTop >= placement.debuggerBottom && placement.evaluatorBottom <= placement.consoleTop, 'evaluator belongs below debugger and above console');
   assert.equal(await input.isDisabled(), false);
   assert.match(await evaluate('local + global_value'), /\n11\n$/);
   assert.match(await evaluate('[value, local]'), /\n\[3, 4\]\n$/);
