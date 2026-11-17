@@ -16,7 +16,17 @@ in the same runtime. The editor and selected example are saved in this browser's
 Drag the vertical divider between the editor and results to resize both panes.
 The split is saved locally. Focus the divider and use Left/Right arrows (Shift for
 larger steps), or Home/End for minimum pane widths. Double-click to reset it.
-On narrow screens the panes remain stacked without a divider.
+On narrow screens the editor and results remain stacked without that divider.
+
+Drag the horizontal dividers in the results pane to distribute vertical space
+between the runtime, debugger, and console. Each divider resizes its adjacent
+panes without restarting the program; debugger locals and call stack fill their
+allocated space and scroll. With the debugger hidden, the remaining divider
+resizes runtime versus console. Normal/debug layouts have separate saved sizes.
+Focus a horizontal divider and use Up/Down (Shift for larger steps), or Home/End
+to reach minimum heights. Double-click either to reset that layout. Minimums keep
+the runtime, debugger controls, and console usable; very short windows can scroll.
+These dividers also work on mobile and while the interpreter is paused.
 
 Use **Syntax highlighting** above the editor to toggle Python token colors for
 keywords, identifiers, function names, strings, numbers, comments, and operators.
@@ -120,7 +130,8 @@ run `node web/debug-test.mjs`, `node web/splitter-test.mjs`, or
 `node web/highlight-test.mjs`, `node web/editor-input-test.mjs`, or
 `node web/hover-test.mjs`, `node web/syntax-check-test.mjs`, or
 `node web/brackets-test.mjs`, `node web/step-out-test.mjs`, or
-`node web/call-stack-test.mjs` (supports `BASE_URL` and `PLAYWRIGHT_MODULE`).
+`node web/call-stack-test.mjs`, or `node web/result-splitters-test.mjs` (supports
+`BASE_URL` and `PLAYWRIGHT_MODULE`).
 Static function-resolution tests also run without a browser:
 `node web/function-index-test.mjs`, `node web/bracket-pairs-test.mjs`, and
 `node web/dedent-test.mjs`.

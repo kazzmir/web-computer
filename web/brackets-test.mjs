@@ -92,7 +92,7 @@ try {
     };
   }, open);
   assert(difference.x < 1 && difference.y < 1, 'markers must track tabs and horizontal/vertical scrolling');
-  await page.getByRole('separator').press('ArrowRight');
+  await page.getByRole('separator', { name: 'Resize editor and result panes' }).press('ArrowRight');
   await caret(open);
   assert.deepEqual(await marked(), [open, open + 5], 'resizing must preserve matching');
   assert.deepEqual(errors, []);

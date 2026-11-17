@@ -34,13 +34,19 @@ body.resizing-panes iframe { pointer-events: none; }
 #status[data-state="error"] { color: #ffa7a7; }
 textarea { flex: 1; min-height: 250px; width: 100%; resize: none; border: 0; padding: 20px; background: #101724; color: #dbeafe; font: 14px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; tab-size: 4; white-space: pre; overflow: auto; }
 footer { padding: 8px 16px; border-top: 1px solid #283245; font-size: 11px; }
-#viewport { flex: 1; min-height: 230px; position: relative; background: #070b12; display: grid; place-items: center; overflow: hidden; }
+#result-windows { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(100px, var(--runtime-height, 1fr)) 8px minmax(80px, var(--console-height, .4fr)); overflow: auto; }
+#result-windows.with-debugger { grid-template-rows: minmax(100px, var(--runtime-height, 1fr)) 8px minmax(var(--debugger-min, 110px), var(--debugger-height, .5fr)) 8px minmax(80px, var(--console-height, .4fr)); }
+.horizontal-divider { background: #172131; border-block: 1px solid #283245; cursor: row-resize; touch-action: none; }
+.horizontal-divider:hover, .horizontal-divider:focus-visible, body.resizing-results .horizontal-divider { background: #50739d; outline: none; }
+body.resizing-results, body.resizing-results * { cursor: row-resize !important; user-select: none !important; }
+body.resizing-results iframe { pointer-events: none; }
+#viewport { min-height: 0; position: relative; background: #070b12; display: grid; place-items: center; overflow: hidden; }
 #viewport iframe { border: 0; width: 100%; height: 100%; position: absolute; inset: 0; }
 .placeholder { text-align: center; color: #879bb6; padding: 24px; }
 .window-icon { color: #50739d; font-size: 42px; }
 .console-heading { padding: 6px 16px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #283245; background: #121a27; }
 .console-heading button { font-size: 11px; padding: 3px 9px; }
-#console { margin: 0; min-height: 130px; height: 22vh; max-height: 250px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px 16px; color: #a9c0d8; background: #0c121d; font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; }
+#console { flex: 1; margin: 0; min-height: 0; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px 16px; color: #a9c0d8; background: #0c121d; font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; }
 [hidden] { display: none !important; }
 .code-editor { display: flex; flex: 1; min-height: 0; overflow: hidden; background: #101724; }
 .code-editor textarea { min-height: 0; padding-left: 12px; }
@@ -79,11 +85,11 @@ footer { padding: 8px 16px; border-top: 1px solid #283245; font-size: 11px; }
 #syntax-status { display: block; min-height: 1.5em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 #syntax-status[data-state="valid"] { color: #8ed9ae; }
 #syntax-status[data-state="error"], #syntax-status[data-state="unavailable"] { color: #ffa7a7; }
-#debugger { flex: none; border-top: 1px solid #344157; }
+#debugger { overflow: hidden; border-top: 1px solid #344157; }
 #debugger .console-heading h2 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #debugger .actions { flex: none; gap: 5px; flex-wrap: nowrap; }
 #debugger button { font-size: 11px; padding: 4px 7px; }
-.debug-inspection { height: clamp(100px, 18vh, 180px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); }
+.debug-inspection { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); }
 .stack-pane { border-right: 1px solid #344157; }
 .inspector-heading { flex: none; margin: 0; padding: 3px 10px; border-bottom: 1px solid #283245; font-size: 11px; line-height: 18px; color: #879bb6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #call-stack { flex: 1; min-height: 0; overflow: auto; padding: 4px; font-size: 11px; }

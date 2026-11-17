@@ -119,7 +119,7 @@ try {
     return { top: Math.abs(source.scrollTop - layer.scrollTop), left: Math.abs(source.scrollLeft - layer.scrollLeft), width: Math.abs(source.clientWidth - layer.clientWidth), height: Math.abs(source.clientHeight - layer.clientHeight) };
   });
   for (const difference of Object.values(await alignment())) assert(difference < 1, 'overlay must match textarea geometry and scroll');
-  await page.getByRole('separator').press('ArrowRight');
+  await page.getByRole('separator', { name: 'Resize editor and result panes' }).press('ArrowRight');
   await page.waitForTimeout(50);
   for (const difference of Object.values(await alignment())) assert(difference < 1, 'resizing must preserve alignment');
 

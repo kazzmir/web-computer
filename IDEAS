@@ -22,4 +22,4 @@ Workspace
 [ ] Multiple files and tabs, with Python imports between files.
 [ ] Upload/download projects, including images and sounds.
 [ ] Autosave history to restore earlier versions.
-[ ] Resizable console and debugger panels.
+[x] Vertically resizable runtime, debugger, and console panels.
