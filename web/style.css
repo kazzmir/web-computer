@@ -48,6 +48,13 @@ footer { padding: 8px 16px; border-top: 1px solid #283245; font-size: 11px; }
 #debugger button { font-size: 11px; padding: 4px 7px; }
 #locals { height: clamp(100px, 18vh, 180px); flex: none; overflow: auto; padding: 8px 16px; font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 #locals .local-name { color: #9ad1ff; }
+#debugger .local-variable { display: block; width: 100%; padding: 0; border: 0; border-radius: 0; background: transparent; color: inherit; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+#debugger .local-variable:hover { background: #172131; }
+.variable-editor { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 0; }
+.variable-editor label { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 5px; color: #9ad1ff; }
+.variable-editor input { flex: 1; min-width: 0; width: 100%; padding: 4px 6px; border: 1px solid #7bbbf3; border-radius: 4px; background: #101724; color: #dbeafe; font: inherit; }
+.variable-error { width: 100%; color: #ffa7a7; }
+.variable-error:empty { display: none; }
 #status[data-state="paused"] { color: #ffe5a0; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 @media (max-width: 740px) { body { height: auto; min-height: 100dvh; } header { padding: 12px; flex-wrap: wrap; } main { grid-template-columns: 1fr; } .editor-pane { height: 55dvh; border-right: 0; } .result-pane { height: 70dvh; } .shortcut { display: none; } }

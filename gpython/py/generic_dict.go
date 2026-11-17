@@ -15,6 +15,16 @@ type GenericDict struct {
 
 func NewGenericDict() *GenericDict { return &GenericDict{names: NewStringDict()} }
 
+// SnapshotItems returns a shallow copy of the key/value pairs without calling
+// Python iteration, hashing, equality, or representation methods.
+func (d *GenericDict) SnapshotItems() []Tuple {
+	entries := d.allEntries()
+	for i, pair := range entries {
+		entries[i] = Tuple{pair[0], pair[1]}
+	}
+	return entries
+}
+
 func (d *GenericDict) allEntries() []Tuple {
 	entries := make([]Tuple, 0, len(d.entries)+len(d.names))
 	entries = append(entries, d.entries...)

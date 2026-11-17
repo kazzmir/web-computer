@@ -24,9 +24,16 @@ function and its local variables. **Continue** runs to the next breakpoint,
 still take precedence. Imported library internals and native calls are skipped.
 **Stop** discards the run, even while paused. Ordinary **Run** ignores breakpoints.
 Source editing and example selection are locked during debugging so line numbers
-stay aligned; breakpoints can still be toggled. Values are displayed safely without
-invoking user-defined `__repr__`; complex objects show their type, and lists are
-bounded previews. Breakpoints are session-only and reset on example changes.
+stay aligned; breakpoints can still be toggled. Click a local variable while paused
+to edit it, then press Enter or **Save**. Escape or **Cancel** discards the edit.
+Supported values include strings (`"sdf"` or a bare word), integers (`3`), floats
+(`8.2`), lists (`[1, 2, 3]`), dictionaries (`{1: "a"}`), `True`, `False`, and `None`.
+Nested lists/dictionaries are supported. Edits update the real local variable,
+including function arguments and closure cells, without resuming execution.
+Invalid values show an error and leave the variable unchanged; calls and other
+expressions are not evaluated. Values are displayed safely without invoking
+user-defined `__repr__`; complex objects show their type, and lists/dictionaries
+are bounded previews. Breakpoints are session-only and reset on example changes.
 
 Optional browser regression tests: serve the built app, install Playwright, then
 run `node web/debug-test.mjs` (supports `BASE_URL` and `PLAYWRIGHT_MODULE`).

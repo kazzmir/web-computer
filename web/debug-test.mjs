@@ -118,6 +118,43 @@ try {
   for (const size of sizes) assert.deepEqual(size, sizes[0], 'stepping must not resize the result window');
   assert(await page.locator('#locals').evaluate((element) => element.scrollHeight > element.clientHeight), 'large locals lists should scroll');
   await page.locator('#debug-stop').click();
+  // Inline edits must change the actual paused function locals, not merely
+  // their UI labels, and must never execute arbitrary Python expressions.
+  await breakpoint(16);
+  await page.locator('#source').fill('def show(x):\n    number = 3\n    text = "old"\n    items = [0]\n    mapping = {0: "old"}\n    print(x, number, text, items, mapping)\nshow(1)');
+  await breakpoint(6);
+  await page.locator('#debug').click();
+  await status('Paused at line 6');
+  const edit = async (name, value) => {
+    await page.getByRole('button', { name: `Edit variable ${name}`, exact: true }).click();
+    await page.getByRole('textbox', { name: `New value for ${name}`, exact: true }).fill(value);
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await page.getByRole('button', { name: `Edit variable ${name}`, exact: true }).waitFor();
+    await status('Paused at line 6');
+  };
+  await page.getByRole('button', { name: 'Edit variable x', exact: true }).click();
+  await page.getByRole('textbox', { name: 'New value for x', exact: true }).fill('print("must not run")');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.locator('.variable-error').filter({ hasText: 'literal values only' }).waitFor();
+  assert.equal(await page.locator('#console').textContent(), '');
+  assert.equal(await page.locator('[data-debug-command="over"]').isDisabled(), true);
+  await page.getByRole('textbox', { name: 'New value for x', exact: true }).fill('8.2');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.getByRole('button', { name: 'Edit variable x', exact: true }).waitFor();
+  await edit('number', '8');
+  await edit('text', 'sdf');
+  await edit('text', '"sdf"');
+  await edit('items', '[1, 2, 3]');
+  await edit('mapping', '{1: "a"}');
+  assert.match(await page.getByRole('button', { name: 'Edit variable mapping', exact: true }).textContent(), /\{1: "a"\}/);
+  await page.getByRole('button', { name: 'Edit variable number', exact: true }).click();
+  await page.getByRole('textbox', { name: 'New value for number', exact: true }).fill('99');
+  await page.getByRole('textbox', { name: 'New value for number', exact: true }).press('Escape');
+  assert.match(await page.getByRole('button', { name: 'Edit variable number', exact: true }).textContent(), /number = 8$/);
+  await page.locator('[data-debug-command="continue"]').click();
+  await status('Finished');
+  assert.equal(await page.locator('#console').textContent(), "8.2 8 sdf [1, 2, 3] {1: 'a'}\n");
+  assert.equal(await page.locator('#locals .local-variable').count(), 0);
   assert.deepEqual(errors, []);
   console.log('Debugger browser tests passed');
 } finally {

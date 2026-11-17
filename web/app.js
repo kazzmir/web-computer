@@ -17,6 +17,69 @@ const debugControls = [...document.querySelectorAll('[data-debug-command]')];
 const breakpoints = new Set();
 let pausedLine = null;
 let debugging = false;
+let variableEditor = null;
+function variableRow(name, value) {
+  const row = document.createElement('div');
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'local-variable';
+  button.setAttribute('aria-label', `Edit variable ${name}`);
+  const label = document.createElement('span');
+  label.className = 'local-name';
+  label.textContent = name;
+  button.append(label, document.createTextNode(` = ${value}`));
+  button.addEventListener('click', () => editVariable(row, name, value));
+  row.append(button);
+  return row;
+}
+function editVariable(row, name, value) {
+  if (!debugging || pausedLine === null || variableEditor) return;
+  debugControls.forEach((button) => { button.disabled = true; });
+  const form = document.createElement('form');
+  form.className = 'variable-editor';
+  const label = document.createElement('label');
+  label.textContent = `${name} = `;
+  const input = document.createElement('input');
+  input.setAttribute('aria-label', `New value for ${name}`);
+  input.autocomplete = 'off';
+  input.spellcheck = false;
+  input.value = value.includes('…') || value.startsWith('<') ? '' : value;
+  input.placeholder = '"text", 3, 8.2, [1, 2], {1: "a"}';
+  label.append(input);
+  const save = document.createElement('button');
+  save.type = 'submit';
+  save.textContent = 'Save';
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'secondary';
+  cancel.textContent = 'Cancel';
+  const error = document.createElement('div');
+  error.className = 'variable-error';
+  error.setAttribute('role', 'alert');
+  form.append(label, save, cancel, error);
+  row.replaceChildren(form);
+  const editor = { row, name, input, save, cancel, error, saving: false };
+  variableEditor = editor;
+  const close = () => {
+    row.replaceWith(variableRow(name, value));
+    variableEditor = null;
+    debugControls.forEach((button) => { button.disabled = false; });
+  };
+  cancel.addEventListener('click', close);
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !editor.saving) { event.preventDefault(); close(); }
+  });
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (editor.saving) return;
+    editor.saving = true;
+    input.disabled = save.disabled = cancel.disabled = true;
+    error.textContent = '';
+    debugCommand('set-variable', { name, value: input.value });
+  });
+  input.focus();
+  input.select();
+}
 function renderGutter() {
   const count = source.value.split('\n').length;
   for (const line of breakpoints) if (line > count) breakpoints.delete(line);
@@ -34,8 +97,8 @@ function renderGutter() {
   }));
   gutter.scrollTop = source.scrollTop;
 }
-function debugCommand(command) {
-  frame?.contentWindow.postMessage({ channel: 'web-computer', type: 'debug-command', command, breakpoints: [...breakpoints] }, location.origin);
+function debugCommand(command, variable) {
+  frame?.contentWindow.postMessage({ channel: 'web-computer', type: 'debug-command', command, breakpoints: [...breakpoints], variable }, location.origin);
 }
 gutterLines.addEventListener('click', (event) => {
   const line = Number(event.target.closest('button')?.dataset.line);
@@ -46,6 +109,8 @@ gutterLines.addEventListener('click', (event) => {
 });
 source.addEventListener('scroll', () => { gutter.scrollTop = source.scrollTop; });
 function finishDebug() {
+  variableEditor = null;
+  locals.querySelectorAll('button, input').forEach((control) => { control.disabled = true; });
   debugging = false;
   pausedLine = null;
   debugControls.forEach((button) => { button.disabled = true; });
@@ -216,19 +281,27 @@ window.addEventListener('message', (event) => {
       debugLocation.textContent = `${selected.filename}:${pausedLine} — ${message.function}`;
       debugControls.forEach((button) => { button.disabled = false; });
       locals.replaceChildren();
-      for (const local of message.locals) {
-        const row = document.createElement('div');
-        const name = document.createElement('span');
-        name.className = 'local-name';
-        name.textContent = local.name;
-        row.append(name, document.createTextNode(` = ${local.value}`));
-        locals.append(row);
-      }
+      for (const local of message.locals) locals.append(variableRow(local.name, local.value));
       if (!message.locals.length) locals.textContent = '(No local variables yet)';
       const lineHeight = parseFloat(getComputedStyle(source).lineHeight);
       const top = (pausedLine - 1) * lineHeight;
       if (top < source.scrollTop || top > source.scrollTop + source.clientHeight - 50) source.scrollTop = Math.max(0, top - 50);
       renderGutter();
+      break;
+    }
+    case 'variable-result': {
+      const editor = variableEditor;
+      if (!editor || editor.name !== message.name || !debugging || pausedLine === null) break;
+      if (message.error) {
+        editor.saving = false;
+        editor.input.disabled = editor.save.disabled = editor.cancel.disabled = false;
+        editor.error.textContent = message.error;
+        editor.input.focus();
+      } else {
+        editor.row.replaceWith(variableRow(message.name, message.value));
+        variableEditor = null;
+        debugControls.forEach((button) => { button.disabled = false; });
+      }
       break;
     }
     case 'output': if (typeof message.text === 'string') append(message.text); break;
