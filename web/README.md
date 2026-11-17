@@ -83,8 +83,12 @@ Click a line number in the editor gutter to toggle a red breakpoint, then click
 lines and comments do not trigger pauses. The debugger panel shows the current
 function and its local variables. **Continue** runs to the next breakpoint,
 **Step into** advances to the next user-code line (entering Python calls), and
-**Step over** executes calls without stepping into them. Breakpoints inside calls
-still take precedence. Imported library internals and native calls are skipped.
+**Step over** executes calls without stepping into them. **Step out** runs until
+the current function returns, then pauses at the next user-code line in its caller.
+It is disabled outside functions (including module and class bodies), even after
+editing variables; the interpreter also rejects such requests. Recursive calls
+step out one level at a time. Breakpoints still take precedence over stepping.
+Imported library internals and native calls are skipped.
 **Stop** discards the run, even while paused. Ordinary **Run** ignores breakpoints.
 Source editing and example selection are locked during debugging so line numbers
 stay aligned; breakpoints can still be toggled. Click a local variable while paused
@@ -102,7 +106,8 @@ Optional browser regression tests: serve the built app, install Playwright, then
 run `node web/debug-test.mjs`, `node web/splitter-test.mjs`, or
 `node web/highlight-test.mjs`, `node web/editor-input-test.mjs`, or
 `node web/hover-test.mjs`, `node web/syntax-check-test.mjs`, or
-`node web/brackets-test.mjs` (supports `BASE_URL` and `PLAYWRIGHT_MODULE`).
+`node web/brackets-test.mjs`, or `node web/step-out-test.mjs` (supports `BASE_URL`
+and `PLAYWRIGHT_MODULE`).
 Static function-resolution tests also run without a browser:
 `node web/function-index-test.mjs`, `node web/bracket-pairs-test.mjs`, and
 `node web/dedent-test.mjs`.

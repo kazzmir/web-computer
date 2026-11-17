@@ -57,7 +57,7 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 		if frame.Code.Filename != filename {
 			return
 		}
-		if !breakpoints[line] && mode != "into" && !(mode == "over" && depth <= targetDepth) {
+		if !shouldPauseDebug(mode, targetDepth, depth, breakpoints[line]) {
 			return
 		}
 		frame.FastToLocals()
@@ -72,7 +72,7 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 		}
 		paused = true
 		defer func() { paused = false }()
-		js.Global().Call("webComputerPaused", map[string]any{"line": int(line), "function": frame.Code.Name, "locals": locals})
+		js.Global().Call("webComputerPaused", map[string]any{"line": int(line), "function": frame.Code.Name, "locals": locals, "canStepOut": canStepOut(frame, depth)})
 		// Yield to Ebitengine even while paused so the last frame stays visible.
 		for {
 			select {
@@ -88,7 +88,10 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 					js.Global().Call("webComputerVariableResult", result)
 					continue
 				}
-				if cmd.action == "continue" || cmd.action == "into" || cmd.action == "over" {
+				if cmd.action == "out" && !canStepOut(frame, depth) {
+					continue
+				}
+				if cmd.action == "continue" || cmd.action == "into" || cmd.action == "over" || cmd.action == "out" {
 					mode, targetDepth = cmd.action, depth
 					return
 				}

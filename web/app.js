@@ -29,6 +29,11 @@ source.addEventListener('syntax-diagnostics', ({ detail }) => {
   renderGutter();
 });
 let pausedLine = null;
+let canStepOut = false;
+function updateDebugControls() {
+  const ready = debugging && pausedLine !== null && !variableEditor;
+  for (const button of debugControls) button.disabled = !ready || (button.dataset.debugCommand === 'out' && !canStepOut);
+}
 let debugging = false;
 let variableEditor = null;
 function variableRow(name, value) {
@@ -76,7 +81,7 @@ function editVariable(row, name, value) {
   const close = () => {
     row.replaceWith(variableRow(name, value));
     variableEditor = null;
-    debugControls.forEach((button) => { button.disabled = false; });
+    updateDebugControls();
   };
   cancel.addEventListener('click', close);
   input.addEventListener('keydown', (event) => {
@@ -134,6 +139,7 @@ function finishDebug() {
   locals.querySelectorAll('button, input').forEach((control) => { control.disabled = true; });
   debugging = false;
   pausedLine = null;
+  canStepOut = false;
   debugControls.forEach((button) => { button.disabled = true; });
   document.querySelector('#debug-stop').disabled = true;
   source.readOnly = false;
@@ -141,8 +147,10 @@ function finishDebug() {
   renderGutter();
 }
 for (const button of debugControls) button.addEventListener('click', () => {
+  if (button.disabled) return;
   debugCommand(button.dataset.debugCommand);
   pausedLine = null;
+  canStepOut = false;
   renderGutter();
   debugControls.forEach((control) => { control.disabled = true; });
   debugLocation.textContent = 'Debugger — running';
@@ -304,9 +312,10 @@ window.addEventListener('message', (event) => {
     case 'paused': {
       if (!debugging) break;
       pausedLine = message.line;
+      canStepOut = message.canStepOut === true;
       setStatus(`Paused at line ${pausedLine}`, 'paused');
       debugLocation.textContent = `${selected.filename}:${pausedLine} — ${message.function}`;
-      debugControls.forEach((button) => { button.disabled = false; });
+      updateDebugControls();
       locals.replaceChildren();
       for (const local of message.locals) locals.append(variableRow(local.name, local.value));
       if (!message.locals.length) locals.textContent = '(No local variables yet)';
@@ -327,7 +336,7 @@ window.addEventListener('message', (event) => {
       } else {
         editor.row.replaceWith(variableRow(message.name, message.value));
         variableEditor = null;
-        debugControls.forEach((button) => { button.disabled = false; });
+        updateDebugControls();
       }
       break;
     }
