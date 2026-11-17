@@ -41,7 +41,7 @@ jobs:
           set -euo pipefail
           site="$RUNNER_TEMP/pages"
           mkdir -p "$site"
-          cp web/*.html web/*.css web/*.js web/web-computer.wasm web/LICENSE-Go "$site/"
+          cp web/*.html web/*.css web/*.js web/*.wasm web/LICENSE-Go "$site/"
           cp -R web/examples "$site/examples"
           touch "$site/.nojekyll"
 
