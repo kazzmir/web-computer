@@ -16,7 +16,7 @@ Debugging
 [x] Call stack panel to inspect callers and their variables.
 [x] Step out to finish the current function (disabled outside functions).
 [ ] Watch expressions that update whenever execution pauses.
-[ ] Conditional breakpoints, such as stopping only when x > 100.
+[x] Conditional breakpoints, such as stopping only when x > 100.
 [x] Debug console for evaluating expressions in the selected frame while paused.
 
 Workspace

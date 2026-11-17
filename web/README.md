@@ -89,7 +89,17 @@ double-click word selection.
 ### Debugging
 
 Click a line number in the editor gutter to toggle a red breakpoint, then click
-**Debug**. Execution pauses **before** an executable breakpoint line runs; blank
+**Debug**. Each breakpoint has a **?** button beside its dot: click it to set a
+Python condition such as `i > 100`, then **Save condition**. A configured condition
+is indicated in gold and appears in the tooltip. Leave the field empty to restore
+an unconditional breakpoint; Escape/Cancel discards edits. Conditions can be
+changed while running or paused and are removed along with their breakpoint.
+They are compiled once per edit and evaluated in the hit frame's locals/globals
+before the line executes; only truthy results stop execution. Keep conditions
+quick and preferably side-effect-free. Calls and truth conversion suppress
+recursive debugger stops. A condition error pauses and reports its error in the
+console so it can be corrected, rather than silently missing a breakpoint.
+Conditions do not prevent normal stepping or manual **Break** pauses. Execution pauses **before** an executable breakpoint line runs; blank
 lines and comments do not trigger pauses. The debugger inspector is split into
 **Call stack** and **Locals** panes. The stack lists active Python frames, newest
 first, with function names and filename/line locations. Select a frame to inspect
@@ -149,8 +159,8 @@ run `node web/debug-test.mjs`, `node web/splitter-test.mjs`, or
 `node web/hover-test.mjs`, `node web/syntax-check-test.mjs`, or
 `node web/brackets-test.mjs`, `node web/step-out-test.mjs`, or
 `node web/call-stack-test.mjs`, `node web/result-splitters-test.mjs`, or
-`node web/break-test.mjs`, or `node web/evaluator-test.mjs` (supports `BASE_URL`
-and `PLAYWRIGHT_MODULE`).
+`node web/break-test.mjs`, `node web/evaluator-test.mjs`, or
+`node web/conditional-breakpoints-test.mjs` (supports `BASE_URL` and `PLAYWRIGHT_MODULE`).
 Static function-resolution tests also run without a browser:
 `node web/function-index-test.mjs`, `node web/bracket-pairs-test.mjs`, and
 `node web/dedent-test.mjs`.

@@ -26,12 +26,30 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 	if config.Type() != js.TypeObject || !config.Get("enabled").Bool() {
 		return func() {}
 	}
-	breakpoints := map[int32]bool{}
+	breakpoints := map[int32]*debugBreakpoint{}
 	update := func(lines js.Value) {
-		clear(breakpoints)
+		next := map[int32]*debugBreakpoint{}
 		for i := 0; i < lines.Length(); i++ {
-			breakpoints[int32(lines.Index(i).Int())] = true
+			item := lines.Index(i)
+			line, condition := 0, ""
+			if item.Type() == js.TypeNumber {
+				line = item.Int()
+			} else if item.Type() == js.TypeObject && !item.IsNull() && item.Get("line").Type() == js.TypeNumber {
+				line = item.Get("line").Int()
+				if value := item.Get("condition"); value.Type() == js.TypeString {
+					condition = value.String()
+				}
+			}
+			if line < 1 {
+				continue
+			}
+			point := newDebugBreakpoint(condition)
+			if old := breakpoints[int32(line)]; old != nil && old.condition == point.condition {
+				point = old
+			}
+			next[int32(line)] = point
 		}
+		breakpoints = next
 	}
 	update(config.Get("breakpoints"))
 	commands := make(chan debugCommand, 1)
@@ -83,7 +101,17 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 	ctx.Store().TraceFrame = stack.traceFrame
 	ctx.Store().TraceLine = func(frame *py.Frame, line int32, depth int) {
 		stack.traceLine(frame, line)
-		if !breakRequested && (frame.Code.Filename != filename || !shouldPauseDebug(mode, targetDepth, depth, breakpoints[line])) {
+		breakpointHit := false
+		var conditionError error
+		if !breakRequested && frame.Code.Filename == filename {
+			if point := breakpoints[line]; point != nil {
+				breakpointHit, conditionError = point.matches(frame)
+				if conditionError != nil {
+					breakpointHit = true
+				}
+			}
+		}
+		if !breakRequested && (frame.Code.Filename != filename || !shouldPauseDebug(mode, targetDepth, depth, breakpointHit)) {
 			return
 		}
 		// A manual break may stop in library code too. Consume the request at
@@ -93,7 +121,11 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 		selectedFrame := frame
 		paused = true
 		defer func() { paused = false }()
-		sendDebuggerMessage("paused", map[string]any{"line": int(line), "filename": frame.Code.Filename, "function": frame.Code.Name, "locals": debugLocals(frame), "frames": stack.snapshot(), "canStepOut": canStepOut(frame, depth)})
+		state := map[string]any{"line": int(line), "filename": frame.Code.Filename, "function": frame.Code.Name, "locals": debugLocals(frame), "frames": stack.snapshot(), "canStepOut": canStepOut(frame, depth)}
+		if conditionError != nil {
+			state["conditionError"] = conditionError.Error()
+		}
+		sendDebuggerMessage("paused", state)
 		// Yield to Ebitengine even while paused so the last frame stays visible.
 		for {
 			select {

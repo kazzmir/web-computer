@@ -81,6 +81,13 @@
       </div>
     </section>
   </main>
+  <form id="breakpoint-condition-editor" role="dialog" aria-labelledby="breakpoint-condition-title" aria-describedby="breakpoint-condition-help" hidden>
+    <h3 id="breakpoint-condition-title">Breakpoint condition</h3>
+    <label for="breakpoint-condition">Condition (Python expression)</label>
+    <input id="breakpoint-condition" type="text" maxlength="10000" placeholder="counter > 10" autocomplete="off" spellcheck="false">
+    <p id="breakpoint-condition-help">Stop only when this expression is true. Leave empty to always stop.</p>
+    <div class="actions"><button type="submit">Save condition</button><button id="cancel-breakpoint-condition" type="button" class="secondary">Cancel condition</button></div>
+  </form>
   <div id="function-tooltip" role="tooltip" hidden>
     <div class="function-origin"></div>
     <pre class="function-signature"></pre>

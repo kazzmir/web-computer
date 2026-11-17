@@ -1,5 +1,6 @@
 import './splitter.js';
 import './result-splitters.js';
+import { setupBreakpointConditions } from './breakpoint-conditions.js';
 import './brackets.js';
 import { refreshHighlighting } from './highlight.js';
 import { newlineText, dedentLines } from './editor-input.js';
@@ -29,6 +30,14 @@ const evaluator = document.querySelector('#debug-evaluator');
 const expressionInput = document.querySelector('#debug-expression');
 const evaluateButton = document.querySelector('#evaluate-expression');
 const breakpoints = new Set();
+const breakpointConditions = new Map();
+const openBreakpointCondition = setupBreakpointConditions({
+  source, gutter, breakpoints, conditions: breakpointConditions,
+  onChange: () => { renderGutter(); if (debugging) debugCommand('breakpoints'); },
+});
+function breakpointSpecs() {
+  return [...breakpoints].map((line) => breakpointConditions.has(line) ? { line, condition: breakpointConditions.get(line) } : line);
+}
 let syntaxDiagnostics = [];
 source.addEventListener('syntax-diagnostics', ({ detail }) => {
   if (detail.source !== source.value) return;
@@ -172,7 +181,7 @@ function renderGutter() {
   gutter.style.setProperty('--gutter-digits', Math.max(3, String(count).length));
   const inspected = stackFrames.find((frame) => frame.id === selectedFrameId);
   const inspectedLine = debugging && pausedLine !== null && selectedFrameId !== 0 && inspected?.filename === program?.filename ? inspected.line : null;
-  for (const line of breakpoints) if (line > count) breakpoints.delete(line);
+  for (const line of breakpoints) if (line > count) { breakpoints.delete(line); breakpointConditions.delete(line); }
   gutterLines.replaceChildren(...Array.from({ length: count }, (_, i) => {
     const line = i + 1;
     const button = document.createElement('button');
@@ -191,18 +200,37 @@ function renderGutter() {
       button.setAttribute('aria-describedby', 'syntax-status');
     }
     button.setAttribute('aria-pressed', String(breakpoints.has(line)));
-    return button;
+    const row = document.createElement('div');
+    row.className = 'gutter-line';
+    row.append(button);
+    if (breakpoints.has(line)) {
+      const condition = breakpointConditions.get(line);
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'breakpoint-condition';
+      edit.classList.toggle('has-condition', !!condition);
+      edit.dataset.conditionLine = line;
+      edit.textContent = '?';
+      edit.setAttribute('aria-label', `${condition ? 'Edit' : 'Set'} breakpoint condition for line ${line}`);
+      edit.title = condition ? `Stop when: ${condition}` : 'Always stop — click to add a condition';
+      button.title = [button.title, condition ? `Breakpoint condition: ${condition}` : ''].filter(Boolean).join('\n');
+      if (condition) button.setAttribute('aria-label', `${button.getAttribute('aria-label')}. Stop when ${condition}`);
+      row.append(edit);
+    }
+    return row;
   }));
   gutter.scrollTop = source.scrollTop;
 }
 function debugCommand(command, payload) {
   // Cached runners may still forward the older `variable` field to Go.
-  frame?.contentWindow.postMessage({ channel: 'web-computer', type: 'debug-command', command, breakpoints: [...breakpoints], payload, variable: payload }, location.origin);
+  frame?.contentWindow.postMessage({ channel: 'web-computer', type: 'debug-command', command, breakpoints: breakpointSpecs(), payload, variable: payload }, location.origin);
 }
 gutterLines.addEventListener('click', (event) => {
+  const conditionButton = event.target.closest('[data-condition-line]');
+  if (conditionButton) { openBreakpointCondition(Number(conditionButton.dataset.conditionLine)); return; }
   const line = Number(event.target.closest('button')?.dataset.line);
   if (!line) return;
-  if (breakpoints.has(line)) breakpoints.delete(line); else breakpoints.add(line);
+  if (breakpoints.has(line)) { breakpoints.delete(line); breakpointConditions.delete(line); } else breakpoints.add(line);
   renderGutter();
   if (debugging) debugCommand('breakpoints');
 });
@@ -360,6 +388,7 @@ async function loadExample(id) {
     refreshFunctionIndex();
     refreshSyntaxErrors();
     breakpoints.clear();
+    breakpointConditions.clear();
     renderGutter();
     showSelection();
     save();
@@ -407,7 +436,7 @@ function run(debug = false) {
   document.querySelector('#debug-stop').disabled = !debug;
   source.readOnly = debug;
   selector.disabled = resetButton.disabled = debug;
-  program = { source: source.value, filename: selected.filename, args: selected.args ?? [], debug, breakpoints: [...breakpoints] };
+  program = { source: source.value, filename: selected.filename, args: selected.args ?? [], debug, breakpoints: breakpointSpecs() };
   output.textContent = '';
   setStatus('Loading runtime…');
   stop.disabled = false;
@@ -424,7 +453,7 @@ window.addEventListener('message', (event) => {
   if (!message || message.channel !== 'web-computer') return;
   switch (message.type) {
     case 'ready':
-      program.breakpoints = [...breakpoints];
+      program.breakpoints = breakpointSpecs();
       frame.contentWindow.postMessage({ channel: 'web-computer', type: 'run', ...program }, location.origin);
       break;
     case 'running':
@@ -448,6 +477,7 @@ window.addEventListener('message', (event) => {
       debugRunning = breakPending = false;
       canStepOut = message.canStepOut === true;
       setStatus(`Paused at line ${pausedLine}`, 'paused');
+      if (message.conditionError) append(`[Breakpoint condition error at ${pausedFilename}:${pausedLine}]\n${message.conditionError}\n`);
       debugLocation.textContent = `${pausedFilename}:${pausedLine} — ${message.function}`;
       stackFrames = message.frames ?? [{ id: 0, function: message.function, filename: selected.filename, line: message.line }];
       selectedFrameId = 0;

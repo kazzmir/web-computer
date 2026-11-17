@@ -11,6 +11,9 @@ window.addEventListener('message', async (event) => {
   if (event.source !== parent || event.origin !== location.origin) return;
   const message = event.data;
   if (message?.channel === 'web-computer' && message.type === 'debug-command') {
+    // Retain breakpoint edits made while WASM is still loading, before Go
+    // installs its command callback.
+    if (message.command === 'breakpoints' && globalThis.webComputerDebug) globalThis.webComputerDebug.breakpoints = message.breakpoints;
     globalThis.webComputerDebugCommand?.(message.command, message.breakpoints, message.payload ?? message.variable);
     return;
   }

@@ -79,14 +79,17 @@ body.resizing-results iframe { pointer-events: none; }
 .syntax-number, .syntax-constant { color: #f78c6c; }
 .syntax-comment { color: #879bb6; font-style: italic; }
 .syntax-operator { color: #89ddff; }
-#gutter { width: calc(54px + var(--gutter-digits, 3) * 1ch); font: 14px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; flex: none; overflow: hidden; background: #121a27; border-right: 1px solid #283245; }
+#gutter { width: calc(74px + var(--gutter-digits, 3) * 1ch); font: 14px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; flex: none; overflow: hidden; background: #121a27; border-right: 1px solid #283245; }
 #gutter-lines { padding: 20px 0; }
-#gutter button { display: block; position: relative; width: 100%; height: 23.1px; padding: 0 10px 0 40px; border: 0; border-radius: 0; background: transparent; color: #879bb6; text-align: right; font: 14px/23.1px ui-monospace, SFMono-Regular, Consolas, monospace; }
+.gutter-line { position: relative; height: 23.1px; }
+#gutter button { display: block; position: relative; width: 100%; height: 23.1px; padding: 0 10px 0 60px; border: 0; border-radius: 0; background: transparent; color: #879bb6; text-align: right; font: 14px/23.1px ui-monospace, SFMono-Regular, Consolas, monospace; }
 #gutter button.breakpoint::before { content: ''; position: absolute; left: 7px; top: 7px; width: 10px; height: 10px; border-radius: 50%; background: #ff5252; }
+#gutter button.breakpoint-condition { position: absolute; z-index: 1; left: 22px; top: 3px; width: 18px; height: 17px; padding: 0; border: 1px solid #50739d; border-radius: 3px; background: #253b55; color: #dbeafe; font: bold 11px/15px system-ui, sans-serif; text-align: center; }
+#gutter button.breakpoint-condition.has-condition { background: #685020; color: #ffe5a0; border-color: #d6a445; }
 #gutter button.current { background: #685020; color: #ffe5a0; }
 #gutter button.inspected:not(.current) { background: #253b55; color: #dbeafe; box-shadow: inset 2px 0 #9ad1ff; }
 #gutter button.syntax-error { color: #ffa7a7; background: #ff52521a; text-decoration: underline wavy #ff5252; text-underline-offset: 3px; box-shadow: inset -3px 0 #ff5252; }
-#gutter button.syntax-error::after { content: '!'; position: absolute; left: 25px; top: 4px; width: 15px; height: 15px; clip-path: polygon(50% 0, 100% 100%, 0 100%); background: #ff6b6b; color: #101724; font: bold 11px/19px system-ui, sans-serif; text-align: center; text-decoration: none; }
+#gutter button.syntax-error::after { content: '!'; position: absolute; left: 45px; top: 4px; width: 15px; height: 15px; clip-path: polygon(50% 0, 100% 100%, 0 100%); background: #ff6b6b; color: #101724; font: bold 11px/19px system-ui, sans-serif; text-align: center; text-decoration: none; }
 #syntax-status { display: block; min-height: 1.5em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 #syntax-status[data-state="valid"] { color: #8ed9ae; }
 #syntax-status[data-state="error"], #syntax-status[data-state="unavailable"] { color: #ffa7a7; }
@@ -116,6 +119,12 @@ body.resizing-results iframe { pointer-events: none; }
   #debugger .console-heading { flex-direction: column; align-items: stretch; gap: 6px; }
   #debugger .actions { flex-wrap: wrap; }
 }
+#breakpoint-condition-editor { position: fixed; z-index: 30; width: min(390px, calc(100vw - 16px)); max-height: calc(100dvh - 16px); overflow: auto; padding: 14px; border: 1px solid #50739d; border-radius: 6px; background: #172131; box-shadow: 0 6px 24px #0008; }
+#breakpoint-condition-editor h3 { margin: 0 0 10px; font-size: 14px; }
+#breakpoint-condition-editor label { display: block; margin-bottom: 5px; font-size: 12px; }
+#breakpoint-condition { width: 100%; padding: 6px 8px; border: 1px solid #7bbbf3; border-radius: 4px; background: #101724; color: #dbeafe; font: 13px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+#breakpoint-condition-editor p { color: #879bb6; font-size: 11px; }
+#breakpoint-condition-editor button { padding: 5px 9px; font-size: 12px; }
 #function-tooltip { position: fixed; z-index: 20; width: max-content; max-width: min(460px, calc(100vw - 16px)); max-height: min(340px, calc(100dvh - 16px)); overflow: hidden; padding: 12px 14px; border: 1px solid #50739d; border-radius: 6px; background: #172131; color: #dbeafe; box-shadow: 0 6px 24px #0008; pointer-events: none; }
 .function-origin { margin-bottom: 5px; color: #879bb6; font-size: 11px; }
 .function-signature { margin: 0 0 8px; color: #82d4e8; font: 13px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
