@@ -43,9 +43,10 @@ footer { padding: 8px 16px; border-top: 1px solid #283245; font-size: 11px; }
 #gutter button.breakpoint::before { content: ''; position: absolute; left: 7px; top: 7px; width: 10px; height: 10px; border-radius: 50%; background: #ff5252; }
 #gutter button.current { background: #685020; color: #ffe5a0; }
 #debugger { flex: none; border-top: 1px solid #344157; }
-#debugger .actions { gap: 5px; flex-wrap: wrap; }
+#debugger .console-heading h2 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#debugger .actions { flex: none; gap: 5px; flex-wrap: nowrap; }
 #debugger button { font-size: 11px; padding: 4px 7px; }
-#locals { max-height: 180px; min-height: 65px; overflow: auto; padding: 8px 16px; font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+#locals { height: clamp(100px, 18vh, 180px); flex: none; overflow: auto; padding: 8px 16px; font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 #locals .local-name { color: #9ad1ff; }
 #status[data-state="paused"] { color: #ffe5a0; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }

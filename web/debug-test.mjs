@@ -83,6 +83,41 @@ try {
   await status('Finished');
   assert.equal(await page.locator('#console').textContent(), '3\n');
   assert.equal(await page.locator('#debugger').isVisible(), false);
+  // Locals must scroll rather than resize the viewport while stepping.
+  await breakpoint(4);
+  await page.locator('#source').fill([
+    'def slow():',
+    '    for i in range(100000):',
+    '        pass',
+    ...Array.from({ length: 12 }, (_, i) => `a${i} = ${i}`),
+    'slow()',
+    'print("done")',
+  ].join('\n'));
+  await breakpoint(16);
+  await page.locator('#debug').click();
+  await status('Paused at line 16');
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await page.evaluate(() => {
+    const viewport = document.querySelector('#viewport');
+    window.debugViewportSizes = [];
+    const record = () => {
+      const { width, height } = viewport.getBoundingClientRect();
+      window.debugViewportSizes.push([width, height]);
+    };
+    record();
+    window.debugResizeObserver = new ResizeObserver(record);
+    window.debugResizeObserver.observe(viewport);
+  });
+  await step('over', 17);
+  await page.waitForTimeout(100);
+  const sizes = await page.evaluate(() => {
+    window.debugResizeObserver.disconnect();
+    return window.debugViewportSizes;
+  });
+  assert(sizes.length > 0);
+  for (const size of sizes) assert.deepEqual(size, sizes[0], 'stepping must not resize the result window');
+  assert(await page.locator('#locals').evaluate((element) => element.scrollHeight > element.clientHeight), 'large locals lists should scroll');
+  await page.locator('#debug-stop').click();
   assert.deepEqual(errors, []);
   console.log('Debugger browser tests passed');
 } finally {
