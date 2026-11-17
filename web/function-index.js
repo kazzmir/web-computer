@@ -95,7 +95,7 @@ export function indexFunctions(text) {
           signature: text.slice(name.start, items[colon].start).trim().replace(/\n\s*/g, ' ').slice(0, 2000),
           documentation: doc || 'Function defined in this file. No docstring provided.',
           origin: 'This file',
-          start: name.start,
+          definitionStart: name.start,
         });
       } else unsafe.add(name.value);
       items = colon < 0 ? [] : items.slice(colon + 1);
@@ -140,7 +140,7 @@ export function indexFunctions(text) {
   }
   const known = tokens.filter((token, i) => {
     const info = functions.get(token.value);
-    return token.kind === 'identifier' && info && tokens[i - 1]?.value !== '.' && tokens[i + 1]?.value !== '=' && (info.start === undefined || token.start >= info.start);
+    return token.kind === 'identifier' && info && tokens[i - 1]?.value !== '.' && tokens[i + 1]?.value !== '=' && (info.definitionStart === undefined || token.start >= info.definitionStart);
   }).map((token) => ({ ...token, ...functions.get(token.value) }));
   const lines = text.split('\n');
   let offset = 0;

@@ -79,6 +79,19 @@ thing.print(1)
     await page.waitForTimeout(420);
     assert.equal(await tooltip.isVisible(), false, 'ambiguous bindings must have no tooltip');
   }
+  const pygameCode = 'import pygame as pg\ndef main():\n    """Run the game."""\n    for event in pg.event.get():\n        print(event)\nmain()\n';
+  await fill(pygameCode);
+  await hover(pygameCode.lastIndexOf('main') + 1);
+  await tooltip.waitFor();
+  assert.equal(await tooltip.locator('.function-signature').textContent(), 'main()');
+  for (const offset of [pygameCode.indexOf('pg.event.get'), pygameCode.indexOf('event.get') + 1, pygameCode.indexOf('get()') + 1]) {
+    await hover(offset);
+    await page.waitForTimeout(420);
+    assert.equal(await tooltip.isVisible(), false, 'pygame attributes must not inherit main documentation');
+  }
+  await hover(pygameCode.indexOf('print(event)') + 1);
+  await tooltip.waitFor();
+  assert.match(await tooltip.locator('.function-signature').textContent(), /^print\(/, 'builtins in main must resolve to their own docs');
   const scrolled = Array.from({ length: 70 }, (_, i) => `# line ${i}`).join('\n') + '\n\tprint("scroll")';
   await fill(scrolled);
   await hover(scrolled.lastIndexOf('print') + 2);

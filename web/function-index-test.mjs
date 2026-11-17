@@ -45,4 +45,17 @@ assert.equal(docsFor('async def work(\n    value: int = 3,\n) -> int:\n    """Re
 assert.equal(docsFor('def f(): "Short doc."\nf()', 'f')[1].documentation, 'Short doc.');
 assert.equal(docsFor('def f():\n    return 3\nf()', 'f')[1].documentation, 'Function defined in this file. No docstring provided.');
 assert.equal(docsFor('def f():\n    """print <img src=x>"""\nf()', 'print').length, 0, 'do not inspect docstring contents as code');
+// Definition metadata must not overwrite a reference token's own start. Doing
+// so makes a call's hover range cover unrelated code in the function body.
+const pygameSource = 'import pygame as pg\ndef main():\n    """Run the game."""\n    for event in pg.event.get():\n        print(event)\nmain()\n';
+const pygameIndex = indexFunctions(pygameSource);
+for (const token of pygameIndex.known) {
+  assert.equal(pygameSource.slice(token.start, token.end), token.value, 'each hover range must cover exactly its identifier');
+}
+const mainTokens = pygameIndex.known.filter((token) => token.value === 'main');
+assert.deepEqual(mainTokens.map((token) => token.start), [pygameSource.indexOf('main'), pygameSource.lastIndexOf('main')]);
+for (const name of ['pg.event.get', 'event.get', 'get']) {
+  const offset = pygameSource.indexOf(name);
+  assert.equal(pygameIndex.known.some((token) => token.start <= offset && offset < token.end), false, `${name} must not inherit main's documentation`);
+}
 console.log('Function documentation index tests passed');
