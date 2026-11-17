@@ -7,7 +7,7 @@ Editing
 [ ] Indent/dedent selections with Tab and Shift+Tab.
 [ ] Find and replace, including regular expressions.
 [ ] Bracket matching and automatic closing quotes/brackets.
-[ ] Gutter error markers for syntax errors.
+[x] Gutter error markers for syntax errors.
 
 Debugging
 [ ] Call stack panel to inspect callers and their variables.

@@ -31,6 +31,16 @@ In the editor, **Enter** preserves the current line's indentation and adds four
 spaces after a block header ending in `:` (such as `while`, `if`, or `def`).
 **Tab** inserts four spaces; Ctrl/Cmd+Enter still runs without inserting a newline.
 
+Syntax checks run after a 300 ms editing pause in an isolated background worker,
+using the same Python compiler as Run without executing the program. The first
+syntax error is marked with a red wavy underline and edge stripe on its gutter
+line. Hover that line number for the error, or read its line, column, and message
+below the editor. Breakpoint dots still work on error lines. Fixing or changing
+the code clears stale markers immediately; old background results are discarded.
+Checks also catch compiler errors such as `return` outside a function. They do
+not report runtime errors or undefined names. If the checker cannot load, editing
+and Run still work; rebuild with `./web/build.sh` to regenerate its WASM asset.
+
 Hover over a known function identifier to see its signature and documentation.
 This works with syntax highlighting on or off. Supported names are documented
 Python built-in functions and unique, undecorated top-level `def`/`async def`
@@ -82,7 +92,8 @@ are bounded previews. Breakpoints are session-only and reset on example changes.
 Optional browser regression tests: serve the built app, install Playwright, then
 run `node web/debug-test.mjs`, `node web/splitter-test.mjs`, or
 `node web/highlight-test.mjs`, `node web/editor-input-test.mjs`, or
-`node web/hover-test.mjs` (supports `BASE_URL` and `PLAYWRIGHT_MODULE`).
+`node web/hover-test.mjs`, or `node web/syntax-check-test.mjs` (supports `BASE_URL`
+and `PLAYWRIGHT_MODULE`).
 Static function-resolution tests also run without a browser:
 `node web/function-index-test.mjs`.
 
@@ -97,7 +108,8 @@ fullscreen; press Escape to leave fullscreen and access the editor controls.
 
 `wasm_exec.js` is Go's standard runtime support (license in `LICENSE-Go`).
 `build.sh` refreshes it from `go env GOROOT` to match the compiler. The generated
-`web-computer.wasm` is ignored by Git: rebuild it after changing Go/Python code.
+`web-computer.wasm` and the background compiler's `syntax-check.wasm` are ignored
+by Git: rebuild them after changing Go/Python code.
 The build also copies `scripts/python/*.py` into the ignored `web/examples/`
 directory, so there is no second checked-in copy of the example sources.
 Serve over HTTP, not `file://`; no npm packages or CDN are required.

@@ -71,6 +71,10 @@ footer { padding: 8px 16px; border-top: 1px solid #283245; font-size: 11px; }
 #gutter button { display: block; position: relative; width: 100%; height: 23.1px; padding: 0 10px 0 22px; border: 0; border-radius: 0; background: transparent; color: #879bb6; text-align: right; font: 14px/23.1px ui-monospace, SFMono-Regular, Consolas, monospace; }
 #gutter button.breakpoint::before { content: ''; position: absolute; left: 7px; top: 7px; width: 10px; height: 10px; border-radius: 50%; background: #ff5252; }
 #gutter button.current { background: #685020; color: #ffe5a0; }
+#gutter button.syntax-error { color: #ffa7a7; text-decoration: underline wavy #ff5252; text-underline-offset: 3px; box-shadow: inset -3px 0 #ff5252; }
+#syntax-status { display: block; min-height: 1.5em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#syntax-status[data-state="valid"] { color: #8ed9ae; }
+#syntax-status[data-state="error"], #syntax-status[data-state="unavailable"] { color: #ffa7a7; }
 #debugger { flex: none; border-top: 1px solid #344157; }
 #debugger .console-heading h2 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #debugger .actions { flex: none; gap: 5px; flex-wrap: nowrap; }

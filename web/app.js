@@ -2,6 +2,7 @@ import './splitter.js';
 import { refreshHighlighting } from './highlight.js';
 import { newlineText } from './editor-input.js';
 import { refreshFunctionIndex } from './hover.js';
+import { refreshSyntaxErrors } from './syntax-check.js';
 
 const source = document.querySelector('#source');
 const viewport = document.querySelector('#viewport');
@@ -20,6 +21,12 @@ const locals = document.querySelector('#locals');
 const debugLocation = document.querySelector('#debug-location');
 const debugControls = [...document.querySelectorAll('[data-debug-command]')];
 const breakpoints = new Set();
+let syntaxDiagnostics = [];
+source.addEventListener('syntax-diagnostics', ({ detail }) => {
+  if (detail.source !== source.value) return;
+  syntaxDiagnostics = detail.diagnostics;
+  renderGutter();
+});
 let pausedLine = null;
 let debugging = false;
 let variableEditor = null;
@@ -96,7 +103,14 @@ function renderGutter() {
     button.dataset.line = line;
     button.classList.toggle('breakpoint', breakpoints.has(line));
     button.classList.toggle('current', pausedLine === line);
-    button.setAttribute('aria-label', `Line ${line}: ${breakpoints.has(line) ? 'remove' : 'add'} breakpoint`);
+    const error = syntaxDiagnostics.find((item) => item.line === line);
+    button.classList.toggle('syntax-error', !!error);
+    const action = `Line ${line}: ${breakpoints.has(line) ? 'remove' : 'add'} breakpoint`;
+    button.setAttribute('aria-label', error ? `${action}. ${error.message}, column ${error.column}` : action);
+    if (error) {
+      button.title = `Line ${line}, column ${error.column}: ${error.message}`;
+      button.setAttribute('aria-describedby', 'syntax-status');
+    }
     button.setAttribute('aria-pressed', String(breakpoints.has(line)));
     return button;
   }));
@@ -186,6 +200,7 @@ source.value = savedSource ?? example;
 renderGutter();
 refreshHighlighting(true);
 refreshFunctionIndex();
+refreshSyntaxErrors();
 function showSelection() {
   selector.value = selected.id;
   document.querySelector('#editor-title').textContent = selected.filename;
@@ -216,6 +231,7 @@ async function loadExample(id) {
     source.value = text;
     refreshHighlighting(true);
     refreshFunctionIndex();
+    refreshSyntaxErrors();
     breakpoints.clear();
     renderGutter();
     showSelection();
