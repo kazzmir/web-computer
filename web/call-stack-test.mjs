@@ -19,6 +19,15 @@ async function edit(name, value) {
   await page.getByRole('button', { name: `Edit variable ${name}`, exact: true }).waitFor();
 }
 try {
+  // Serve a runner with the older inbound field and no frame callback, as a
+  // browser may do when runner.js is cached separately from the new WASM/UI.
+  await page.route('**/runner.js', async (route) => {
+    const response = await route.fetch();
+    const body = (await response.text())
+      .replace('message.payload ?? message.variable', 'message.variable')
+      .replace("    globalThis.webComputerFrameSelected = (state) => send('frame-selected', state);", '');
+    await route.fulfill({ response, body });
+  });
   await page.goto(process.env.BASE_URL ?? 'http://localhost:8000');
   await page.locator('#source').fill('module_var = 7\ndef inner(value):\n    inner_only = value + 1\n    return inner_only\ndef outer():\n    outer_only = 10\n    result = inner(outer_only)\n    return result + outer_only\nanswer = outer()\nprint(answer, module_var)');
   await page.locator('#gutter button[data-line="3"]').click();
@@ -30,6 +39,13 @@ try {
   assert.match(await frameButton(2).textContent(), /<module>.*editor.py:9/);
   assert.match(await page.locator('#locals').textContent(), /value = 10/);
   assert.doesNotMatch(await page.locator('#locals').textContent(), /outer_only/);
+  // Reproduce a stale runner missing callback globals. Frame selection, edits,
+  // and subsequent pauses must use the message protocol without panicking.
+  const callbacks = await page.frameLocator('#viewport iframe').locator('body').evaluate(() => {
+    for (const name of ['webComputerFrameSelected', 'webComputerVariableResult', 'webComputerPaused']) delete globalThis[name];
+    return typeof globalThis.webComputerFrameSelected;
+  });
+  assert.equal(callbacks, 'undefined');
   await page.evaluate(() => {
     window.inspectorSizes = [];
     window.inspectorObserver = new ResizeObserver(() => {

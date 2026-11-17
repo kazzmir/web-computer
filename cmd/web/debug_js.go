@@ -11,6 +11,14 @@ type debugCommand struct {
 	frameID             int
 }
 
+// Send through the existing iframe message protocol instead of JS callback
+// globals. A cached runner must not crash a newer debugger on frame selection.
+func sendDebuggerMessage(kind string, fields map[string]any) {
+	fields["channel"] = "web-computer"
+	fields["type"] = kind
+	js.Global().Get("parent").Call("postMessage", fields, js.Global().Get("location").Get("origin"))
+}
+
 // The callback only queues commands; Python values are changed in the paused
 // interpreter goroutine, never in a browser event callback.
 func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
@@ -72,7 +80,7 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 		selectedFrame := frame
 		paused = true
 		defer func() { paused = false }()
-		js.Global().Call("webComputerPaused", map[string]any{"line": int(line), "function": frame.Code.Name, "locals": debugLocals(frame), "frames": stack.snapshot(), "canStepOut": canStepOut(frame, depth)})
+		sendDebuggerMessage("paused", map[string]any{"line": int(line), "function": frame.Code.Name, "locals": debugLocals(frame), "frames": stack.snapshot(), "canStepOut": canStepOut(frame, depth)})
 		// Yield to Ebitengine even while paused so the last frame stays visible.
 		for {
 			select {
@@ -80,9 +88,9 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 				if cmd.action == "select-frame" {
 					if candidate := stack.frameAt(cmd.frameID); candidate != nil {
 						selectedID, selectedFrame = cmd.frameID, candidate
-						js.Global().Call("webComputerFrameSelected", map[string]any{"frameId": selectedID, "locals": debugLocals(selectedFrame)})
+						sendDebuggerMessage("frame-selected", map[string]any{"frameId": selectedID, "locals": debugLocals(selectedFrame)})
 					} else {
-						js.Global().Call("webComputerFrameSelected", map[string]any{"frameId": cmd.frameID, "error": "Frame is no longer available"})
+						sendDebuggerMessage("frame-selected", map[string]any{"frameId": cmd.frameID, "error": "Frame is no longer available"})
 					}
 					continue
 				}
@@ -90,7 +98,7 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 					result := map[string]any{"name": cmd.name, "frameId": cmd.frameID}
 					if cmd.frameID != selectedID {
 						result["error"] = "Selected frame changed"
-						js.Global().Call("webComputerVariableResult", result)
+						sendDebuggerMessage("variable-result", result)
 						continue
 					}
 					value, err := setDebugVariable(selectedFrame, cmd.name, cmd.value)
@@ -99,7 +107,7 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 					} else {
 						result["value"] = debugValue(value, 0)
 					}
-					js.Global().Call("webComputerVariableResult", result)
+					sendDebuggerMessage("variable-result", result)
 					continue
 				}
 				if cmd.action == "out" && !canStepOut(frame, depth) {

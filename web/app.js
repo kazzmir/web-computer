@@ -161,7 +161,8 @@ function renderGutter() {
   gutter.scrollTop = source.scrollTop;
 }
 function debugCommand(command, payload) {
-  frame?.contentWindow.postMessage({ channel: 'web-computer', type: 'debug-command', command, breakpoints: [...breakpoints], payload }, location.origin);
+  // Cached runners may still forward the older `variable` field to Go.
+  frame?.contentWindow.postMessage({ channel: 'web-computer', type: 'debug-command', command, breakpoints: [...breakpoints], payload, variable: payload }, location.origin);
 }
 gutterLines.addEventListener('click', (event) => {
   const line = Number(event.target.closest('button')?.dataset.line);

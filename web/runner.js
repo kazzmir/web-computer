@@ -43,6 +43,8 @@ window.addEventListener('message', async (event) => {
     globalThis.process.cwd = () => '/';
     globalThis.webComputerSource = message.source;
     globalThis.webComputerDebug = { enabled: !!message.debug, breakpoints: message.breakpoints ?? [] };
+    // Keep callback shims for cached older WASM; newer debuggers post replies
+    // directly and do not require these globals to exist.
     globalThis.webComputerPaused = (state) => send('paused', state);
     globalThis.webComputerVariableResult = (result) => send('variable-result', result);
     globalThis.webComputerFrameSelected = (state) => send('frame-selected', state);
