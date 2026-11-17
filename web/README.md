@@ -27,6 +27,10 @@ affected colors, including context changes from edited quotes or comments.
 Unchanged token spans are reused. This is lightweight lexical highlighting, not
 syntax validation.
 
+In the editor, **Enter** preserves the current line's indentation and adds four
+spaces after a block header ending in `:` (such as `while`, `if`, or `def`).
+**Tab** inserts four spaces; Ctrl/Cmd+Enter still runs without inserting a newline.
+
 ### Debugging
 
 Click a line number in the editor gutter to toggle a red breakpoint, then click

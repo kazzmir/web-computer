@@ -1,5 +1,6 @@
 import './splitter.js';
 import { refreshHighlighting } from './highlight.js';
+import { newlineText } from './editor-input.js';
 
 const source = document.querySelector('#source');
 const viewport = document.querySelector('#viewport');
@@ -335,14 +336,14 @@ stop.addEventListener('click', () => {
 document.querySelector('#clear').addEventListener('click', () => { output.textContent = ''; });
 resetButton.addEventListener('click', () => loadExample(selected.id));
 source.addEventListener('keydown', (event) => {
-  if (source.readOnly) return;
-  if (event.key === 'Tab' && !event.ctrlKey && !event.metaKey) {
-    event.preventDefault();
-    source.setRangeText('    ', source.selectionStart, source.selectionEnd, 'end');
-    save();
-    renderGutter();
-    refreshHighlighting();
-  }
+  if (source.readOnly || event.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
+  let insertion;
+  if (event.key === 'Tab') insertion = '    ';
+  else if (event.key === 'Enter') insertion = newlineText(source.value, source.selectionStart);
+  else return;
+  event.preventDefault();
+  source.setRangeText(insertion, source.selectionStart, source.selectionEnd, 'end');
+  source.dispatchEvent(new Event('input', { bubbles: true }));
 });
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); run(); }
