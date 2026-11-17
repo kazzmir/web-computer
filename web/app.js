@@ -1,6 +1,7 @@
 import './splitter.js';
 import { refreshHighlighting } from './highlight.js';
 import { newlineText } from './editor-input.js';
+import { refreshFunctionIndex } from './hover.js';
 
 const source = document.querySelector('#source');
 const viewport = document.querySelector('#viewport');
@@ -184,6 +185,7 @@ try {
 source.value = savedSource ?? example;
 renderGutter();
 refreshHighlighting(true);
+refreshFunctionIndex();
 function showSelection() {
   selector.value = selected.id;
   document.querySelector('#editor-title').textContent = selected.filename;
@@ -213,6 +215,7 @@ async function loadExample(id) {
     selected = info;
     source.value = text;
     refreshHighlighting(true);
+    refreshFunctionIndex();
     breakpoints.clear();
     renderGutter();
     showSelection();

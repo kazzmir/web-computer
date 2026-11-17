@@ -31,6 +31,16 @@ In the editor, **Enter** preserves the current line's indentation and adds four
 spaces after a block header ending in `:` (such as `while`, `if`, or `def`).
 **Tab** inserts four spaces; Ctrl/Cmd+Enter still runs without inserting a newline.
 
+Hover over a known function identifier to see its signature and documentation.
+This works with syntax highlighting on or off. Supported names are documented
+Python built-in functions and unique, undecorated top-level `def`/`async def`
+functions in this file; their first-statement docstrings are shown when present.
+The static index is debounced while editing. Unknown/imported functions, inferred
+instance methods, forward references, and names with ambiguous or shadowed bindings
+are deliberately omitted rather than guessed. Wildcard imports and dynamic namespace
+operations suppress the index. Tooltips never execute code and disappear on edits,
+scrolling, or Escape.
+
 ### Debugging
 
 Click a line number in the editor gutter to toggle a red breakpoint, then click
@@ -55,7 +65,10 @@ are bounded previews. Breakpoints are session-only and reset on example changes.
 
 Optional browser regression tests: serve the built app, install Playwright, then
 run `node web/debug-test.mjs`, `node web/splitter-test.mjs`, or
-`node web/highlight-test.mjs` (supports `BASE_URL` and `PLAYWRIGHT_MODULE`).
+`node web/highlight-test.mjs`, `node web/editor-input-test.mjs`, or
+`node web/hover-test.mjs` (supports `BASE_URL` and `PLAYWRIGHT_MODULE`).
+Static function-resolution tests also run without a browser:
+`node web/function-index-test.mjs`.
 
 The **Example** dropdown includes Chimp, Aliens, Liquid, Scroll, Scaletest,
 GL cube, and the SDL2 Video demo, alongside the welcome animation. Selecting

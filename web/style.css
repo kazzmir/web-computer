@@ -89,5 +89,9 @@ footer { padding: 8px 16px; border-top: 1px solid #283245; font-size: 11px; }
   #debugger .console-heading { flex-direction: column; align-items: stretch; gap: 6px; }
   #debugger .actions { flex-wrap: wrap; }
 }
+#function-tooltip { position: fixed; z-index: 20; width: max-content; max-width: min(460px, calc(100vw - 16px)); max-height: min(340px, calc(100dvh - 16px)); overflow: hidden; padding: 12px 14px; border: 1px solid #50739d; border-radius: 6px; background: #172131; color: #dbeafe; box-shadow: 0 6px 24px #0008; pointer-events: none; }
+.function-origin { margin-bottom: 5px; color: #879bb6; font-size: 11px; }
+.function-signature { margin: 0 0 8px; color: #82d4e8; font: 13px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.function-documentation { font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 @media (max-width: 740px) { body { height: auto; min-height: 100dvh; } header { padding: 12px; flex-wrap: wrap; } main { grid-template-columns: 1fr; } #pane-divider { display: none; } .editor-pane { height: 55dvh; border-right: 0; } .result-pane { height: 70dvh; } .shortcut { display: none; } }
