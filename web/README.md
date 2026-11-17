@@ -35,12 +35,19 @@ Hover over a known function identifier to see its signature and documentation.
 This works with syntax highlighting on or off. Supported names are documented
 Python built-in functions and unique, undecorated top-level `def`/`async def`
 functions in this file; their first-statement docstrings are shown when present.
+Pygame API functions are also documented, including image loading, transforms,
+display, events, mouse/keyboard input, timing, drawing, audio, and sprite collisions.
+Explicit top-level imports and aliases are recognized: `import pygame as pg`,
+`from pygame import image`, or `from pygame.transform import flip as mirror`.
+Hover the function name in `pg.transform.flip(...)` or `pg.image.load(...)` to
+see the signature supported by this browser runtime. Unknown attributes and
+reassigned or shadowed aliases receive no guessed documentation.
 The static index is debounced while editing. Hover lookup uses the exact lexical
 identifier, never its enclosing function. Calls inside function bodies can resolve
-unique functions declared later in the file. Unknown/imported functions, inferred
-instance methods, unresolved module-level forward references, and names with
-ambiguous or shadowed bindings are deliberately omitted rather than guessed. Wildcard imports and dynamic namespace
-operations suppress the index. Tooltips never execute code and disappear on edits,
+unique functions declared later in the file. Other unknown imported functions,
+inferred instance methods, unresolved module-level forward references, and names
+with ambiguous or shadowed bindings are deliberately omitted rather than guessed.
+Wildcard imports and dynamic namespace operations suppress the index. Tooltips never execute code and disappear on edits,
 scrolling, or Escape.
 
 ### Debugging

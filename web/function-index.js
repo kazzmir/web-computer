@@ -1,5 +1,7 @@
 import { pythonTokens } from './python-tokens.js';
 import { builtinFunctionDocs } from './function-docs.js';
+import { pygameFunctionDocs } from './pygame-docs.js';
+import { importBindings } from './python-imports.js';
 
 function statements(text, tokens) {
   const result = [];
@@ -62,6 +64,8 @@ export function indexFunctions(text) {
   const declarations = new Map();
   const definitions = new Map();
   const functionBodies = [];
+  const pygameImports = new Map();
+  const importIdentifiers = new Set();
   let dynamic = false;
   const identifiers = (items) => items.filter((token) => token.kind === 'identifier');
   const invalidate = (items) => identifiers(items).forEach((token) => unsafe.add(token.value));
@@ -107,8 +111,17 @@ export function indexFunctions(text) {
     }
 
     if (items[0]?.value === 'import' || items[0]?.value === 'from') {
-      invalidate(items);
-      if (items.some((token) => token.value === '*')) dynamic = true;
+      for (const token of identifiers(items)) importIdentifiers.add(token.start);
+      const imported = importBindings(items);
+      if (!imported) invalidate(items);
+      if (imported?.wildcard || items.some((token) => token.value === '*')) dynamic = true;
+      for (const binding of imported?.bindings ?? []) {
+        declare(binding.name);
+        const knownPath = binding.path === 'pygame' || [...pygameFunctionDocs.keys()].some((path) => path === binding.path || path.startsWith(binding.path + '.'));
+        if (group.topLevel && items === group.tokens && knownPath) pygameImports.set(binding.name, binding);
+        else unsafe.add(binding.name);
+      }
+      continue;
     }
     if (['del', 'global', 'nonlocal', 'case'].includes(items[0]?.value)) invalidate(items.slice(1));
     if (items[0]?.kind === 'identifier' && items[1]?.value === ':') unsafe.add(items[0].value);
@@ -116,6 +129,7 @@ export function indexFunctions(text) {
     for (let i = 0; i < items.length; i++) {
       const token = items[i];
       if (token.value === '__builtins__' || (['exec', 'eval', 'globals', 'locals'].includes(token.value) && items[i + 1]?.value === '(')) dynamic = true;
+      if (['setattr', 'delattr'].includes(token.value) && items[i + 1]?.value === '(' && items[i + 2]?.kind === 'identifier') unsafe.add(items[i + 2].value);
       if (token.value === 'as') invalidate(items.slice(i + 1));
       if (token.value === 'for') {
         const end = items.findIndex((next, j) => j > i && next.value === 'in');
@@ -141,14 +155,32 @@ export function indexFunctions(text) {
       if (!unsafe.has(name) && declarations.get(name) === 1) functions.set(name, info);
     }
   }
-  const known = tokens.filter((token, i) => {
-    const info = functions.get(token.value);
-    if (token.kind !== 'identifier' || !info || tokens[i - 1]?.value === '.' || tokens[i + 1]?.value === '=') return false;
+  const known = [];
+  if (!dynamic) for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    if (token.kind !== 'identifier' || tokens[i + 1]?.value === '=') continue;
+    let root = i;
+    const parts = [token.value];
+    while (tokens[root - 1]?.value === '.' && tokens[root - 2]?.kind === 'identifier') {
+      root -= 2;
+      parts.unshift(tokens[root].value);
+    }
+    if (tokens[root - 1]?.value === '.') continue; // e.g. object().method
+    const binding = pygameImports.get(parts[0]);
+    let info;
+    if (binding && !unsafe.has(binding.name) && declarations.get(binding.name) === 1) {
+      const path = [binding.path, ...parts.slice(1)].join('.');
+      const doc = pygameFunctionDocs.get(path);
+      if (doc) info = { signature: doc[0], documentation: doc[1], origin: 'Pygame (browser API)', definitionStart: binding.start };
+    } else if (root === i && !importIdentifiers.has(token.start)) info = functions.get(token.value);
+    if (!info) continue;
     // Function bodies resolve global function names when called, so a unique
-    // declaration later in the file can still document f() inside g().
-    return info.definitionStart === undefined || token.start >= info.definitionStart
-      || functionBodies.some((body) => body.start <= token.start && token.start < body.end);
-  }).map((token) => ({ ...functions.get(token.value), ...token }));
+    // declaration or explicit import later in the file can document a call.
+    if (info.definitionStart === undefined || token.start >= info.definitionStart
+      || functionBodies.some((body) => body.start <= token.start && token.start < body.end)) {
+      known.push({ ...info, ...token });
+    }
+  }
   const lines = text.split('\n');
   let offset = 0;
   const lineStarts = lines.map((line) => { const start = offset; offset += line.length + 1; return start; });

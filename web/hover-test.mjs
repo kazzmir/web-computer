@@ -100,14 +100,41 @@ thing.print(1)
   await hover(pygameCode.lastIndexOf('main') + 1);
   await tooltip.waitFor();
   assert.equal(await tooltip.locator('.function-signature').textContent(), 'main()');
-  for (const offset of [pygameCode.indexOf('pg.event.get'), pygameCode.indexOf('event.get') + 1, pygameCode.indexOf('get()') + 1]) {
+  for (const offset of [pygameCode.indexOf('pg.event.get'), pygameCode.indexOf('event.get') + 1]) {
     await hover(offset);
     await page.waitForTimeout(420);
     assert.equal(await tooltip.isVisible(), false, 'pygame attributes must not inherit main documentation');
   }
+  await hover(pygameCode.indexOf('get()') + 1);
+  await tooltip.waitFor();
+  assert.equal(await tooltip.locator('.function-signature').textContent(), 'pygame.event.get()');
+  assert.equal(await tooltip.locator('.function-origin').textContent(), 'Pygame (browser API)');
   await hover(pygameCode.indexOf('print(event)') + 1);
   await tooltip.waitFor();
   assert.match(await tooltip.locator('.function-signature').textContent(), /^print\(/, 'builtins in main must resolve to their own docs');
+  const pygameFunctions = 'import pygame as pg\ndef main():\n    pg.transform.flip(surface, True, False)\n    pg.image.load("image.png")\n    pg.display.flip()\n    pg.mixer.music.load("music.ogg")\nmain()';
+  await fill(pygameFunctions);
+  for (const [expression, signature, description] of [
+    ['transform.flip', 'pygame.transform.flip(surface, x, y)', /mirrored horizontally/],
+    ['image.load', 'pygame.image.load(filename)', /Load an image file/],
+    ['display.flip', 'pygame.display.flip()', /Present the current display/],
+    ['music.load', 'pygame.mixer.music.load(filename)', /Load a music file/],
+  ]) {
+    await hover(pygameFunctions.indexOf(expression) + expression.indexOf('.') + 1);
+    await tooltip.waitFor();
+    assert.equal(await tooltip.locator('.function-signature').textContent(), signature);
+    assert.match(await tooltip.locator('.function-documentation').textContent(), description);
+  }
+  const directImport = 'from pygame.transform import flip as mirror\nmirror(surface, True, False)';
+  await fill(directImport);
+  await hover(directImport.lastIndexOf('mirror'));
+  await tooltip.waitFor();
+  assert.equal(await tooltip.locator('.function-signature').textContent(), 'pygame.transform.flip(surface, x, y)');
+  const shadowedPygame = 'import pygame as pg\npg = other\npg.image.load("x")';
+  await fill(shadowedPygame);
+  await hover(shadowedPygame.lastIndexOf('load'));
+  await page.waitForTimeout(420);
+  assert.equal(await tooltip.isVisible(), false, 'reassigned pygame aliases must not show stale API docs');
   const scrolled = Array.from({ length: 70 }, (_, i) => `# line ${i}`).join('\n') + '\n\tprint("scroll")';
   await fill(scrolled);
   await hover(scrolled.lastIndexOf('print') + 2);

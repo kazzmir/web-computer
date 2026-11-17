@@ -54,10 +54,44 @@ for (const token of pygameIndex.known) {
 }
 const mainTokens = pygameIndex.known.filter((token) => token.value === 'main');
 assert.deepEqual(mainTokens.map((token) => token.start), [pygameSource.indexOf('main'), pygameSource.lastIndexOf('main')]);
-for (const name of ['pg.event.get', 'event.get', 'get']) {
+for (const name of ['pg.event.get', 'event.get']) {
   const offset = pygameSource.indexOf(name);
   assert.equal(pygameIndex.known.some((token) => token.start <= offset && offset < token.end), false, `${name} must not inherit main's documentation`);
 }
+assert.equal(functionAtOffset(pygameIndex, pygameSource.indexOf('get()'))?.signature, 'pygame.event.get()');
+for (const [text, identifier, signature] of [
+  ['import pygame as pg\npg.transform.flip(surface, True, False)', 'flip', 'pygame.transform.flip(surface, x, y)'],
+  ['import pygame\npygame.image.load("image.png")', 'load', 'pygame.image.load(filename)'],
+  ['import os, pygame as game\ngame.display.flip()', 'flip', 'pygame.display.flip()'],
+  ['from pygame import image\nimage.load("image.png")', 'load', 'pygame.image.load(filename)'],
+  ['from pygame import transform as tx, image as assets\ntx.flip(s, True, False)\nassets.load("x")', 'load', 'pygame.image.load(filename)'],
+  ['from pygame.transform import flip as mirror\nmirror(s, True, False)', 'mirror', 'pygame.transform.flip(surface, x, y)'],
+  ['import pygame.transform as tx\ntx.rotate(s, 90)', 'rotate', 'pygame.transform.rotate(surface, angle)'],
+  ['import pygame.transform\npygame.transform.scale(s, (20, 20))', 'scale', 'pygame.transform.scale(surface, size, dest_surface=None)'],
+  ['from pygame import (image as assets, transform)\nassets.load("x")', 'load', 'pygame.image.load(filename)'],
+  ['def main():\n    pg.image.load("x")\nimport pygame as pg\nmain()', 'load', 'pygame.image.load(filename)'],
+]) {
+  const index = indexFunctions(text);
+  assert.equal(functionAtOffset(index, text.lastIndexOf(identifier))?.signature, signature, `missing pygame docs for ${text}`);
+  for (const token of index.known) assert.equal(text.slice(token.start, token.end), token.value);
+}
+for (const text of [
+  'pg.image.load("x")',
+  'import something as pg\npg.image.load("x")',
+  'import pygame as pg\npg = other\npg.image.load("x")',
+  'import pygame as pg\ndef f(pg):\n    pg.image.load("x")',
+  'import pygame as pg\npg.image.load = other\npg.image.load("x")',
+  'import pygame as pg\nsetattr(pg.image, "load", other)\npg.image.load("x")',
+  'import pygame as pg\ndelattr(pg.image, "load")\npg.image.load("x")',
+  'import pygame as pg\nfrom unknown import *\npg.image.load("x")',
+  'import pygame as pg\nimport other as pg\npg.image.load("x")',
+  'if condition:\n    import pygame as pg\npg.image.load("x")',
+  'import pygame as pg\nthing.image.load("x")',
+]) assert.equal(functionAtOffset(indexFunctions(text), text.lastIndexOf('load')), null, `must not guess pygame binding: ${text}`);
+const unknownImport = 'from unknown import len as other\nlen([1, 2])';
+const unknownImportIndex = indexFunctions(unknownImport);
+assert.equal(functionAtOffset(unknownImportIndex, unknownImport.indexOf('len')), null, 'an imported name is not necessarily the builtin of the same name');
+assert.equal(functionAtOffset(unknownImportIndex, unknownImport.lastIndexOf('len'))?.signature, 'len(object)');
 for (const text of [
   'def f(value):\n    """Docs for f."""\n    return value\ndef g():\n    """Docs for g."""\n    f(3)\ng()\n',
   'def g():\n    """Docs for g."""\n    f(3)\ndef f(value):\n    """Docs for f."""\n    return value\ng()\n',
