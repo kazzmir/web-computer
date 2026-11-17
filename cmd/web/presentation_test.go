@@ -8,6 +8,31 @@ import (
 	"github.com/kazzmir/web-computer/lib/coroutine"
 )
 
+func TestIdleYieldsRetainPresentedFrame(t *testing.T) {
+	engine := &Engine{ScreenWidth: 320, ScreenHeight: 240}
+	draws := 0
+	engine.Coroutine = coroutine.MakeCoroutine(func(yield coroutine.YieldFunc) error {
+		engine.AddDrawCall(func(*ebiten.Image) { draws++ })
+		for {
+			if err := yield(); err != nil {
+				return err
+			}
+		}
+	})
+	defer engine.Stop()
+	screen := ebiten.NewImage(320, 240)
+	defer screen.Deallocate()
+	for i := 0; i < 5; i++ {
+		if err := engine.Update(); err != nil {
+			t.Fatal(err)
+		}
+		engine.Draw(screen)
+	}
+	if draws != 5 {
+		t.Fatalf("draws = %d, want last presented frame on all 5 draws", draws)
+	}
+}
+
 func TestShortProgramPresentsFinalFrame(t *testing.T) {
 	engine := &Engine{ScreenWidth: 640, ScreenHeight: 480}
 	draws := 0

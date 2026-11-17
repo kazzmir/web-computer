@@ -73,7 +73,9 @@ func test1() {
 type Engine struct {
 	Coroutine *coroutine.Coroutine
 	Yield     coroutine.YieldFunc
-	DrawCalls []func(*ebiten.Image)
+	// DrawCalls retains the last presented frame across idle/debugger yields.
+	DrawCalls        []func(*ebiten.Image)
+	pendingDrawCalls []func(*ebiten.Image)
 
 	ScreenWidth  int
 	ScreenHeight int
@@ -100,7 +102,7 @@ func (engine *Engine) Stop() {
 }
 
 func (engine *Engine) AddDrawCall(draw func(*ebiten.Image)) {
-	engine.DrawCalls = append(engine.DrawCalls, draw)
+	engine.pendingDrawCalls = append(engine.pendingDrawCalls, draw)
 }
 
 func (engine *Engine) Update() error {
@@ -120,13 +122,12 @@ func (engine *Engine) Update() error {
 		}
 		return nil
 	}
-	previous := engine.DrawCalls
-	engine.DrawCalls = nil
 	err := engine.Coroutine.Run()
+	if len(engine.pendingDrawCalls) > 0 {
+		engine.DrawCalls = engine.pendingDrawCalls
+		engine.pendingDrawCalls = nil
+	}
 	if errors.Is(err, ebiten.Termination) {
-		if len(engine.DrawCalls) == 0 {
-			engine.DrawCalls = previous
-		}
 		if len(engine.DrawCalls) > 0 {
 			// Ebitengine can Update several times before Draw. A short script
 			// must still present its last flip before its Go runtime exits.
@@ -216,7 +217,7 @@ func testGraphics() error {
 		return err
 	}
 
-	cleanupDebugger := setupDebugger(python, path)
+	cleanupDebugger := setupDebugger(python, path, engine)
 	defer cleanupDebugger()
 	return ebiten.RunGame(engine)
 }

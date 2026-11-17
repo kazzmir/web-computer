@@ -35,6 +35,35 @@ try {
   await status('Finished');
   assert.equal(await page.locator('#console').textContent(), '12\n');
 
+  // A paused interpreter must keep presenting the last flip, not the
+  // subsequently modified display surface or Ebitengine's cleared screen.
+  await breakpoint(5);
+  await page.locator('#source').fill('import pygame\ns = pygame.display.set_mode((320, 240))\ns.fill((210, 40, 80))\npygame.display.flip()\ns.fill((0, 0, 0))\nprint("done")');
+  await breakpoint(6);
+  await page.locator('#debug').click();
+  await status('Paused at line 6');
+  const canvas = page.frameLocator('#viewport iframe').locator('canvas');
+  const centerPixel = async () => {
+    const png = await canvas.screenshot();
+    return page.evaluate(async (png) => {
+      const image = new Image();
+      image.src = `data:image/png;base64,${png}`;
+      await image.decode();
+      const target = document.createElement('canvas');
+      target.width = image.width; target.height = image.height;
+      const context = target.getContext('2d');
+      context.drawImage(image, 0, 0);
+      return Array.from(context.getImageData(image.width >> 1, image.height >> 1, 1, 1).data);
+    }, png.toString('base64'));
+  };
+  await page.waitForTimeout(300);
+  assert.deepEqual(await centerPixel(), [210, 40, 80, 255], 'paused frame retains the last flip');
+  await page.waitForTimeout(300);
+  assert.deepEqual(await centerPixel(), [210, 40, 80, 255], 'idle draws must not clear the frame');
+  await page.locator('[data-debug-command="continue"]').click();
+  await status('Finished');
+  assert.deepEqual(await centerPixel(), [210, 40, 80, 255], 'unflipped changes stay invisible after exit');
+
   // Repeated hits, live breakpoint removal/addition, and stop while paused.
   await page.locator('#source').fill('i = 0\nwhile i < 3:\n    i += 1\nprint(i)');
   await breakpoint(3);

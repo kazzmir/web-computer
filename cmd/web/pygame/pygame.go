@@ -354,7 +354,12 @@ func RegisterPygameModule(system GraphicsSystem, context py.Context) error {
 	})
 	var display *pixels
 	present := func(p *pixels) error {
-		im := p.image
+		// The display surface remains writable after flip. Present a snapshot so
+		// later drawing cannot change the visible frame before the next flip.
+		var im *ebiten.Image
+		if p.image != nil {
+			im = ebiten.NewImageFromImage(p.image)
+		}
 		system.AddDrawCall(func(screen *ebiten.Image) {
 			if im != nil {
 				screen.DrawImage(im, nil)

@@ -10,7 +10,7 @@ import (
 
 // The command callback only wakes the Python goroutine; it never runs Python
 // inside a JavaScript callback (which would block the browser event loop).
-func setupDebugger(ctx py.Context, filename string) func() {
+func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 	config := js.Global().Get("webComputerDebug")
 	if config.Type() != js.TypeObject || !config.Get("enabled").Bool() {
 		return func() {}
@@ -59,8 +59,20 @@ func setupDebugger(ctx py.Context, filename string) func() {
 			locals = append(locals, map[string]any{"name": name, "value": debugValue(frame.Locals[name], 0)})
 		}
 		js.Global().Call("webComputerPaused", map[string]any{"line": int(line), "function": frame.Code.Name, "locals": locals})
-		mode = <-commands
-		targetDepth = depth
+		// Keep Ebitengine drawing the last presented frame while Python is
+		// paused. Blocking Update on the command channel can leave a cleared
+		// browser framebuffer visible until execution resumes.
+		for {
+			select {
+			case mode = <-commands:
+				targetDepth = depth
+				return
+			default:
+				if err := engine.Yield(); err != nil {
+					return
+				}
+			}
+		}
 	}
 	return func() {
 		ctx.Store().TraceLine = nil
