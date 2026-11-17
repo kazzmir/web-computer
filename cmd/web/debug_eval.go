@@ -15,6 +15,10 @@ func evaluateDebugExpression(frame *py.Frame, expression string) (py.Object, err
 	if err != nil {
 		return nil, err
 	}
+	return evaluateDebugCode(frame, code, false)
+}
+
+func evaluateDebugCode(frame *py.Frame, code *py.Code, truthValue bool) (py.Object, error) {
 	frame.FastToLocals()
 	store := frame.Context.Store()
 	traceLine, traceFrame := store.TraceLine, store.TraceFrame
@@ -24,5 +28,12 @@ func evaluateDebugExpression(frame *py.Frame, expression string) (py.Object, err
 	defer func() {
 		store.TraceLine, store.TraceFrame = traceLine, traceFrame
 	}()
-	return frame.Context.RunCode(code, frame.Globals, frame.Locals, nil)
+	value, err := frame.Context.RunCode(code, frame.Globals, frame.Locals, nil)
+	if err == nil && truthValue {
+		// __bool__/__len__ may themselves execute Python. Keep tracing off
+		// until truth conversion is complete too.
+		truth, truthErr := py.ObjectIsTrue(value)
+		return py.Bool(truth), truthErr
+	}
+	return value, err
 }
