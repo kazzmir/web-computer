@@ -12,6 +12,7 @@ Editing
 [x] Gutter error markers for syntax errors.
 
 Debugging
+[x] Break button to pause a running debug session without adding a breakpoint.
 [x] Call stack panel to inspect callers and their variables.
 [x] Step out to finish the current function (disabled outside functions).
 [ ] Watch expressions that update whenever execution pauses.

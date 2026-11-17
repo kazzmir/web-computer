@@ -107,7 +107,13 @@ the current function returns, then pauses at the next user-code line in its call
 It is disabled outside functions (including module and class bodies), even after
 editing variables; the interpreter also rejects such requests. Recursive calls
 step out one level at a time. Breakpoints still take precedence over stepping.
-Imported library internals and native calls are skipped.
+Imported library internals and native calls are skipped by ordinary stepping.
+**Break** requests a temporary pause at the next Python line, including library
+code, without adding a breakpoint. It is enabled only while the debug interpreter
+is ready and running, and disabled while paused, starting, or finished. A native
+call must return/yield to another Python line before it can stop. Library pauses
+show their actual filename and stack, without highlighting an unrelated editor
+line. The request is consumed by that pause; Continue resumes normally.
 **Stop** discards the run, even while paused. Ordinary **Run** ignores breakpoints.
 Stepping always controls the currently executing frame, even when the module or
 a caller is selected for inspection. Native Go calls do not add Python stack rows.
@@ -130,8 +136,8 @@ run `node web/debug-test.mjs`, `node web/splitter-test.mjs`, or
 `node web/highlight-test.mjs`, `node web/editor-input-test.mjs`, or
 `node web/hover-test.mjs`, `node web/syntax-check-test.mjs`, or
 `node web/brackets-test.mjs`, `node web/step-out-test.mjs`, or
-`node web/call-stack-test.mjs`, or `node web/result-splitters-test.mjs` (supports
-`BASE_URL` and `PLAYWRIGHT_MODULE`).
+`node web/call-stack-test.mjs`, `node web/result-splitters-test.mjs`, or
+`node web/break-test.mjs` (supports `BASE_URL` and `PLAYWRIGHT_MODULE`).
 Static function-resolution tests also run without a browser:
 `node web/function-index-test.mjs`, `node web/bracket-pairs-test.mjs`, and
 `node web/dedent-test.mjs`.

@@ -36,6 +36,7 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 	update(config.Get("breakpoints"))
 	commands := make(chan debugCommand, 1)
 	paused := false
+	breakRequested := false
 	command := js.FuncOf(func(_ js.Value, args []js.Value) any {
 		if len(args) == 0 {
 			return nil
@@ -43,6 +44,12 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 		action := args[0].String()
 		if action == "breakpoints" && len(args) > 1 {
 			update(args[1])
+			return nil
+		}
+		if action == "break" {
+			if !paused {
+				breakRequested = true
+			}
 			return nil
 		}
 		if !paused {
@@ -70,17 +77,17 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 	ctx.Store().TraceFrame = stack.traceFrame
 	ctx.Store().TraceLine = func(frame *py.Frame, line int32, depth int) {
 		stack.traceLine(frame, line)
-		if frame.Code.Filename != filename {
+		if !breakRequested && (frame.Code.Filename != filename || !shouldPauseDebug(mode, targetDepth, depth, breakpoints[line])) {
 			return
 		}
-		if !shouldPauseDebug(mode, targetDepth, depth, breakpoints[line]) {
-			return
-		}
+		// A manual break may stop in library code too. Consume the request at
+		// any pause so Continue cannot accidentally re-trigger it.
+		breakRequested = false
 		selectedID := 0
 		selectedFrame := frame
 		paused = true
 		defer func() { paused = false }()
-		sendDebuggerMessage("paused", map[string]any{"line": int(line), "function": frame.Code.Name, "locals": debugLocals(frame), "frames": stack.snapshot(), "canStepOut": canStepOut(frame, depth)})
+		sendDebuggerMessage("paused", map[string]any{"line": int(line), "filename": frame.Code.Filename, "function": frame.Code.Name, "locals": debugLocals(frame), "frames": stack.snapshot(), "canStepOut": canStepOut(frame, depth)})
 		// Yield to Ebitengine even while paused so the last frame stays visible.
 		for {
 			select {
@@ -115,6 +122,7 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 				}
 				if cmd.action == "continue" || cmd.action == "into" || cmd.action == "over" || cmd.action == "out" {
 					mode, targetDepth = cmd.action, depth
+					sendDebuggerMessage("debug-resumed", map[string]any{})
 					return
 				}
 			default:
@@ -124,6 +132,7 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 			}
 		}
 	}
+	sendDebuggerMessage("debug-ready", map[string]any{})
 	return func() {
 		ctx.Store().TraceLine = nil
 		ctx.Store().TraceFrame = nil

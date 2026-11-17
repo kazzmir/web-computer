@@ -107,7 +107,7 @@ body.resizing-results iframe { pointer-events: none; }
 .variable-error { width: 100%; color: #ffa7a7; }
 .variable-error:empty { display: none; }
 #status[data-state="paused"] { color: #ffe5a0; }
-@container result (max-width: 520px) {
+@container result (max-width: 620px) {
   #debugger .console-heading { flex-direction: column; align-items: stretch; gap: 6px; }
   #debugger .actions { flex-wrap: wrap; }
 }

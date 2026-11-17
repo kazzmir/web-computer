@@ -24,6 +24,7 @@ const callStack = document.querySelector('#call-stack');
 const localsTitle = document.querySelector('#locals-title');
 const debugLocation = document.querySelector('#debug-location');
 const debugControls = [...document.querySelectorAll('[data-debug-command]')];
+const breakButton = document.querySelector('#debug-break');
 const breakpoints = new Set();
 let syntaxDiagnostics = [];
 source.addEventListener('syntax-diagnostics', ({ detail }) => {
@@ -32,6 +33,10 @@ source.addEventListener('syntax-diagnostics', ({ detail }) => {
   renderGutter();
 });
 let pausedLine = null;
+let pausedFilename = null;
+let debugReady = false;
+let debugRunning = false;
+let breakPending = false;
 let canStepOut = false;
 let stackFrames = [];
 let selectedFrameId = 0;
@@ -40,6 +45,7 @@ function updateDebugControls() {
   const ready = debugging && pausedLine !== null && !variableEditor && requestedFrameId === null;
   for (const button of debugControls) button.disabled = !ready || (button.dataset.debugCommand === 'out' && !canStepOut);
   for (const button of callStack.querySelectorAll('button')) button.disabled = !ready;
+  breakButton.disabled = !debugging || !debugReady || !debugRunning || breakPending;
 }
 function showLocals(items) {
   locals.replaceChildren(...items.map((local) => variableRow(local.name, local.value)));
@@ -164,7 +170,7 @@ function renderGutter() {
     button.textContent = line;
     button.dataset.line = line;
     button.classList.toggle('breakpoint', breakpoints.has(line));
-    button.classList.toggle('current', pausedLine === line);
+    button.classList.toggle('current', pausedLine === line && pausedFilename === program?.filename);
     button.classList.toggle('inspected', inspectedLine === line);
     const error = syntaxDiagnostics.find((item) => item.line === line);
     button.classList.toggle('syntax-error', !!error);
@@ -201,6 +207,9 @@ function finishDebug() {
   locals.querySelectorAll('button, input').forEach((control) => { control.disabled = true; });
   debugging = false;
   pausedLine = null;
+  pausedFilename = null;
+  debugReady = debugRunning = breakPending = false;
+  breakButton.disabled = true;
   canStepOut = false;
   debugControls.forEach((button) => { button.disabled = true; });
   document.querySelector('#debug-stop').disabled = true;
@@ -208,10 +217,21 @@ function finishDebug() {
   selector.disabled = resetButton.disabled = false;
   renderGutter();
 }
+breakButton.addEventListener('click', () => {
+  if (breakButton.disabled) return;
+  breakPending = true;
+  updateDebugControls();
+  debugCommand('break');
+  debugLocation.textContent = 'Debugger — pausing…';
+  setStatus('Pausing…', 'running');
+});
 for (const button of debugControls) button.addEventListener('click', () => {
   if (button.disabled) return;
   debugCommand(button.dataset.debugCommand);
   pausedLine = null;
+  pausedFilename = null;
+  debugRunning = false; // Wait for Go to acknowledge the resume before enabling Break.
+  breakPending = false;
   canStepOut = false;
   renderGutter();
   debugControls.forEach((control) => { control.disabled = true; });
@@ -222,6 +242,7 @@ for (const button of debugControls) button.addEventListener('click', () => {
   selectedFrameId = 0;
   requestedFrameId = null;
   localsTitle.textContent = 'Local variables';
+  updateDebugControls();
   setStatus('Running', 'running');
 });
 const example = `import pygame
@@ -376,13 +397,27 @@ window.addEventListener('message', (event) => {
       program.breakpoints = [...breakpoints];
       frame.contentWindow.postMessage({ channel: 'web-computer', type: 'run', ...program }, location.origin);
       break;
-    case 'running': setStatus('Running', 'running'); break;
+    case 'running':
+      debugRunning = debugging;
+      updateDebugControls();
+      setStatus('Running', 'running');
+      break;
+    case 'debug-ready':
+      debugReady = debugging;
+      updateDebugControls();
+      break;
+    case 'debug-resumed':
+      debugRunning = debugging && pausedLine === null;
+      updateDebugControls();
+      break;
     case 'paused': {
       if (!debugging) break;
       pausedLine = message.line;
+      pausedFilename = message.filename ?? selected.filename;
+      debugRunning = breakPending = false;
       canStepOut = message.canStepOut === true;
       setStatus(`Paused at line ${pausedLine}`, 'paused');
-      debugLocation.textContent = `${selected.filename}:${pausedLine} — ${message.function}`;
+      debugLocation.textContent = `${pausedFilename}:${pausedLine} — ${message.function}`;
       stackFrames = message.frames ?? [{ id: 0, function: message.function, filename: selected.filename, line: message.line }];
       selectedFrameId = 0;
       requestedFrameId = null;
@@ -391,7 +426,7 @@ window.addEventListener('message', (event) => {
       updateDebugControls();
       const lineHeight = parseFloat(getComputedStyle(source).lineHeight);
       const top = (pausedLine - 1) * lineHeight;
-      if (top < source.scrollTop || top > source.scrollTop + source.clientHeight - 50) source.scrollTop = Math.max(0, top - 50);
+      if (pausedFilename === program?.filename && (top < source.scrollTop || top > source.scrollTop + source.clientHeight - 50)) source.scrollTop = Math.max(0, top - 50);
       renderGutter();
       break;
     }
