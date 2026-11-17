@@ -83,9 +83,13 @@ Click a line number in the editor gutter to toggle a red breakpoint, then click
 lines and comments do not trigger pauses. The debugger inspector is split into
 **Call stack** and **Locals** panes. The stack lists active Python frames, newest
 first, with function names and filename/line locations. Select a frame to inspect
-its locals; the arrow marks the actual executing frame. Caller locations show the
-call site, and recursive calls remain separate frames. Selecting a frame never
-resumes or moves execution. Each new pause selects the executing frame again.
+its locals; the arrow marks the actual executing frame. Selecting a frame from the
+current source also moves the editor caret to its line and scrolls it into view;
+a blue gutter highlight distinguishes an inspected caller from the stopped line.
+Caller locations show the call site, and recursive calls remain separate frames.
+Frames from other files still show locals but do not jump into unrelated editor
+text. Selecting a frame never resumes or moves execution. Each new pause selects
+the executing frame again.
 **Continue** runs to the next breakpoint,
 **Step into** advances to the next user-code line (entering Python calls), and
 **Step over** executes calls without stepping into them. **Step out** runs until

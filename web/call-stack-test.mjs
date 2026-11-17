@@ -11,6 +11,18 @@ async function selectFrame(id) {
   await frameButton(id).click();
   await page.waitForFunction((id) => document.querySelector(`#call-stack [data-frame-id="${id}"]`)?.getAttribute('aria-pressed') === 'true', id);
 }
+async function assertEditorLine(line) {
+  const position = await page.locator('#source').evaluate((element) => {
+    const before = element.value.slice(0, element.selectionStart);
+    const row = before.split('\n').length;
+    const style = getComputedStyle(element);
+    const top = parseFloat(style.paddingTop) + (row - 1) * parseFloat(style.lineHeight) - element.scrollTop;
+    return { row, collapsed: element.selectionStart === element.selectionEnd, visible: top >= 0 && top < element.clientHeight, focused: document.activeElement === element, scroll: element.scrollTop };
+  });
+  assert.equal(position.row, line);
+  assert(position.collapsed && position.visible && position.focused, 'selected frame line must have a visible focused caret');
+  assert.equal(await page.locator('#gutter').evaluate((element) => element.scrollTop), position.scroll);
+}
 async function edit(name, value) {
   await page.getByRole('button', { name: `Edit variable ${name}`, exact: true }).click();
   assert(await page.locator('#call-stack button').evaluateAll((nodes) => nodes.every((node) => node.disabled)), 'frame switching must be blocked during an edit');
@@ -55,16 +67,22 @@ try {
     window.inspectorObserver.observe(document.querySelector('#viewport'));
   });
   await selectFrame(2);
+  await assertEditorLine(9);
   assert.match(await page.locator('#locals-title').textContent(), /<module>/);
   assert.match(await page.locator('#locals').textContent(), /module_var = 7/);
   assert.doesNotMatch(await page.locator('#locals').textContent(), /value = 10/);
   assert.equal(await page.locator('[data-debug-command="out"]').isDisabled(), false, 'step out follows the stopped function, not the inspected module frame');
   await edit('module_var', '20');
   await selectFrame(1);
+  await assertEditorLine(7);
+  assert.equal(await page.locator('#gutter .inspected').getAttribute('data-line'), '7');
+  assert.equal(await page.locator('#gutter .current').getAttribute('data-line'), '3', 'viewing a caller must not move the execution marker');
   assert.match(await page.locator('#locals-title').textContent(), /outer/);
   assert.match(await page.locator('#locals').textContent(), /outer_only = 10/);
   await edit('outer_only', '50');
   await selectFrame(0);
+  await assertEditorLine(3);
+  assert.equal(await page.locator('#gutter .inspected').count(), 0);
   assert.match(await page.locator('#locals').textContent(), /value = 10/, 'caller edits must not overwrite the active frame arguments');
   assert.equal(await page.locator('#status').textContent(), 'Paused at line 3', 'selecting frames must not resume or move execution');
   await selectFrame(1);
@@ -107,6 +125,42 @@ try {
   await page.locator('#debug-stop').click();
   await status('Stopped');
   assert.equal(await page.locator('#call-stack button').count(), 0);
+  // Navigate between distant frames, including clicking the already selected
+  // active frame after manually scrolling elsewhere.
+  await page.locator('#gutter .breakpoint').click();
+  const distant = ['def first():', '    caller_value = 1', '    second()', '    return caller_value', ...Array.from({ length: 80 }, () => '# spacer'), 'def second():', '    inner_value = 2', '    return inner_value', 'first()'].join('\n');
+  const activeLine = distant.slice(0, distant.indexOf('inner_value =')).split('\n').length;
+  const moduleLine = distant.split('\n').length;
+  await page.locator('#source').fill(distant);
+  await page.locator(`#gutter button[data-line="${activeLine}"]`).click();
+  await page.locator('#debug').click();
+  await status(`Paused at line ${activeLine}`);
+  await selectFrame(1);
+  await assertEditorLine(3);
+  await selectFrame(2);
+  await assertEditorLine(moduleLine);
+  await selectFrame(0);
+  await assertEditorLine(activeLine);
+  await page.locator('#source').evaluate((element) => { element.scrollTop = 0; });
+  await frameButton(0).click();
+  await assertEditorLine(activeLine);
+  assert.equal(await page.locator('#status').textContent(), `Paused at line ${activeLine}`);
+  await page.locator('#debug-stop').click();
+  await status('Stopped');
+  await page.locator('#gutter .breakpoint').click();
+  await page.locator('#source').fill('import pygame as pg\ndef collides(a, b):\n    result = False\n    return result\na = pg.sprite.Sprite()\na.rect = pg.Rect(0, 0, 1, 1)\nb = pg.sprite.Sprite()\nb.rect = pg.Rect(0, 0, 1, 1)\ngroup = pg.sprite.Group(b)\npg.sprite.spritecollide(a, group, False, collides)');
+  await page.locator('#gutter button[data-line="3"]').click();
+  await page.locator('#debug').click();
+  await status('Paused at line 3');
+  await frameButton(0).click();
+  await assertEditorLine(3);
+  const beforeLibrary = await page.locator('#source').evaluate((element) => element.selectionStart);
+  await selectFrame(1);
+  assert.match(await page.locator('#locals-title').textContent(), /_spritecollide/);
+  assert.equal(await page.locator('#source').evaluate((element) => element.selectionStart), beforeLibrary, 'library frames must not jump to an unrelated line in user source');
+  assert.equal(await page.locator('#gutter .inspected').count(), 0);
+  await page.locator('#debug-stop').click();
+  await status('Stopped');
   assert.deepEqual(errors, []);
   console.log('Debugger call stack browser tests passed');
 } finally {

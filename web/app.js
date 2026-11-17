@@ -46,6 +46,20 @@ function showLocals(items) {
   const frame = stackFrames.find((item) => item.id === selectedFrameId);
   localsTitle.textContent = frame ? `Locals — ${frame.function}` : 'Local variables';
 }
+function jumpToFrame(frame) {
+  if (!frame || frame.filename !== program?.filename) return;
+  const lines = source.value.split('\n');
+  if (!Number.isInteger(frame.line) || frame.line < 1 || frame.line > lines.length) return;
+  let offset = 0;
+  for (let i = 0; i < frame.line - 1; i++) offset += lines[i].length + 1;
+  offset += lines[frame.line - 1].match(/^[\t ]*/)[0].length;
+  source.focus({ preventScroll: true });
+  source.setSelectionRange(offset, offset);
+  const style = getComputedStyle(source);
+  source.scrollTop = Math.max(0, parseFloat(style.paddingTop) + (frame.line - 1) * parseFloat(style.lineHeight) - source.clientHeight / 3);
+  source.scrollLeft = 0;
+  source.dispatchEvent(new Event('scroll'));
+}
 function renderCallStack() {
   callStack.replaceChildren(...stackFrames.map((frame) => {
     const button = document.createElement('button');
@@ -62,7 +76,8 @@ function renderCallStack() {
     location.textContent = `${frame.filename}:${frame.line}`;
     button.append(name, location);
     button.addEventListener('click', () => {
-      if (button.disabled || frame.id === selectedFrameId) return;
+      if (button.disabled) return;
+      if (frame.id === selectedFrameId) { jumpToFrame(frame); return; }
       requestedFrameId = frame.id;
       updateDebugControls();
       debugCommand('select-frame', { frameId: frame.id });
@@ -138,6 +153,8 @@ function editVariable(row, name, value) {
 function renderGutter() {
   const count = source.value.split('\n').length;
   gutter.style.setProperty('--gutter-digits', Math.max(3, String(count).length));
+  const inspected = stackFrames.find((frame) => frame.id === selectedFrameId);
+  const inspectedLine = debugging && pausedLine !== null && selectedFrameId !== 0 && inspected?.filename === program?.filename ? inspected.line : null;
   for (const line of breakpoints) if (line > count) breakpoints.delete(line);
   gutterLines.replaceChildren(...Array.from({ length: count }, (_, i) => {
     const line = i + 1;
@@ -147,6 +164,7 @@ function renderGutter() {
     button.dataset.line = line;
     button.classList.toggle('breakpoint', breakpoints.has(line));
     button.classList.toggle('current', pausedLine === line);
+    button.classList.toggle('inspected', inspectedLine === line);
     const error = syntaxDiagnostics.find((item) => item.line === line);
     button.classList.toggle('syntax-error', !!error);
     const action = `Line ${line}: ${breakpoints.has(line) ? 'remove' : 'add'} breakpoint`;
@@ -383,6 +401,8 @@ window.addEventListener('message', (event) => {
         selectedFrameId = message.frameId;
         renderCallStack();
         showLocals(message.locals);
+        jumpToFrame(stackFrames.find((frame) => frame.id === selectedFrameId));
+        renderGutter();
       }
       updateDebugControls();
       break;
