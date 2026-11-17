@@ -13,6 +13,8 @@ button:disabled { cursor: default; opacity: .4; }
 button.secondary { background: #172131; border-color: #344157; color: #bdcbe0; }
 button:focus-visible, textarea:focus-visible, pre:focus-visible { outline: 2px solid #9ad1ff; outline-offset: -2px; }
 .shortcut { font-size: 11px; opacity: .65; margin-left: 10px; }
+.run-icon { color: #16803c; }
+.button-icon { width: 16px; height: 16px; vertical-align: -3px; }
 main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(280px, 1fr) minmax(340px, 1.15fr); }
 section { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .editor-pane { border-right: 1px solid #283245; }
