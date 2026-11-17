@@ -82,7 +82,15 @@ footer { padding: 8px 16px; border-top: 1px solid #283245; font-size: 11px; }
 #debugger .console-heading h2 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #debugger .actions { flex: none; gap: 5px; flex-wrap: nowrap; }
 #debugger button { font-size: 11px; padding: 4px 7px; }
-#locals { height: clamp(100px, 18vh, 180px); flex: none; overflow: auto; padding: 8px 16px; font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.debug-inspection { height: clamp(100px, 18vh, 180px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); }
+.stack-pane { border-right: 1px solid #344157; }
+.inspector-heading { flex: none; margin: 0; padding: 3px 10px; border-bottom: 1px solid #283245; font-size: 11px; line-height: 18px; color: #879bb6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#call-stack { flex: 1; min-height: 0; overflow: auto; padding: 4px; font-size: 11px; }
+#debugger .stack-frame { display: block; width: 100%; margin-bottom: 2px; padding: 5px 7px; border: 1px solid transparent; border-radius: 3px; background: transparent; color: #bdcbe0; text-align: left; font-weight: normal; }
+#debugger .stack-frame[aria-pressed="true"] { background: #253b55; border-color: #50739d; color: #dbeafe; }
+.stack-frame span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stack-frame .frame-location { color: #879bb6; font-size: 10px; }
+#locals { flex: 1; min-height: 0; overflow: auto; padding: 8px 16px; font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 #locals .local-name { color: #9ad1ff; }
 #debugger .local-variable { display: block; width: 100%; padding: 0; border: 0; border-radius: 0; background: transparent; color: inherit; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
 #debugger .local-variable:hover { background: #172131; }

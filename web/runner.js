@@ -11,7 +11,7 @@ window.addEventListener('message', async (event) => {
   if (event.source !== parent || event.origin !== location.origin) return;
   const message = event.data;
   if (message?.channel === 'web-computer' && message.type === 'debug-command') {
-    globalThis.webComputerDebugCommand?.(message.command, message.breakpoints, message.variable);
+    globalThis.webComputerDebugCommand?.(message.command, message.breakpoints, message.payload ?? message.variable);
     return;
   }
   if (started) return;
@@ -45,6 +45,7 @@ window.addEventListener('message', async (event) => {
     globalThis.webComputerDebug = { enabled: !!message.debug, breakpoints: message.breakpoints ?? [] };
     globalThis.webComputerPaused = (state) => send('paused', state);
     globalThis.webComputerVariableResult = (result) => send('variable-result', result);
+    globalThis.webComputerFrameSelected = (state) => send('frame-selected', state);
     cleanup = runtimeLifecycle();
     const go = new Go();
     const filename = message.filename ?? 'editor.py';

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"sort"
 	"syscall/js"
 
 	"github.com/kazzmir/web-computer/gpython/py"
@@ -9,6 +8,7 @@ import (
 
 type debugCommand struct {
 	action, name, value string
+	frameID             int
 }
 
 // The callback only queues commands; Python values are changed in the paused
@@ -40,10 +40,15 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 		if !paused {
 			return nil
 		}
-		cmd := debugCommand{action: action}
-		if action == "set-variable" && len(args) > 2 {
-			cmd.name = args[2].Get("name").String()
-			cmd.value = args[2].Get("value").String()
+		cmd := debugCommand{action: action, frameID: -1}
+		if (action == "set-variable" || action == "select-frame") && len(args) > 2 && args[2].Type() == js.TypeObject {
+			if id := args[2].Get("frameId"); id.Type() == js.TypeNumber {
+				cmd.frameID = id.Int()
+			}
+			if action == "set-variable" {
+				cmd.name = args[2].Get("name").String()
+				cmd.value = args[2].Get("value").String()
+			}
 		}
 		select {
 		case commands <- cmd:
@@ -53,33 +58,42 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 	})
 	js.Global().Set("webComputerDebugCommand", command)
 	mode, targetDepth := "continue", 0
+	stack := &debugFrameStack{}
+	ctx.Store().TraceFrame = stack.traceFrame
 	ctx.Store().TraceLine = func(frame *py.Frame, line int32, depth int) {
+		stack.traceLine(frame, line)
 		if frame.Code.Filename != filename {
 			return
 		}
 		if !shouldPauseDebug(mode, targetDepth, depth, breakpoints[line]) {
 			return
 		}
-		frame.FastToLocals()
-		names := make([]string, 0, len(frame.Locals))
-		for name := range frame.Locals {
-			names = append(names, name)
-		}
-		sort.Strings(names)
-		locals := make([]any, 0, len(names))
-		for _, name := range names {
-			locals = append(locals, map[string]any{"name": name, "value": debugValue(frame.Locals[name], 0)})
-		}
+		selectedID := 0
+		selectedFrame := frame
 		paused = true
 		defer func() { paused = false }()
-		js.Global().Call("webComputerPaused", map[string]any{"line": int(line), "function": frame.Code.Name, "locals": locals, "canStepOut": canStepOut(frame, depth)})
+		js.Global().Call("webComputerPaused", map[string]any{"line": int(line), "function": frame.Code.Name, "locals": debugLocals(frame), "frames": stack.snapshot(), "canStepOut": canStepOut(frame, depth)})
 		// Yield to Ebitengine even while paused so the last frame stays visible.
 		for {
 			select {
 			case cmd := <-commands:
+				if cmd.action == "select-frame" {
+					if candidate := stack.frameAt(cmd.frameID); candidate != nil {
+						selectedID, selectedFrame = cmd.frameID, candidate
+						js.Global().Call("webComputerFrameSelected", map[string]any{"frameId": selectedID, "locals": debugLocals(selectedFrame)})
+					} else {
+						js.Global().Call("webComputerFrameSelected", map[string]any{"frameId": cmd.frameID, "error": "Frame is no longer available"})
+					}
+					continue
+				}
 				if cmd.action == "set-variable" {
-					value, err := setDebugVariable(frame, cmd.name, cmd.value)
-					result := map[string]any{"name": cmd.name}
+					result := map[string]any{"name": cmd.name, "frameId": cmd.frameID}
+					if cmd.frameID != selectedID {
+						result["error"] = "Selected frame changed"
+						js.Global().Call("webComputerVariableResult", result)
+						continue
+					}
+					value, err := setDebugVariable(selectedFrame, cmd.name, cmd.value)
 					if err != nil {
 						result["error"] = err.Error()
 					} else {
@@ -104,6 +118,7 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 	}
 	return func() {
 		ctx.Store().TraceLine = nil
+		ctx.Store().TraceFrame = nil
 		js.Global().Set("webComputerDebugCommand", js.Undefined())
 		command.Release()
 	}

@@ -19,6 +19,8 @@ const gutter = document.querySelector('#gutter');
 const gutterLines = document.querySelector('#gutter-lines');
 const debugPanel = document.querySelector('#debugger');
 const locals = document.querySelector('#locals');
+const callStack = document.querySelector('#call-stack');
+const localsTitle = document.querySelector('#locals-title');
 const debugLocation = document.querySelector('#debug-location');
 const debugControls = [...document.querySelectorAll('[data-debug-command]')];
 const breakpoints = new Set();
@@ -30,9 +32,43 @@ source.addEventListener('syntax-diagnostics', ({ detail }) => {
 });
 let pausedLine = null;
 let canStepOut = false;
+let stackFrames = [];
+let selectedFrameId = 0;
+let requestedFrameId = null;
 function updateDebugControls() {
-  const ready = debugging && pausedLine !== null && !variableEditor;
+  const ready = debugging && pausedLine !== null && !variableEditor && requestedFrameId === null;
   for (const button of debugControls) button.disabled = !ready || (button.dataset.debugCommand === 'out' && !canStepOut);
+  for (const button of callStack.querySelectorAll('button')) button.disabled = !ready;
+}
+function showLocals(items) {
+  locals.replaceChildren(...items.map((local) => variableRow(local.name, local.value)));
+  if (!items.length) locals.textContent = '(No local variables yet)';
+  const frame = stackFrames.find((item) => item.id === selectedFrameId);
+  localsTitle.textContent = frame ? `Locals — ${frame.function}` : 'Local variables';
+}
+function renderCallStack() {
+  callStack.replaceChildren(...stackFrames.map((frame) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'stack-frame';
+    button.dataset.frameId = frame.id;
+    button.setAttribute('aria-pressed', String(frame.id === selectedFrameId));
+    button.setAttribute('aria-label', `${frame.function}, ${frame.filename}, line ${frame.line}${frame.id === 0 ? ', executing frame' : ''}`);
+    button.title = `${frame.function} — ${frame.filename}:${frame.line}`;
+    const name = document.createElement('span');
+    name.textContent = `${frame.id === 0 ? '▶ ' : ''}${frame.function}`;
+    const location = document.createElement('span');
+    location.className = 'frame-location';
+    location.textContent = `${frame.filename}:${frame.line}`;
+    button.append(name, location);
+    button.addEventListener('click', () => {
+      if (button.disabled || frame.id === selectedFrameId) return;
+      requestedFrameId = frame.id;
+      updateDebugControls();
+      debugCommand('select-frame', { frameId: frame.id });
+    });
+    return button;
+  }));
 }
 let debugging = false;
 let variableEditor = null;
@@ -51,7 +87,7 @@ function variableRow(name, value) {
   return row;
 }
 function editVariable(row, name, value) {
-  if (!debugging || pausedLine === null || variableEditor) return;
+  if (!debugging || pausedLine === null || variableEditor || requestedFrameId !== null) return;
   debugControls.forEach((button) => { button.disabled = true; });
   const form = document.createElement('form');
   form.className = 'variable-editor';
@@ -76,8 +112,9 @@ function editVariable(row, name, value) {
   error.setAttribute('role', 'alert');
   form.append(label, save, cancel, error);
   row.replaceChildren(form);
-  const editor = { row, name, input, save, cancel, error, saving: false };
+  const editor = { row, name, input, save, cancel, error, saving: false, frameId: selectedFrameId };
   variableEditor = editor;
+  updateDebugControls();
   const close = () => {
     row.replaceWith(variableRow(name, value));
     variableEditor = null;
@@ -93,7 +130,7 @@ function editVariable(row, name, value) {
     editor.saving = true;
     input.disabled = save.disabled = cancel.disabled = true;
     error.textContent = '';
-    debugCommand('set-variable', { name, value: input.value });
+    debugCommand('set-variable', { name, value: input.value, frameId: editor.frameId });
   });
   input.focus();
   input.select();
@@ -123,8 +160,8 @@ function renderGutter() {
   }));
   gutter.scrollTop = source.scrollTop;
 }
-function debugCommand(command, variable) {
-  frame?.contentWindow.postMessage({ channel: 'web-computer', type: 'debug-command', command, breakpoints: [...breakpoints], variable }, location.origin);
+function debugCommand(command, payload) {
+  frame?.contentWindow.postMessage({ channel: 'web-computer', type: 'debug-command', command, breakpoints: [...breakpoints], payload }, location.origin);
 }
 gutterLines.addEventListener('click', (event) => {
   const line = Number(event.target.closest('button')?.dataset.line);
@@ -136,6 +173,11 @@ gutterLines.addEventListener('click', (event) => {
 source.addEventListener('scroll', () => { gutter.scrollTop = source.scrollTop; });
 function finishDebug() {
   variableEditor = null;
+  stackFrames = [];
+  selectedFrameId = 0;
+  requestedFrameId = null;
+  callStack.textContent = 'Not paused';
+  localsTitle.textContent = 'Local variables';
   locals.querySelectorAll('button, input').forEach((control) => { control.disabled = true; });
   debugging = false;
   pausedLine = null;
@@ -155,6 +197,11 @@ for (const button of debugControls) button.addEventListener('click', () => {
   debugControls.forEach((control) => { control.disabled = true; });
   debugLocation.textContent = 'Debugger — running';
   locals.textContent = 'Running…';
+  callStack.textContent = 'Running…';
+  stackFrames = [];
+  selectedFrameId = 0;
+  requestedFrameId = null;
+  localsTitle.textContent = 'Local variables';
   setStatus('Running', 'running');
 });
 const example = `import pygame
@@ -284,6 +331,7 @@ function run(debug = false) {
   debugging = debug;
   debugPanel.hidden = !debug;
   locals.textContent = 'Waiting for a breakpoint…';
+  callStack.textContent = 'Waiting for a breakpoint…';
   debugLocation.textContent = 'Debugger — running';
   document.querySelector('#debug-stop').disabled = !debug;
   source.readOnly = debug;
@@ -315,19 +363,32 @@ window.addEventListener('message', (event) => {
       canStepOut = message.canStepOut === true;
       setStatus(`Paused at line ${pausedLine}`, 'paused');
       debugLocation.textContent = `${selected.filename}:${pausedLine} — ${message.function}`;
+      stackFrames = message.frames ?? [{ id: 0, function: message.function, filename: selected.filename, line: message.line }];
+      selectedFrameId = 0;
+      requestedFrameId = null;
+      renderCallStack();
+      showLocals(message.locals);
       updateDebugControls();
-      locals.replaceChildren();
-      for (const local of message.locals) locals.append(variableRow(local.name, local.value));
-      if (!message.locals.length) locals.textContent = '(No local variables yet)';
       const lineHeight = parseFloat(getComputedStyle(source).lineHeight);
       const top = (pausedLine - 1) * lineHeight;
       if (top < source.scrollTop || top > source.scrollTop + source.clientHeight - 50) source.scrollTop = Math.max(0, top - 50);
       renderGutter();
       break;
     }
+    case 'frame-selected': {
+      if (!debugging || pausedLine === null || requestedFrameId !== message.frameId) break;
+      requestedFrameId = null;
+      if (!message.error) {
+        selectedFrameId = message.frameId;
+        renderCallStack();
+        showLocals(message.locals);
+      }
+      updateDebugControls();
+      break;
+    }
     case 'variable-result': {
       const editor = variableEditor;
-      if (!editor || editor.name !== message.name || !debugging || pausedLine === null) break;
+      if (!editor || editor.name !== message.name || editor.frameId !== (message.frameId ?? 0) || !debugging || pausedLine === null) break;
       if (message.error) {
         editor.saving = false;
         editor.input.disabled = editor.save.disabled = editor.cancel.disabled = false;

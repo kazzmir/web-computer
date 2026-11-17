@@ -80,8 +80,13 @@ double-click word selection.
 
 Click a line number in the editor gutter to toggle a red breakpoint, then click
 **Debug**. Execution pauses **before** an executable breakpoint line runs; blank
-lines and comments do not trigger pauses. The debugger panel shows the current
-function and its local variables. **Continue** runs to the next breakpoint,
+lines and comments do not trigger pauses. The debugger inspector is split into
+**Call stack** and **Locals** panes. The stack lists active Python frames, newest
+first, with function names and filename/line locations. Select a frame to inspect
+its locals; the arrow marks the actual executing frame. Caller locations show the
+call site, and recursive calls remain separate frames. Selecting a frame never
+resumes or moves execution. Each new pause selects the executing frame again.
+**Continue** runs to the next breakpoint,
 **Step into** advances to the next user-code line (entering Python calls), and
 **Step over** executes calls without stepping into them. **Step out** runs until
 the current function returns, then pauses at the next user-code line in its caller.
@@ -90,13 +95,17 @@ editing variables; the interpreter also rejects such requests. Recursive calls
 step out one level at a time. Breakpoints still take precedence over stepping.
 Imported library internals and native calls are skipped.
 **Stop** discards the run, even while paused. Ordinary **Run** ignores breakpoints.
+Stepping always controls the currently executing frame, even when the module or
+a caller is selected for inspection. Native Go calls do not add Python stack rows.
 Source editing and example selection are locked during debugging so line numbers
 stay aligned; breakpoints can still be toggled. Click a local variable while paused
 to edit it, then press Enter or **Save**. Escape or **Cancel** discards the edit.
 Supported values include strings (`"sdf"` or a bare word), integers (`3`), floats
 (`8.2`), lists (`[1, 2, 3]`), dictionaries (`{1: "a"}`), `True`, `False`, and `None`.
-Nested lists/dictionaries are supported. Edits update the real local variable,
-including function arguments and closure cells, without resuming execution.
+Nested lists/dictionaries are supported. Edits update the real local variable in
+the selected stack frame, including caller locals, module globals, function
+arguments, and closure cells, without resuming execution. Frame switching and
+stepping are disabled until the edit is saved or cancelled.
 Invalid values show an error and leave the variable unchanged; calls and other
 expressions are not evaluated. Values are displayed safely without invoking
 user-defined `__repr__`; complex objects show their type, and lists/dictionaries
@@ -106,8 +115,8 @@ Optional browser regression tests: serve the built app, install Playwright, then
 run `node web/debug-test.mjs`, `node web/splitter-test.mjs`, or
 `node web/highlight-test.mjs`, `node web/editor-input-test.mjs`, or
 `node web/hover-test.mjs`, `node web/syntax-check-test.mjs`, or
-`node web/brackets-test.mjs`, or `node web/step-out-test.mjs` (supports `BASE_URL`
-and `PLAYWRIGHT_MODULE`).
+`node web/brackets-test.mjs`, `node web/step-out-test.mjs`, or
+`node web/call-stack-test.mjs` (supports `BASE_URL` and `PLAYWRIGHT_MODULE`).
 Static function-resolution tests also run without a browser:
 `node web/function-index-test.mjs`, `node web/bracket-pairs-test.mjs`, and
 `node web/dedent-test.mjs`.

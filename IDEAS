@@ -12,7 +12,7 @@ Editing
 [x] Gutter error markers for syntax errors.
 
 Debugging
-[ ] Call stack panel to inspect callers and their variables.
+[x] Call stack panel to inspect callers and their variables.
 [x] Step out to finish the current function (disabled outside functions).
 [ ] Watch expressions that update whenever execution pauses.
 [ ] Conditional breakpoints, such as stopping only when x > 100.
