@@ -4,7 +4,8 @@ IDE feature ideas
 Editing
 [ ] Autocomplete for variables, functions, and pygame APIs.
 [x] Hover documentation with signatures and descriptions for known functions.
-[ ] Indent/dedent selections with Tab and Shift+Tab.
+[x] Dedent the current or selected lines with Shift+Tab.
+[ ] Indent selected lines with Tab (single-cursor Tab already inserts four spaces).
 [ ] Find and replace, including regular expressions.
 [x] Bracket matching for parentheses, square brackets, and braces.
 [ ] Automatic closing quotes/brackets.

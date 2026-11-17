@@ -44,6 +44,28 @@ try {
     assert.equal(await source.inputValue(), expected, `wrong indentation for ${JSON.stringify(before)}`);
     assert.deepEqual(await source.evaluate((element) => [element.selectionStart, element.selectionEnd]), [expected.length, expected.length]);
   }
+  await source.fill('        value = 3');
+  await source.press('End');
+  await source.press('Shift+Tab');
+  assert.equal(await source.inputValue(), '    value = 3');
+  assert.deepEqual(await source.evaluate((element) => [element.selectionStart, element.selectionEnd]), [13, 13]);
+  await source.press('Shift+Tab');
+  assert.equal(await source.inputValue(), 'value = 3');
+  await source.press('Shift+Tab');
+  assert.equal(await source.inputValue(), 'value = 3', 'dedenting an unindented line must be a no-op');
+  assert(await source.evaluate((element) => document.activeElement === element), 'Shift+Tab must keep editor focus');
+  await source.press('Home');
+  await source.press('Tab');
+  assert.equal(await source.inputValue(), '    value = 3', 'ordinary Tab must still insert four spaces');
+  await source.fill('    a\n        b\n    c');
+  await source.evaluate((element) => element.setSelectionRange(0, 16, 'backward'));
+  await source.press('Shift+Tab');
+  assert.equal(await source.inputValue(), 'a\n    b\n    c', 'dedent selected lines, excluding the next line at the selection boundary');
+  assert.deepEqual(await source.evaluate((element) => [element.selectionStart, element.selectionEnd, element.selectionDirection]), [0, 8, 'backward']);
+  await source.fill('  \tvalue');
+  await source.press('End');
+  await source.press('Shift+Tab');
+  assert.equal(await source.inputValue(), 'value', 'mixed leading whitespace should remove one visual indentation level');
   await source.fill('    result = before + after');
   await source.evaluate((element) => element.setSelectionRange(13, 19));
   await source.press('Enter');

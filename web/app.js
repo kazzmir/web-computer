@@ -1,7 +1,7 @@
 import './splitter.js';
 import './brackets.js';
 import { refreshHighlighting } from './highlight.js';
-import { newlineText } from './editor-input.js';
+import { newlineText, dedentLines } from './editor-input.js';
 import { refreshFunctionIndex } from './hover.js';
 import { refreshSyntaxErrors } from './syntax-check.js';
 
@@ -358,6 +358,17 @@ document.querySelector('#clear').addEventListener('click', () => { output.textCo
 resetButton.addEventListener('click', () => loadExample(selected.id));
 source.addEventListener('keydown', (event) => {
   if (source.readOnly || event.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
+  if (event.key === 'Tab' && event.shiftKey) {
+    event.preventDefault();
+    const edit = dedentLines(source.value, source.selectionStart, source.selectionEnd);
+    if (edit) {
+      const direction = source.selectionDirection;
+      source.setRangeText(edit.text, edit.start, edit.end, 'preserve');
+      source.setSelectionRange(edit.selectionStart, edit.selectionEnd, direction);
+      source.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    return;
+  }
   let insertion;
   if (event.key === 'Tab') insertion = '    ';
   else if (event.key === 'Enter') insertion = newlineText(source.value, source.selectionStart);
