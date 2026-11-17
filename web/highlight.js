@@ -1,3 +1,5 @@
+import { pythonTokenPattern as tokens } from './python-tokens.js';
+
 const source = document.querySelector('#source');
 const editor = document.querySelector('.source-editor');
 const layer = document.querySelector('#syntax-layer');
@@ -9,9 +11,6 @@ const keywords = new Set('and as assert async await break class continue def del
 const constants = new Set(['True', 'False', 'None', 'Ellipsis', 'NotImplemented']);
 const builtins = new Set('abs all any bool bytes callable chr classmethod complex dict dir divmod enumerate filter float format frozenset getattr hasattr hash help hex id input int isinstance issubclass iter len list map max min next object oct open ord pow print property range repr reversed round set setattr slice sorted staticmethod str sum super tuple type vars zip __import__ Exception ValueError TypeError RuntimeError'.split(' '));
 
-// A tolerant lexer, not an evaluator: incomplete strings and code can still
-// be colored while typing. All source is inserted as text, never as HTML.
-const tokens = /(?<comment>#[^\n]*)|(?<string>(?:[rRuUbBfF]{1,2})?(?:"""(?:\\[\s\S]|(?!""")[^\\])*?(?:"""|$)|'''(?:\\[\s\S]|(?!''')[^\\])*?(?:'''|$)|"(?:\\[\s\S]|[^"\\\r\n])*(?:"|(?=\r?\n|$))|'(?:\\[\s\S]|[^'\\\r\n])*(?:'|(?=\r?\n|$))))|(?<number>\b(?:0[xX][\da-fA-F_]+|0[bB][01_]+|0[oO][0-7_]+|\d[\d_]*(?:\.[\d_]*)?(?:[eE][+-]?[\d_]+)?)[jJ]?|\.[\d_]+(?:[eE][+-]?[\d_]+)?[jJ]?)|(?<identifier>[\p{L}_][\p{L}\p{N}_]*)|(?<operator>[-+*/%=<>!&|^~:@]+)/gu;
 let enabled = false;
 let timer = null;
 let composing = false;
@@ -106,6 +105,7 @@ function render() {
   highlightedTokens = retained;
   tokens.lastIndex = end;
   for (const match of text.matchAll(tokens)) {
+    if (match.groups.punctuation !== undefined) continue;
     fragment.append(document.createTextNode(text.slice(end, match.index)));
     let kind = Object.keys(match.groups).find((key) => match.groups[key] !== undefined);
     const value = match[0];
