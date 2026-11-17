@@ -1,0 +1,23 @@
+IDE feature ideas
+[x] = implemented; [ ] = not yet implemented.
+
+Editing
+[ ] Autocomplete for variables, functions, and pygame APIs.
+[x] Hover documentation with signatures and descriptions for known functions.
+[ ] Indent/dedent selections with Tab and Shift+Tab.
+[ ] Find and replace, including regular expressions.
+[ ] Bracket matching and automatic closing quotes/brackets.
+[ ] Gutter error markers for syntax errors.
+
+Debugging
+[ ] Call stack panel to inspect callers and their variables.
+[ ] Step out to finish the current function.
+[ ] Watch expressions that update whenever execution pauses.
+[ ] Conditional breakpoints, such as stopping only when x > 100.
+[ ] Debug console for evaluating expressions while paused.
+
+Workspace
+[ ] Multiple files and tabs, with Python imports between files.
+[ ] Upload/download projects, including images and sounds.
+[ ] Autosave history to restore earlier versions.
+[ ] Resizable console and debugger panels.
