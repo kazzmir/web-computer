@@ -1752,6 +1752,10 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 		return nil, err
 	}
 	defer frame.Context.Store().LeaveFrame()
+	if trace := frame.Context.Store().TraceFrame; trace != nil {
+		trace(frame, true)
+		defer trace(frame, false)
+	}
 	var vm = Vm{
 		frame:   frame,
 		context: frame.Context,
