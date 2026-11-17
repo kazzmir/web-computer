@@ -1782,8 +1782,16 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 	var opcode OpCode
 	var arg int32
 	opcodes := frame.Code.Code
+	lastLine, lastOffset := int32(-1), int32(-1)
 	for vm.why == whyNot {
 		yieldToHost()
+		if trace := frame.Context.Store().TraceLine; trace != nil {
+			line := frame.Code.Addr2Line(frame.Lasti)
+			if line != lastLine || frame.Lasti <= lastOffset {
+				trace(frame, line, frame.Context.Store().RecursionDepth())
+			}
+			lastLine, lastOffset = line, frame.Lasti
+		}
 		if debugging {
 			debugf("* %4d:", frame.Lasti)
 		}

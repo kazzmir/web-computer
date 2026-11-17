@@ -13,6 +13,24 @@ Click the result canvas for keyboard controls. **Stop** destroys that run; the
 next Run always gets a fresh iframe/Go runtime, since Ebitengine cannot restart
 in the same runtime. The editor and selected example are saved in this browser's local storage.
 
+### Debugging
+
+Click a line number in the editor gutter to toggle a red breakpoint, then click
+**Debug**. Execution pauses **before** an executable breakpoint line runs; blank
+lines and comments do not trigger pauses. The debugger panel shows the current
+function and its local variables. **Continue** runs to the next breakpoint,
+**Step into** advances to the next user-code line (entering Python calls), and
+**Step over** executes calls without stepping into them. Breakpoints inside calls
+still take precedence. Imported library internals and native calls are skipped.
+**Stop** discards the run, even while paused. Ordinary **Run** ignores breakpoints.
+Source editing and example selection are locked during debugging so line numbers
+stay aligned; breakpoints can still be toggled. Values are displayed safely without
+invoking user-defined `__repr__`; complex objects show their type, and lists are
+bounded previews. Breakpoints are session-only and reset on example changes.
+
+Optional browser regression tests: serve the built app, install Playwright, then
+run `node web/debug-test.mjs` (supports `BASE_URL` and `PLAYWRIGHT_MODULE`).
+
 The **Example** dropdown includes Chimp, Aliens, Liquid, Scroll, Scaletest,
 GL cube, and the SDL2 Video demo, alongside the welcome animation. Selecting
 one replaces the editor with its unchanged source; press Run to execute it.

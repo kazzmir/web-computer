@@ -8,8 +8,13 @@ const fail = (error) => { if (!exited) send('error', { text: String(error?.messa
 window.addEventListener('error', (event) => fail(event.error ?? event.message));
 window.addEventListener('unhandledrejection', (event) => fail(event.reason));
 window.addEventListener('message', async (event) => {
-  if (event.source !== parent || event.origin !== location.origin || started) return;
+  if (event.source !== parent || event.origin !== location.origin) return;
   const message = event.data;
+  if (message?.channel === 'web-computer' && message.type === 'debug-command') {
+    globalThis.webComputerDebugCommand?.(message.command, message.breakpoints);
+    return;
+  }
+  if (started) return;
   if (!message || message.channel !== 'web-computer' || message.type !== 'run' || typeof message.source !== 'string') return;
   started = true;
   const decoders = new Map([[1, new TextDecoder()], [2, new TextDecoder()]]);
@@ -37,6 +42,8 @@ window.addEventListener('message', async (event) => {
     // /python/data/... without pretending that browser files are writable.
     globalThis.process.cwd = () => '/';
     globalThis.webComputerSource = message.source;
+    globalThis.webComputerDebug = { enabled: !!message.debug, breakpoints: message.breakpoints ?? [] };
+    globalThis.webComputerPaused = (state) => send('paused', state);
     cleanup = runtimeLifecycle();
     const go = new Go();
     const filename = message.filename ?? 'editor.py';

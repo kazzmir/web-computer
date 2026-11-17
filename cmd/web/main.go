@@ -216,6 +216,8 @@ func testGraphics() error {
 		return err
 	}
 
+	cleanupDebugger := setupDebugger(python, path)
+	defer cleanupDebugger()
 	return ebiten.RunGame(engine)
 }
 

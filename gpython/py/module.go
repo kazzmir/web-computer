@@ -47,6 +47,8 @@ type ModuleImpl struct {
 
 // ModuleStore is a container of Module imported into an owning py.Context.
 type ModuleStore struct {
+	// TraceLine is an optional pre-execution line hook. Depth includes all active Python frames.
+	TraceLine      func(frame *Frame, line int32, depth int)
 	recursionDepth int
 	recursionLimit int
 	// Registry of installed modules

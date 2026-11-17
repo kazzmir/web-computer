@@ -34,5 +34,19 @@ footer { padding: 8px 16px; border-top: 1px solid #283245; font-size: 11px; }
 .console-heading { padding: 6px 16px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #283245; background: #121a27; }
 .console-heading button { font-size: 11px; padding: 3px 9px; }
 #console { margin: 0; min-height: 130px; height: 22vh; max-height: 250px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px 16px; color: #a9c0d8; background: #0c121d; font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; }
+[hidden] { display: none !important; }
+.code-editor { display: flex; flex: 1; min-height: 0; overflow: hidden; background: #101724; }
+.code-editor textarea { min-height: 0; padding-left: 12px; }
+#gutter { width: 64px; flex: none; overflow: hidden; background: #121a27; border-right: 1px solid #283245; }
+#gutter-lines { padding: 20px 0; }
+#gutter button { display: block; position: relative; width: 100%; height: 23.1px; padding: 0 10px 0 22px; border: 0; border-radius: 0; background: transparent; color: #879bb6; text-align: right; font: 14px/23.1px ui-monospace, SFMono-Regular, Consolas, monospace; }
+#gutter button.breakpoint::before { content: ''; position: absolute; left: 7px; top: 7px; width: 10px; height: 10px; border-radius: 50%; background: #ff5252; }
+#gutter button.current { background: #685020; color: #ffe5a0; }
+#debugger { flex: none; border-top: 1px solid #344157; }
+#debugger .actions { gap: 5px; flex-wrap: wrap; }
+#debugger button { font-size: 11px; padding: 4px 7px; }
+#locals { max-height: 180px; min-height: 65px; overflow: auto; padding: 8px 16px; font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+#locals .local-name { color: #9ad1ff; }
+#status[data-state="paused"] { color: #ffe5a0; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 @media (max-width: 740px) { body { height: auto; min-height: 100dvh; } header { padding: 12px; flex-wrap: wrap; } main { grid-template-columns: 1fr; } .editor-pane { height: 55dvh; border-right: 0; } .result-pane { height: 70dvh; } .shortcut { display: none; } }

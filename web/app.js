@@ -7,6 +7,62 @@ const storageKey = 'web-computer.python';
 const selector = document.querySelector('#examples');
 const runButton = document.querySelector('#run');
 const resetButton = document.querySelector('#reset');
+const debugButton = document.querySelector('#debug');
+const gutter = document.querySelector('#gutter');
+const gutterLines = document.querySelector('#gutter-lines');
+const debugPanel = document.querySelector('#debugger');
+const locals = document.querySelector('#locals');
+const debugLocation = document.querySelector('#debug-location');
+const debugControls = [...document.querySelectorAll('[data-debug-command]')];
+const breakpoints = new Set();
+let pausedLine = null;
+let debugging = false;
+function renderGutter() {
+  const count = source.value.split('\n').length;
+  for (const line of breakpoints) if (line > count) breakpoints.delete(line);
+  gutterLines.replaceChildren(...Array.from({ length: count }, (_, i) => {
+    const line = i + 1;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = line;
+    button.dataset.line = line;
+    button.classList.toggle('breakpoint', breakpoints.has(line));
+    button.classList.toggle('current', pausedLine === line);
+    button.setAttribute('aria-label', `Line ${line}: ${breakpoints.has(line) ? 'remove' : 'add'} breakpoint`);
+    button.setAttribute('aria-pressed', String(breakpoints.has(line)));
+    return button;
+  }));
+  gutter.scrollTop = source.scrollTop;
+}
+function debugCommand(command) {
+  frame?.contentWindow.postMessage({ channel: 'web-computer', type: 'debug-command', command, breakpoints: [...breakpoints] }, location.origin);
+}
+gutterLines.addEventListener('click', (event) => {
+  const line = Number(event.target.closest('button')?.dataset.line);
+  if (!line) return;
+  if (breakpoints.has(line)) breakpoints.delete(line); else breakpoints.add(line);
+  renderGutter();
+  if (debugging) debugCommand('breakpoints');
+});
+source.addEventListener('scroll', () => { gutter.scrollTop = source.scrollTop; });
+function finishDebug() {
+  debugging = false;
+  pausedLine = null;
+  debugControls.forEach((button) => { button.disabled = true; });
+  document.querySelector('#debug-stop').disabled = true;
+  source.readOnly = false;
+  selector.disabled = resetButton.disabled = false;
+  renderGutter();
+}
+for (const button of debugControls) button.addEventListener('click', () => {
+  debugCommand(button.dataset.debugCommand);
+  pausedLine = null;
+  renderGutter();
+  debugControls.forEach((control) => { control.disabled = true; });
+  debugLocation.textContent = 'Debugger — running';
+  locals.textContent = 'Running…';
+  setStatus('Running', 'running');
+});
 const example = `import pygame
 
 pygame.init()
@@ -57,6 +113,7 @@ try {
   savedSource = localStorage.getItem(storageKey);
 } catch { /* Private browsing / disabled storage. */ }
 source.value = savedSource ?? example;
+renderGutter();
 function showSelection() {
   selector.value = selected.id;
   document.querySelector('#editor-title').textContent = selected.filename;
@@ -73,7 +130,7 @@ async function loadExample(id) {
   const info = examples.find((item) => item.id === id);
   if (!info) return;
   const request = ++loading;
-  runButton.disabled = resetButton.disabled = true;
+  runButton.disabled = debugButton.disabled = resetButton.disabled = true;
   source.readOnly = true;
   try {
     let text = example;
@@ -85,6 +142,8 @@ async function loadExample(id) {
     if (request !== loading) return;
     selected = info;
     source.value = text;
+    breakpoints.clear();
+    renderGutter();
     showSelection();
     save();
   } catch (error) {
@@ -94,14 +153,14 @@ async function loadExample(id) {
     setStatus('Example unavailable', 'error');
   } finally {
     if (request === loading) {
-      runButton.disabled = resetButton.disabled = false;
+      runButton.disabled = debugButton.disabled = resetButton.disabled = false;
       source.readOnly = false;
     }
   }
 }
 selector.addEventListener('change', () => loadExample(selector.value));
 if (savedSource === null && selected.id !== 'starter') loadExample(selected.id);
-source.addEventListener('input', save);
+source.addEventListener('input', () => { save(); renderGutter(); });
 function setStatus(text, state = '') { status.textContent = text; status.dataset.state = state; }
 function append(text) {
   output.textContent = (output.textContent + text).slice(-100_000);
@@ -111,8 +170,9 @@ function dispose() {
   if (frame) frame.remove();
   frame = null;
   stop.disabled = true;
+  finishDebug();
 }
-function run() {
+function run(debug = false) {
   if (runButton.disabled) return;
   if (location.protocol === 'file:') {
     setStatus('HTTP server required', 'error');
@@ -121,7 +181,14 @@ function run() {
   }
   dispose();
   save();
-  program = { source: source.value, filename: selected.filename, args: selected.args ?? [] };
+  debugging = debug;
+  debugPanel.hidden = !debug;
+  locals.textContent = 'Waiting for a breakpoint…';
+  debugLocation.textContent = 'Debugger — running';
+  document.querySelector('#debug-stop').disabled = !debug;
+  source.readOnly = debug;
+  selector.disabled = resetButton.disabled = debug;
+  program = { source: source.value, filename: selected.filename, args: selected.args ?? [], debug, breakpoints: [...breakpoints] };
   output.textContent = '';
   setStatus('Loading runtime…');
   stop.disabled = false;
@@ -138,22 +205,49 @@ window.addEventListener('message', (event) => {
   if (!message || message.channel !== 'web-computer') return;
   switch (message.type) {
     case 'ready':
+      program.breakpoints = [...breakpoints];
       frame.contentWindow.postMessage({ channel: 'web-computer', type: 'run', ...program }, location.origin);
       break;
     case 'running': setStatus('Running', 'running'); break;
+    case 'paused': {
+      if (!debugging) break;
+      pausedLine = message.line;
+      setStatus(`Paused at line ${pausedLine}`, 'paused');
+      debugLocation.textContent = `${selected.filename}:${pausedLine} — ${message.function}`;
+      debugControls.forEach((button) => { button.disabled = false; });
+      locals.replaceChildren();
+      for (const local of message.locals) {
+        const row = document.createElement('div');
+        const name = document.createElement('span');
+        name.className = 'local-name';
+        name.textContent = local.name;
+        row.append(name, document.createTextNode(` = ${local.value}`));
+        locals.append(row);
+      }
+      if (!message.locals.length) locals.textContent = '(No local variables yet)';
+      const lineHeight = parseFloat(getComputedStyle(source).lineHeight);
+      const top = (pausedLine - 1) * lineHeight;
+      if (top < source.scrollTop || top > source.scrollTop + source.clientHeight - 50) source.scrollTop = Math.max(0, top - 50);
+      renderGutter();
+      break;
+    }
     case 'output': if (typeof message.text === 'string') append(message.text); break;
     case 'exit':
       setStatus(message.code === 0 ? 'Finished' : `Exited (${message.code})`, message.code === 0 ? '' : 'error');
       stop.disabled = true;
+      finishDebug();
       break;
     case 'error':
       append(`${message.text}\n`);
       setStatus('Error', 'error');
       stop.disabled = true;
+      finishDebug();
       break;
   }
 });
-runButton.addEventListener('click', run);
+runButton.addEventListener('click', () => run());
+debugButton.addEventListener('click', () => run(true));
+document.querySelector('#debug-stop').addEventListener('click', () => stop.click());
 stop.addEventListener('click', () => {
   dispose();
   viewport.replaceChildren(placeholder);
@@ -168,6 +262,7 @@ source.addEventListener('keydown', (event) => {
     event.preventDefault();
     source.setRangeText('    ', source.selectionStart, source.selectionEnd, 'end');
     save();
+    renderGutter();
   }
 });
 document.addEventListener('keydown', (event) => {
