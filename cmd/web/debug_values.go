@@ -114,6 +114,23 @@ func debugValue(value py.Object, depth int) string {
 	case py.Int, py.Float, py.Bool, py.NoneType:
 		text, _ := py.ReprAsString(value)
 		return text
+	case py.Tuple:
+		if depth >= 2 {
+			return "(…)"
+		}
+		parts := []string{}
+		for i, item := range v {
+			if i == 10 {
+				parts = append(parts, "…")
+				break
+			}
+			parts = append(parts, debugValue(item, depth+1))
+		}
+		suffix := ""
+		if len(v) == 1 {
+			suffix = ","
+		}
+		return "(" + strings.Join(parts, ", ") + suffix + ")"
 	case *py.List:
 		if depth >= 2 {
 			return "[…]"
