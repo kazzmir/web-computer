@@ -1,4 +1,5 @@
 import './splitter.js';
+import { refreshHighlighting } from './highlight.js';
 
 const source = document.querySelector('#source');
 const viewport = document.querySelector('#viewport');
@@ -181,6 +182,7 @@ try {
 } catch { /* Private browsing / disabled storage. */ }
 source.value = savedSource ?? example;
 renderGutter();
+refreshHighlighting(true);
 function showSelection() {
   selector.value = selected.id;
   document.querySelector('#editor-title').textContent = selected.filename;
@@ -209,6 +211,7 @@ async function loadExample(id) {
     if (request !== loading) return;
     selected = info;
     source.value = text;
+    refreshHighlighting(true);
     breakpoints.clear();
     renderGutter();
     showSelection();
@@ -338,6 +341,7 @@ source.addEventListener('keydown', (event) => {
     source.setRangeText('    ', source.selectionStart, source.selectionEnd, 'end');
     save();
     renderGutter();
+    refreshHighlighting();
   }
 });
 document.addEventListener('keydown', (event) => {

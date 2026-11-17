@@ -18,6 +18,15 @@ The split is saved locally. Focus the divider and use Left/Right arrows (Shift f
 larger steps), or Home/End for minimum pane widths. Double-click to reset it.
 On narrow screens the panes remain stacked without a divider.
 
+Use **Syntax highlighting** above the editor to toggle Python token colors for
+keywords, identifiers, function names, strings, numbers, comments, and operators.
+The preference is saved locally. Unchanged tokens before and after an edit keep
+their colors; only the modified text is shown as plain text immediately. After a
+200 ms typing pause, the lexer restarts at a safe token boundary and corrects any
+affected colors, including context changes from edited quotes or comments.
+Unchanged token spans are reused. This is lightweight lexical highlighting, not
+syntax validation.
+
 ### Debugging
 
 Click a line number in the editor gutter to toggle a red breakpoint, then click
@@ -41,8 +50,8 @@ user-defined `__repr__`; complex objects show their type, and lists/dictionaries
 are bounded previews. Breakpoints are session-only and reset on example changes.
 
 Optional browser regression tests: serve the built app, install Playwright, then
-run `node web/debug-test.mjs` or `node web/splitter-test.mjs` (supports `BASE_URL`
-and `PLAYWRIGHT_MODULE`).
+run `node web/debug-test.mjs`, `node web/splitter-test.mjs`, or
+`node web/highlight-test.mjs` (supports `BASE_URL` and `PLAYWRIGHT_MODULE`).
 
 The **Example** dropdown includes Chimp, Aliens, Liquid, Scroll, Scaletest,
 GL cube, and the SDL2 Video demo, alongside the welcome animation. Selecting

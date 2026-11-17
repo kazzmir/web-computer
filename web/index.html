@@ -20,7 +20,7 @@
   </header>
   <main>
     <section class="editor-pane" aria-labelledby="editor-title">
-      <div class="pane-title"><h2 id="editor-title">editor.py</h2><span>Python · pygame</span></div>
+      <div class="pane-title"><h2 id="editor-title">editor.py</h2><button id="syntax-toggle" class="secondary" aria-pressed="false"><span class="toggle-track" aria-hidden="true"></span>Syntax highlighting</button></div>
       <div class="example-bar">
         <label for="examples">Example</label>
         <select id="examples" aria-describedby="example-help"></select>
@@ -29,7 +29,10 @@
       <label for="source" class="sr-only">Python source code</label>
       <div class="code-editor">
       <div id="gutter" aria-label="Line breakpoints"><div id="gutter-lines"></div></div>
-      <textarea id="source" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-describedby="editor-help example-help" wrap="off"></textarea>
+      <div class="source-editor">
+        <pre id="syntax-layer" aria-hidden="true"><code id="syntax-code"></code></pre>
+        <textarea id="source" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-describedby="editor-help example-help" wrap="off"></textarea>
+      </div>
       </div>
       <footer id="editor-help">Click a line number to toggle a breakpoint · Ctrl/Cmd + Enter to run · Tab inserts four spaces</footer>
     </section>
