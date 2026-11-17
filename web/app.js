@@ -1,3 +1,5 @@
+import './splitter.js';
+
 const source = document.querySelector('#source');
 const viewport = document.querySelector('#viewport');
 const output = document.querySelector('#console');

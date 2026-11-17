@@ -13,6 +13,11 @@ Click the result canvas for keyboard controls. **Stop** destroys that run; the
 next Run always gets a fresh iframe/Go runtime, since Ebitengine cannot restart
 in the same runtime. The editor and selected example are saved in this browser's local storage.
 
+Drag the vertical divider between the editor and results to resize both panes.
+The split is saved locally. Focus the divider and use Left/Right arrows (Shift for
+larger steps), or Home/End for minimum pane widths. Double-click to reset it.
+On narrow screens the panes remain stacked without a divider.
+
 ### Debugging
 
 Click a line number in the editor gutter to toggle a red breakpoint, then click
@@ -36,7 +41,8 @@ user-defined `__repr__`; complex objects show their type, and lists/dictionaries
 are bounded previews. Breakpoints are session-only and reset on example changes.
 
 Optional browser regression tests: serve the built app, install Playwright, then
-run `node web/debug-test.mjs` (supports `BASE_URL` and `PLAYWRIGHT_MODULE`).
+run `node web/debug-test.mjs` or `node web/splitter-test.mjs` (supports `BASE_URL`
+and `PLAYWRIGHT_MODULE`).
 
 The **Example** dropdown includes Chimp, Aliens, Liquid, Scroll, Scaletest,
 GL cube, and the SDL2 Video demo, alongside the welcome animation. Selecting

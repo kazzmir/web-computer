@@ -16,9 +16,13 @@ button:focus-visible, textarea:focus-visible, pre:focus-visible { outline: 2px s
 .run-icon { color: #16803c; }
 .stop-icon { color: #ff5252; }
 .button-icon { width: 16px; height: 16px; vertical-align: -3px; }
-main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(280px, 1fr) minmax(340px, 1.15fr); }
+main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(280px, var(--editor-width, 1fr)) 8px minmax(340px, var(--result-width, 1.15fr)); }
 section { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
-.editor-pane { border-right: 1px solid #283245; }
+.result-pane { container: result / inline-size; }
+#pane-divider { background: #172131; border-inline: 1px solid #283245; cursor: col-resize; touch-action: none; }
+#pane-divider:hover, #pane-divider:focus-visible, body.resizing-panes #pane-divider { background: #50739d; outline: none; }
+body.resizing-panes, body.resizing-panes * { cursor: col-resize !important; user-select: none !important; }
+body.resizing-panes iframe { pointer-events: none; }
 .example-bar { padding: 10px 18px; border-bottom: 1px solid #283245; background: #121a27; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 5px 12px; }
 .example-bar label { color: #879bb6; font-size: 12px; }
 .example-bar select { min-width: 0; padding: 6px 9px; border: 1px solid #344157; border-radius: 5px; background: #172131; color: #dbeafe; font: inherit; }
@@ -59,5 +63,9 @@ footer { padding: 8px 16px; border-top: 1px solid #283245; font-size: 11px; }
 .variable-error { width: 100%; color: #ffa7a7; }
 .variable-error:empty { display: none; }
 #status[data-state="paused"] { color: #ffe5a0; }
+@container result (max-width: 420px) {
+  #debugger .console-heading { flex-direction: column; align-items: stretch; gap: 6px; }
+  #debugger .actions { flex-wrap: wrap; }
+}
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-@media (max-width: 740px) { body { height: auto; min-height: 100dvh; } header { padding: 12px; flex-wrap: wrap; } main { grid-template-columns: 1fr; } .editor-pane { height: 55dvh; border-right: 0; } .result-pane { height: 70dvh; } .shortcut { display: none; } }
+@media (max-width: 740px) { body { height: auto; min-height: 100dvh; } header { padding: 12px; flex-wrap: wrap; } main { grid-template-columns: 1fr; } #pane-divider { display: none; } .editor-pane { height: 55dvh; border-right: 0; } .result-pane { height: 70dvh; } .shortcut { display: none; } }
