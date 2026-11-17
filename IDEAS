@@ -17,7 +17,7 @@ Debugging
 [x] Step out to finish the current function (disabled outside functions).
 [ ] Watch expressions that update whenever execution pauses.
 [ ] Conditional breakpoints, such as stopping only when x > 100.
-[ ] Debug console for evaluating expressions while paused.
+[x] Debug console for evaluating expressions in the selected frame while paused.
 
 Workspace
 [ ] Multiple files and tabs, with Python imports between files.

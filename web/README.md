@@ -117,6 +117,18 @@ line. The request is consumed by that pause; Continue resumes normally.
 **Stop** discards the run, even while paused. Ordinary **Run** ignores breakpoints.
 Stepping always controls the currently executing frame, even when the module or
 a caller is selected for inspection. Native Go calls do not add Python stack rows.
+The console's expression box is enabled while paused. Enter one Python expression
+and press Enter or **Evaluate** (Ctrl/Cmd+Enter also evaluates here, rather than
+rerunning the program). It uses the selected stack frame's locals, globals, and
+built-ins. Results and Python errors appear in the console; lists, tuples, and
+dictionaries use bounded previews. Expressions may call functions and mutate objects, so
+side effects are real. Breakpoints/tracing are suppressed for evaluation calls,
+leaving the original program paused and its call stack intact. Locals refresh
+afterward. Use the variable editor to rebind a local; assignment statements and
+multiple statements are rejected. Frame switching and stepping wait for a result,
+but **Stop** remains available if an expression does not return. The box is hidden
+for ordinary Run and disabled while running or after exit.
+
 Source editing and example selection are locked during debugging so line numbers
 stay aligned; breakpoints can still be toggled. Click a local variable while paused
 to edit it, then press Enter or **Save**. Escape or **Cancel** discards the edit.
@@ -128,7 +140,7 @@ arguments, and closure cells, without resuming execution. Frame switching and
 stepping are disabled until the edit is saved or cancelled.
 Invalid values show an error and leave the variable unchanged; calls and other
 expressions are not evaluated. Values are displayed safely without invoking
-user-defined `__repr__`; complex objects show their type, and lists/dictionaries
+user-defined `__repr__`; complex objects show their type, and lists/tuples/dictionaries
 are bounded previews. Breakpoints are session-only and reset on example changes.
 
 Optional browser regression tests: serve the built app, install Playwright, then
@@ -137,7 +149,8 @@ run `node web/debug-test.mjs`, `node web/splitter-test.mjs`, or
 `node web/hover-test.mjs`, `node web/syntax-check-test.mjs`, or
 `node web/brackets-test.mjs`, `node web/step-out-test.mjs`, or
 `node web/call-stack-test.mjs`, `node web/result-splitters-test.mjs`, or
-`node web/break-test.mjs` (supports `BASE_URL` and `PLAYWRIGHT_MODULE`).
+`node web/break-test.mjs`, or `node web/evaluator-test.mjs` (supports `BASE_URL`
+and `PLAYWRIGHT_MODULE`).
 Static function-resolution tests also run without a browser:
 `node web/function-index-test.mjs`, `node web/bracket-pairs-test.mjs`, and
 `node web/dedent-test.mjs`.

@@ -25,6 +25,9 @@ const localsTitle = document.querySelector('#locals-title');
 const debugLocation = document.querySelector('#debug-location');
 const debugControls = [...document.querySelectorAll('[data-debug-command]')];
 const breakButton = document.querySelector('#debug-break');
+const evaluator = document.querySelector('#debug-evaluator');
+const expressionInput = document.querySelector('#debug-expression');
+const evaluateButton = document.querySelector('#evaluate-expression');
 const breakpoints = new Set();
 let syntaxDiagnostics = [];
 source.addEventListener('syntax-diagnostics', ({ detail }) => {
@@ -41,11 +44,18 @@ let canStepOut = false;
 let stackFrames = [];
 let selectedFrameId = 0;
 let requestedFrameId = null;
+let evaluationPending = null;
+let evaluationSequence = 0;
+let evaluationSupported = false;
 function updateDebugControls() {
-  const ready = debugging && pausedLine !== null && !variableEditor && requestedFrameId === null;
+  const ready = debugging && pausedLine !== null && !variableEditor && requestedFrameId === null && !evaluationPending;
   for (const button of debugControls) button.disabled = !ready || (button.dataset.debugCommand === 'out' && !canStepOut);
   for (const button of callStack.querySelectorAll('button')) button.disabled = !ready;
   breakButton.disabled = !debugging || !debugReady || !debugRunning || breakPending;
+  for (const button of locals.querySelectorAll('.local-variable')) button.disabled = !ready;
+  expressionInput.disabled = evaluateButton.disabled = !ready || !evaluationSupported;
+  const selected = stackFrames.find((frame) => frame.id === selectedFrameId);
+  expressionInput.placeholder = debugReady && !evaluationSupported ? 'Rebuild runtime to enable evaluation' : ready && selected ? `Expression in ${selected.function}` : 'Pause debugging to evaluate';
 }
 function showLocals(items) {
   locals.replaceChildren(...items.map((local) => variableRow(local.name, local.value)));
@@ -109,7 +119,7 @@ function variableRow(name, value) {
   return row;
 }
 function editVariable(row, name, value) {
-  if (!debugging || pausedLine === null || variableEditor || requestedFrameId !== null) return;
+  if (!debugging || pausedLine === null || variableEditor || requestedFrameId !== null || evaluationPending) return;
   debugControls.forEach((button) => { button.disabled = true; });
   const form = document.createElement('form');
   form.className = 'variable-editor';
@@ -198,6 +208,8 @@ gutterLines.addEventListener('click', (event) => {
 });
 source.addEventListener('scroll', () => { gutter.scrollTop = source.scrollTop; });
 function finishDebug() {
+  evaluationPending = null;
+  evaluationSupported = false;
   variableEditor = null;
   stackFrames = [];
   selectedFrameId = 0;
@@ -215,8 +227,25 @@ function finishDebug() {
   document.querySelector('#debug-stop').disabled = true;
   source.readOnly = false;
   selector.disabled = resetButton.disabled = false;
+  updateDebugControls();
   renderGutter();
 }
+evaluator.addEventListener('submit', (event) => {
+  event.preventDefault();
+  if (!debugging || pausedLine === null || variableEditor || requestedFrameId !== null || evaluationPending || !evaluationSupported) return;
+  const expression = expressionInput.value.trim();
+  if (!expression) { expressionInput.focus(); return; }
+  evaluationPending = { requestId: ++evaluationSequence, frameId: selectedFrameId, expression };
+  if (output.textContent && !output.textContent.endsWith('\n')) append('\n');
+  append(`>>> ${expression}\n`);
+  updateDebugControls();
+  debugCommand('evaluate', evaluationPending);
+});
+evaluator.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter') return;
+  event.stopPropagation();
+  if (event.ctrlKey || event.metaKey) { event.preventDefault(); evaluator.requestSubmit(); }
+});
 breakButton.addEventListener('click', () => {
   if (breakButton.disabled) return;
   breakPending = true;
@@ -370,7 +399,8 @@ function run(debug = false) {
   dispose();
   save();
   debugging = debug;
-  debugPanel.hidden = !debug;
+  debugPanel.hidden = evaluator.hidden = !debug;
+  expressionInput.value = '';
   locals.textContent = 'Waiting for a breakpoint…';
   callStack.textContent = 'Waiting for a breakpoint…';
   debugLocation.textContent = 'Debugger — running';
@@ -404,6 +434,7 @@ window.addEventListener('message', (event) => {
       break;
     case 'debug-ready':
       debugReady = debugging;
+      evaluationSupported = message.canEvaluate === true;
       updateDebugControls();
       break;
     case 'debug-resumed':
@@ -441,6 +472,17 @@ window.addEventListener('message', (event) => {
         renderGutter();
       }
       updateDebugControls();
+      break;
+    }
+    case 'evaluation-result': {
+      const pending = evaluationPending;
+      if (!pending || pending.requestId !== message.requestId || pending.frameId !== message.frameId || !debugging || pausedLine === null) break;
+      evaluationPending = null;
+      append(`${message.error ?? message.value}\n`);
+      showLocals(message.locals);
+      updateDebugControls();
+      expressionInput.focus();
+      expressionInput.select();
       break;
     }
     case 'variable-result': {

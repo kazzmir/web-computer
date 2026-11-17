@@ -65,7 +65,8 @@ try {
   near(resized[1], beforeLower[1] + 45, 'lower handle grows debugger');
   near(resized[2], beforeLower[2] - 45, 'lower handle shrinks console');
   await lower.press('End');
-  near((await heights())[2], 80, 'console still enforces its minimum while debugging');
+  const consoleMinimum = await page.locator('#console-pane').evaluate((element) => Math.max(80, Math.ceil(element.querySelector('.console-heading').getBoundingClientRect().height + element.querySelector('#debug-evaluator').getBoundingClientRect().height) + 40));
+  near((await heights())[2], consoleMinimum, 'console minimum keeps the evaluator and output usable');
   assert(await page.locator('.debug-inspection').evaluate((element) => element.clientHeight > 180), 'debugger inspector can grow beyond its old fixed height');
   const beforeFrameSwitch = await heights();
   await page.locator('#call-stack [data-frame-id="1"]').click();

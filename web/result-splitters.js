@@ -3,6 +3,7 @@ const runtime = document.querySelector('#viewport');
 const debuggerPane = document.querySelector('#debugger');
 const debuggerHeading = debuggerPane.querySelector('.console-heading');
 const consolePane = document.querySelector('#console-pane');
+const evaluator = document.querySelector('#debug-evaluator');
 const upperDivider = document.querySelector('#runtime-debug-divider');
 const lowerDivider = document.querySelector('#console-divider');
 const storageKey = 'web-computer.result-splits';
@@ -21,7 +22,7 @@ function mode() { return debuggerPane.hidden ? 'normal' : 'debug'; }
 function panes() { return mode() === 'debug' ? [runtime, debuggerPane, consolePane] : [runtime, consolePane]; }
 function minimum(pane) {
   if (pane === runtime) return 100;
-  if (pane === consolePane) return 80;
+  if (pane === consolePane) return Math.max(80, Math.ceil(consolePane.querySelector('.console-heading').getBoundingClientRect().height + evaluator.getBoundingClientRect().height) + 40);
   return Math.ceil(debuggerHeading.getBoundingClientRect().height) + 60;
 }
 function pair(divider) { return divider === upperDivider ? 0 : panes().length - 2; }
@@ -116,4 +117,5 @@ new MutationObserver(apply).observe(debuggerPane, { attributes: true, attributeF
 const observer = new ResizeObserver(apply);
 observer.observe(windows);
 observer.observe(debuggerHeading);
+observer.observe(evaluator);
 apply();

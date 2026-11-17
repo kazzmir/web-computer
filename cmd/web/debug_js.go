@@ -7,8 +7,8 @@ import (
 )
 
 type debugCommand struct {
-	action, name, value string
-	frameID             int
+	action, name, value, expression string
+	frameID, requestID              int
 }
 
 // Send through the existing iframe message protocol instead of JS callback
@@ -55,10 +55,16 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 		if !paused {
 			return nil
 		}
-		cmd := debugCommand{action: action, frameID: -1}
-		if (action == "set-variable" || action == "select-frame") && len(args) > 2 && args[2].Type() == js.TypeObject {
+		cmd := debugCommand{action: action, frameID: -1, requestID: -1}
+		if (action == "set-variable" || action == "select-frame" || action == "evaluate") && len(args) > 2 && args[2].Type() == js.TypeObject {
 			if id := args[2].Get("frameId"); id.Type() == js.TypeNumber {
 				cmd.frameID = id.Int()
+			}
+			if action == "evaluate" {
+				cmd.expression = args[2].Get("expression").String()
+				if id := args[2].Get("requestId"); id.Type() == js.TypeNumber {
+					cmd.requestID = id.Int()
+				}
 			}
 			if action == "set-variable" {
 				cmd.name = args[2].Get("name").String()
@@ -92,6 +98,22 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 		for {
 			select {
 			case cmd := <-commands:
+				if cmd.action == "evaluate" {
+					result := map[string]any{"frameId": cmd.frameID, "requestId": cmd.requestID}
+					if cmd.frameID != selectedID {
+						result["error"] = "Selected frame changed"
+					} else {
+						value, err := evaluateDebugExpression(selectedFrame, cmd.expression)
+						if err != nil {
+							result["error"] = err.Error()
+						} else {
+							result["value"] = debugValue(value, 0)
+						}
+					}
+					result["locals"] = debugLocals(selectedFrame)
+					sendDebuggerMessage("evaluation-result", result)
+					continue
+				}
 				if cmd.action == "select-frame" {
 					if candidate := stack.frameAt(cmd.frameID); candidate != nil {
 						selectedID, selectedFrame = cmd.frameID, candidate
@@ -132,7 +154,7 @@ func setupDebugger(ctx py.Context, filename string, engine *Engine) func() {
 			}
 		}
 	}
-	sendDebuggerMessage("debug-ready", map[string]any{})
+	sendDebuggerMessage("debug-ready", map[string]any{"canEvaluate": true})
 	return func() {
 		ctx.Store().TraceLine = nil
 		ctx.Store().TraceFrame = nil

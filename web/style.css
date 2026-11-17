@@ -47,6 +47,11 @@ body.resizing-results iframe { pointer-events: none; }
 .console-heading { padding: 6px 16px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #283245; background: #121a27; }
 .console-heading button { font-size: 11px; padding: 3px 9px; }
 #console { flex: 1; margin: 0; min-height: 0; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px 16px; color: #a9c0d8; background: #0c121d; font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; }
+#debug-evaluator { flex: none; display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-top: 1px solid #344157; background: #121a27; }
+#debug-evaluator > span { color: #9ad1ff; font: 12px ui-monospace, SFMono-Regular, Consolas, monospace; }
+#debug-expression { flex: 1; min-width: 0; padding: 5px 7px; border: 1px solid #344157; border-radius: 4px; background: #101724; color: #dbeafe; font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+#debug-expression:focus-visible { outline: 2px solid #9ad1ff; outline-offset: -2px; }
+#evaluate-expression { flex: none; padding: 5px 8px; font-size: 11px; }
 [hidden] { display: none !important; }
 .code-editor { display: flex; flex: 1; min-height: 0; overflow: hidden; background: #101724; }
 .code-editor textarea { min-height: 0; padding-left: 12px; }
