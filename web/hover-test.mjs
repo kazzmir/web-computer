@@ -79,6 +79,22 @@ thing.print(1)
     await page.waitForTimeout(420);
     assert.equal(await tooltip.isVisible(), false, 'ambiguous bindings must have no tooltip');
   }
+  for (const functions of [
+    'def f(value):\n    """Documentation for f."""\n    return value\ndef g():\n    """Documentation for g."""\n    f(3)\n    unknown()\ng()\n',
+    'def g():\n    """Documentation for g."""\n    f(3)\n    unknown()\ndef f(value):\n    """Documentation for f."""\n    return value\ng()\n',
+  ]) {
+    await fill(functions);
+    await hover(functions.lastIndexOf('g()'));
+    await tooltip.waitFor();
+    assert.equal(await tooltip.locator('.function-signature').textContent(), 'g()');
+    await hover(functions.indexOf('f(3)'));
+    await tooltip.waitFor();
+    assert.equal(await tooltip.locator('.function-signature').textContent(), 'f(value)', 'hover on f() inside g() must show f, not g');
+    assert.equal(await tooltip.locator('.function-documentation').textContent(), 'Documentation for f.');
+    await hover(functions.indexOf('unknown'));
+    await page.waitForTimeout(420);
+    assert.equal(await tooltip.isVisible(), false, 'unknown calls inside g() must not fall back to g documentation');
+  }
   const pygameCode = 'import pygame as pg\ndef main():\n    """Run the game."""\n    for event in pg.event.get():\n        print(event)\nmain()\n';
   await fill(pygameCode);
   await hover(pygameCode.lastIndexOf('main') + 1);

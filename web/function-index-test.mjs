@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { indexFunctions } from './function-index.js';
+import { indexFunctions, functionAtOffset } from './function-index.js';
 
 const docsFor = (source, name) => indexFunctions(source).known.filter((token) => token.value === name);
 assert(docsFor('print(len([1, 2]))', 'print').length === 1);
@@ -58,4 +58,23 @@ for (const name of ['pg.event.get', 'event.get', 'get']) {
   const offset = pygameSource.indexOf(name);
   assert.equal(pygameIndex.known.some((token) => token.start <= offset && offset < token.end), false, `${name} must not inherit main's documentation`);
 }
+for (const text of [
+  'def f(value):\n    """Docs for f."""\n    return value\ndef g():\n    """Docs for g."""\n    f(3)\ng()\n',
+  'def g():\n    """Docs for g."""\n    f(3)\ndef f(value):\n    """Docs for f."""\n    return value\ng()\n',
+]) {
+  const index = indexFunctions(text);
+  const call = text.indexOf('f(3)');
+  const info = functionAtOffset(index, call);
+  assert.equal(info?.signature, 'f(value)', 'hovering f() inside g() must document f(), even when declared later');
+  assert.equal(info.documentation, 'Docs for f.');
+  assert.equal(functionAtOffset(index, call + 1), null, 'parentheses are not function identifiers');
+  assert.equal(functionAtOffset(index, text.indexOf('Docs for g.')), null, 'docstrings are not function identifiers');
+}
+// Even malformed or overlapping documentation metadata cannot supply the
+// enclosing function's docs in place of the identifier under the pointer.
+const bogusIndex = indexFunctions('def g():\n    unknown()\ng()');
+const unknownOffset = bogusIndex.text.indexOf('unknown');
+const enclosing = bogusIndex.known.find((token) => token.value === 'g');
+bogusIndex.knownByStart.set(unknownOffset, { ...enclosing, start: unknownOffset, end: unknownOffset + 'unknown'.length });
+assert.equal(functionAtOffset(bogusIndex, unknownOffset), null, 'require the identifier name to match, not just its range');
 console.log('Function documentation index tests passed');

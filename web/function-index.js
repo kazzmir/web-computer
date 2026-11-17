@@ -61,6 +61,7 @@ export function indexFunctions(text) {
   const unsafe = new Set();
   const declarations = new Map();
   const definitions = new Map();
+  const functionBodies = [];
   let dynamic = false;
   const identifiers = (items) => items.filter((token) => token.kind === 'identifier');
   const invalidate = (items) => identifiers(items).forEach((token) => unsafe.add(token.value));
@@ -87,6 +88,8 @@ export function indexFunctions(text) {
       invalidate(items.slice(defIndex + 2, colon < 0 ? undefined : colon));
       const decorated = groups[groupIndex - 1]?.tokens[0]?.value === '@';
       if (group.topLevel && !decorated && colon >= 0) {
+        const nextTopLevel = groups.slice(groupIndex + 1).find((next) => next.topLevel);
+        functionBodies.push({ start: items[colon].end, end: nextTopLevel?.tokens[0].start ?? text.length });
         const body = items.slice(colon + 1);
         const next = groups[groupIndex + 1];
         const docTokens = body.length ? body : next && !next.topLevel ? next.tokens : [];
@@ -140,10 +143,34 @@ export function indexFunctions(text) {
   }
   const known = tokens.filter((token, i) => {
     const info = functions.get(token.value);
-    return token.kind === 'identifier' && info && tokens[i - 1]?.value !== '.' && tokens[i + 1]?.value !== '=' && (info.definitionStart === undefined || token.start >= info.definitionStart);
-  }).map((token) => ({ ...token, ...functions.get(token.value) }));
+    if (token.kind !== 'identifier' || !info || tokens[i - 1]?.value === '.' || tokens[i + 1]?.value === '=') return false;
+    // Function bodies resolve global function names when called, so a unique
+    // declaration later in the file can still document f() inside g().
+    return info.definitionStart === undefined || token.start >= info.definitionStart
+      || functionBodies.some((body) => body.start <= token.start && token.start < body.end);
+  }).map((token) => ({ ...functions.get(token.value), ...token }));
   const lines = text.split('\n');
   let offset = 0;
   const lineStarts = lines.map((line) => { const start = offset; offset += line.length + 1; return start; });
-  return { text, known, lines, lineStarts };
+  return { text, tokens, known, knownByStart: new Map(known.map((token) => [token.start, token])), lines, lineStarts };
+}
+
+// Resolve the lexical identifier first. Never select documentation just because
+// a range contains the pointer: that could accidentally select an enclosing def.
+export function functionAtOffset(index, offset) {
+  if (!index || offset === null) return null;
+  let low = 0;
+  let high = index.tokens.length - 1;
+  while (low <= high) {
+    const middle = (low + high) >>> 1;
+    const token = index.tokens[middle];
+    if (offset < token.start) high = middle - 1;
+    else if (offset >= token.end) low = middle + 1;
+    else {
+      if (token.kind !== 'identifier') return null;
+      const info = index.knownByStart.get(token.start);
+      return info?.value === token.value && info.start === token.start && info.end === token.end ? info : null;
+    }
+  }
+  return null;
 }

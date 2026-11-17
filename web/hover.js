@@ -1,4 +1,4 @@
-import { indexFunctions } from './function-index.js';
+import { indexFunctions, functionAtOffset } from './function-index.js';
 
 const source = document.querySelector('#source');
 const tooltip = document.querySelector('#function-tooltip');
@@ -56,7 +56,7 @@ source.addEventListener('pointermove', (event) => {
     return;
   }
   const offset = offsetAtPoint(event);
-  const info = offset === null ? null : index.known.find((token) => token.start <= offset && offset < token.end);
+  const info = functionAtOffset(index, offset);
   if (!info) { hide(); return; }
   if (target === info) return;
   hide();

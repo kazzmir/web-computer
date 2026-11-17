@@ -35,9 +35,11 @@ Hover over a known function identifier to see its signature and documentation.
 This works with syntax highlighting on or off. Supported names are documented
 Python built-in functions and unique, undecorated top-level `def`/`async def`
 functions in this file; their first-statement docstrings are shown when present.
-The static index is debounced while editing. Unknown/imported functions, inferred
-instance methods, forward references, and names with ambiguous or shadowed bindings
-are deliberately omitted rather than guessed. Wildcard imports and dynamic namespace
+The static index is debounced while editing. Hover lookup uses the exact lexical
+identifier, never its enclosing function. Calls inside function bodies can resolve
+unique functions declared later in the file. Unknown/imported functions, inferred
+instance methods, unresolved module-level forward references, and names with
+ambiguous or shadowed bindings are deliberately omitted rather than guessed. Wildcard imports and dynamic namespace
 operations suppress the index. Tooltips never execute code and disappear on edits,
 scrolling, or Escape.
 
