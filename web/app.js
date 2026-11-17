@@ -1,4 +1,5 @@
 import './splitter.js';
+import './brackets.js';
 import { refreshHighlighting } from './highlight.js';
 import { newlineText } from './editor-input.js';
 import { refreshFunctionIndex } from './hover.js';

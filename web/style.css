@@ -55,6 +55,8 @@ footer { padding: 8px 16px; border-top: 1px solid #283245; font-size: 11px; }
 .source-editor textarea { position: absolute; inset: 0; height: 100%; margin: 0; }
 #syntax-layer { display: none; position: absolute; inset: 0; margin: 0; border: 0; padding: 20px 20px 20px 12px; overflow: hidden; scrollbar-width: none; white-space: pre; tab-size: 4; color: #dbeafe; font: 14px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; pointer-events: none; }
 #syntax-code { font: inherit; }
+#bracket-layer { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+.bracket-match { position: absolute; border-radius: 2px; background: #ffd16630; box-shadow: inset 0 0 0 1px #ffd166; }
 .syntax-enabled #syntax-layer { display: block; }
 .syntax-enabled textarea { background: transparent; color: transparent; caret-color: #dbeafe; }
 .syntax-enabled textarea::selection { background: rgb(100 160 220 / 35%); }

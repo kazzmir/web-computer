@@ -30,6 +30,11 @@ syntax validation.
 In the editor, **Enter** preserves the current line's indentation and adds four
 spaces after a block header ending in `:` (such as `while`, `if`, or `def`).
 **Tab** inserts four spaces; Ctrl/Cmd+Enter still runs without inserting a newline.
+With the editor focused, a caret on or immediately after `(`, `)`, `[`, `]`, `{`,
+or `}` highlights both members of its matching pair. This works with syntax
+colors on or off, handles nesting and multiple lines, and ignores strings and
+comments. Unmatched/misnested delimiters and nonempty selections get no matching
+highlight. This does not automatically insert closing brackets.
 
 Syntax checks run after a 300 ms editing pause in an isolated background worker,
 using the same Python compiler as Run without executing the program. The first
@@ -92,10 +97,10 @@ are bounded previews. Breakpoints are session-only and reset on example changes.
 Optional browser regression tests: serve the built app, install Playwright, then
 run `node web/debug-test.mjs`, `node web/splitter-test.mjs`, or
 `node web/highlight-test.mjs`, `node web/editor-input-test.mjs`, or
-`node web/hover-test.mjs`, or `node web/syntax-check-test.mjs` (supports `BASE_URL`
-and `PLAYWRIGHT_MODULE`).
+`node web/hover-test.mjs`, `node web/syntax-check-test.mjs`, or
+`node web/brackets-test.mjs` (supports `BASE_URL` and `PLAYWRIGHT_MODULE`).
 Static function-resolution tests also run without a browser:
-`node web/function-index-test.mjs`.
+`node web/function-index-test.mjs` and `node web/bracket-pairs-test.mjs`.
 
 The **Example** dropdown includes Chimp, Aliens, Liquid, Scroll, Scaletest,
 GL cube, and the SDL2 Video demo, alongside the welcome animation. Selecting

@@ -6,7 +6,8 @@ Editing
 [x] Hover documentation with signatures and descriptions for known functions.
 [ ] Indent/dedent selections with Tab and Shift+Tab.
 [ ] Find and replace, including regular expressions.
-[ ] Bracket matching and automatic closing quotes/brackets.
+[x] Bracket matching for parentheses, square brackets, and braces.
+[ ] Automatic closing quotes/brackets.
 [x] Gutter error markers for syntax errors.
 
 Debugging
