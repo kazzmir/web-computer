@@ -63,6 +63,7 @@ export function indexFunctions(text) {
   const unsafe = new Set();
   const declarations = new Map();
   const definitions = new Map();
+  const classes = new Map();
   const functionBodies = [];
   const pygameImports = new Map();
   const importIdentifiers = new Set();
@@ -87,9 +88,24 @@ export function indexFunctions(text) {
         }
       }
       const colon = closing < 0 ? -1 : items.findIndex((token, i) => i > closing && token.value === ':');
-      // Parameter names, annotations, and defaults are treated conservatively;
-      // no speculative scope inference for a shadowed builtin or function.
-      invalidate(items.slice(defIndex + 2, colon < 0 ? undefined : colon));
+      const header = items.slice(defIndex + 2, colon < 0 ? undefined : colon);
+      if (closing < 0 || header.some((token) => token.value === 'lambda')) invalidate(header);
+      else {
+        // Only parameters bind names. Type annotations and default-value
+        // references (including a class's own name) must not shadow them.
+        let nesting = 0;
+        let parameter = true;
+        for (const token of items.slice(defIndex + 3, closing)) {
+          if (nesting === 0 && token.value === ',') parameter = true;
+          else if (nesting === 0 && parameter && token.kind === 'identifier') {
+            unsafe.add(token.value);
+            parameter = false;
+          }
+          if ('([{'.includes(token.value)) nesting++;
+          if (')]}'.includes(token.value)) nesting--;
+        }
+        for (let i = 0; i < header.length; i++) if (header[i].value === ':=' && header[i - 1]) unsafe.add(header[i - 1].value);
+      }
       const decorated = groups[groupIndex - 1]?.tokens[0]?.value === '@';
       if (group.topLevel && !decorated && colon >= 0) {
         const nextTopLevel = groups.slice(groupIndex + 1).find((next) => next.topLevel);
@@ -106,8 +122,22 @@ export function indexFunctions(text) {
         });
       } else unsafe.add(name.value);
       items = colon < 0 ? [] : items.slice(colon + 1);
-    } else if (items[0]?.value === 'class') {
-      if (items[1]) { declare(items[1].value); unsafe.add(items[1].value); }
+    } else if (items[0]?.value === 'class' && items[1]?.kind === 'identifier') {
+      const name = items[1];
+      declare(name.value);
+      let depth = 0;
+      const colon = items.findIndex((token) => {
+        if ('([{'.includes(token.value)) depth++;
+        if (')]}'.includes(token.value)) depth--;
+        return token.value === ':' && depth === 0;
+      });
+      const decorated = groups[groupIndex - 1]?.tokens[0]?.value === '@';
+      if (group.topLevel && !decorated && colon >= 0) classes.set(name.value, { definitionStart: name.start, origin: 'This file' });
+      else unsafe.add(name.value);
+      // Header expressions load base classes; they do not bind their names.
+      // Named expressions are an exception and must invalidate their target.
+      for (let i = 0; i < colon; i++) if (items[i].value === ':=' && items[i - 1]) unsafe.add(items[i - 1].value);
+      items = colon < 0 ? [] : items.slice(colon + 1);
     }
 
     if (items[0]?.value === 'import' || items[0]?.value === 'from') {
@@ -156,6 +186,7 @@ export function indexFunctions(text) {
     }
   }
   const known = [];
+  const classReferences = [];
   if (!dynamic) for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
     if (token.kind !== 'identifier' || tokens[i + 1]?.value === '=') continue;
@@ -172,7 +203,14 @@ export function indexFunctions(text) {
       const path = [binding.path, ...parts.slice(1)].join('.');
       const doc = pygameFunctionDocs.get(path);
       if (doc) info = { signature: doc[0], documentation: doc[1], origin: 'Pygame (browser API)', definitionStart: binding.start };
-    } else if (root === i && !importIdentifiers.has(token.start)) info = functions.get(token.value);
+    } else if (root === i && !importIdentifiers.has(token.start)) {
+      info = functions.get(token.value);
+      const classInfo = classes.get(token.value);
+      if (classInfo && !unsafe.has(token.value) && declarations.get(token.value) === 1
+        && (token.start >= classInfo.definitionStart || functionBodies.some((body) => body.start <= token.start && token.start < body.end))) {
+        classReferences.push({ ...classInfo, ...token });
+      }
+    }
     if (!info) continue;
     // Function bodies resolve global function names when called, so a unique
     // declaration or explicit import later in the file can document a call.
@@ -184,13 +222,17 @@ export function indexFunctions(text) {
   const lines = text.split('\n');
   let offset = 0;
   const lineStarts = lines.map((line) => { const start = offset; offset += line.length + 1; return start; });
-  return { text, tokens, known, knownByStart: new Map(known.map((token) => [token.start, token])), lines, lineStarts };
+  return {
+    text, tokens, known, lines, lineStarts,
+    knownByStart: new Map(known.map((token) => [token.start, token])),
+    classesByStart: new Map(classReferences.map((token) => [token.start, token])),
+  };
 }
 
 // Resolve the lexical identifier first. Never select documentation just because
 // a range contains the pointer: that could accidentally select an enclosing def.
-export function functionAtOffset(index, offset) {
-  if (!index || offset === null) return null;
+function identifierAtOffset(index, offset, references) {
+  if (!index || !references || offset === null) return null;
   let low = 0;
   let high = index.tokens.length - 1;
   while (low <= high) {
@@ -200,9 +242,17 @@ export function functionAtOffset(index, offset) {
     else if (offset >= token.end) low = middle + 1;
     else {
       if (token.kind !== 'identifier') return null;
-      const info = index.knownByStart.get(token.start);
+      const info = references.get(token.start);
       return info?.value === token.value && info.start === token.start && info.end === token.end ? info : null;
     }
   }
   return null;
+}
+
+export function functionAtOffset(index, offset) {
+  return identifierAtOffset(index, offset, index?.knownByStart);
+}
+
+export function definitionAtOffset(index, offset) {
+  return functionAtOffset(index, offset) ?? identifierAtOffset(index, offset, index?.classesByStart);
 }

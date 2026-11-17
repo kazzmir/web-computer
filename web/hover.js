@@ -1,4 +1,4 @@
-import { indexFunctions, functionAtOffset } from './function-index.js';
+import { indexFunctions, functionAtOffset, definitionAtOffset } from './function-index.js';
 
 const source = document.querySelector('#source');
 const tooltip = document.querySelector('#function-tooltip');
@@ -84,7 +84,7 @@ source.addEventListener('dblclick', (event) => {
     clearTimeout(analysisTimer);
     index = indexFunctions(source.value);
   }
-  const info = functionAtOffset(index, offsetAtPoint(event));
+  const info = definitionAtOffset(index, offsetAtPoint(event));
   if (info?.origin !== 'This file' || !Number.isInteger(info.definitionStart)) return;
   event.preventDefault();
   hide();

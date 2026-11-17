@@ -161,8 +161,29 @@ thing.print(1)
     assert.equal(await page.locator('#syntax-layer').evaluate((element) => element.scrollTop), state.scroll);
     assert.equal(await tooltip.isVisible(), false);
   }
+  for (const classCode of [
+    `class Widget:\n    def __init__(self, value):\n        self.value = value\n${spacer}\nWidget(3)`,
+    `def main():\n    Widget(3)\n${spacer}\nclass Widget:\n    def __init__(self, value):\n        self.value = value\nmain()`,
+  ]) {
+    await fill(classCode);
+    const point = await hover(classCode.indexOf('Widget(3)'));
+    await page.mouse.dblclick(point.x, point.y);
+    const definition = classCode.indexOf('class Widget') + 'class '.length;
+    assert.deepEqual(await page.locator('#source').evaluate((element) => [element.selectionStart, element.selectionEnd]), [definition, definition], 'constructors must navigate to the class name, not __init__ or an enclosing function');
+    const visible = await page.locator('#source').evaluate((element, definition) => {
+      const row = element.value.slice(0, definition).split('\n').length - 1;
+      const style = getComputedStyle(element);
+      const top = parseFloat(style.paddingTop) + row * parseFloat(style.lineHeight) - element.scrollTop;
+      return top >= 0 && top < element.clientHeight;
+    }, definition);
+    assert(visible, 'the class declaration must be scrolled into view');
+    assert.equal(await page.locator('#source').inputValue(), classCode);
+  }
   for (const [text, name] of [
     ['print("hello")', 'print'],
+    ['list([1, 2])', 'list'],
+    ['import pygame as pg\npg.Surface((10, 10))', 'Surface'],
+    ['class Widget: pass\nWidget = other\nWidget()', 'Widget'],
     ['import pygame as pg\npg.image.load("x")', 'load'],
     ['unknown(3)', 'unknown'],
   ]) {

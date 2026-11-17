@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { indexFunctions, functionAtOffset } from './function-index.js';
+import { indexFunctions, functionAtOffset, definitionAtOffset } from './function-index.js';
 
 const docsFor = (source, name) => indexFunctions(source).known.filter((token) => token.value === name);
 assert(docsFor('print(len([1, 2]))', 'print').length === 1);
@@ -10,7 +10,7 @@ assert.equal(docsFor('call(print=3)', 'print').length, 0);
 for (const shadow of [
   'print = 3', 'print += 1', 'print: int', 'a, print = values', '(a, print) = values',
   'for print in values:\n    pass', '[print for print in values]',
-  'def f(print):\n    pass', 'f = lambda print: print',
+  'def f(print):\n    pass', 'def f(*print):\n    pass', 'def f(**print):\n    pass', 'f = lambda print: print',
   'import print', 'import other as print', 'from other import print',
   'with context as print:\n    pass', 'try:\n    pass\nexcept Exception as print:\n    pass',
   'del print', '(print := 3)', 'class print:\n    pass',
@@ -111,4 +111,30 @@ const unknownOffset = bogusIndex.text.indexOf('unknown');
 const enclosing = bogusIndex.known.find((token) => token.value === 'g');
 bogusIndex.knownByStart.set(unknownOffset, { ...enclosing, start: unknownOffset, end: unknownOffset + 'unknown'.length });
 assert.equal(functionAtOffset(bogusIndex, unknownOffset), null, 'require the identifier name to match, not just its range');
-console.log('Function documentation index tests passed');
+for (const text of [
+  'class Widget:\n    def __init__(self, value):\n        self.value = value\nWidget(3)',
+  'class Widget: value = 3\nWidget()',
+  'class Base: pass\nclass Widget(Base): pass\nWidget()',
+  'class Widget: pass\ndef make(value: Widget = None) -> Widget:\n    return Widget()\nWidget()',
+  'def main():\n    Widget(3)\nclass Widget:\n    def __init__(self, value):\n        pass\nmain()',
+]) {
+  const index = indexFunctions(text);
+  const offset = text.lastIndexOf('Widget(');
+  assert.equal(definitionAtOffset(index, offset)?.definitionStart, text.indexOf('class Widget') + 'class '.length, 'constructor references should navigate to their class declaration');
+  assert.equal(functionAtOffset(index, offset), null, 'class navigation must not invent function documentation');
+}
+for (const text of [
+  'list()',
+  'import pygame as pg\npg.Surface((10, 10))',
+  'class Widget: pass\nWidget = other\nWidget()',
+  'class Widget: pass\nclass Widget: pass\nWidget()',
+  'class Widget: pass\ndef make(Widget):\n    Widget()',
+  'from somewhere import Widget\nWidget()',
+  '@decorator\nclass Widget: pass\nWidget()',
+  'if ready:\n    class Widget: pass\nWidget()',
+]) {
+  const index = indexFunctions(text);
+  const name = text.includes('Widget()') ? 'Widget()' : text.includes('Surface') ? 'Surface' : 'list';
+  assert.equal(definitionAtOffset(index, text.lastIndexOf(name)), null, 'do not navigate to builtin, imported, or ambiguous classes');
+}
+console.log('Function documentation and definition index tests passed');
