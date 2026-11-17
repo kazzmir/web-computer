@@ -33,8 +33,8 @@ spaces after a block header ending in `:` (such as `while`, `if`, or `def`).
 
 Syntax checks run after a 300 ms editing pause in an isolated background worker,
 using the same Python compiler as Run without executing the program. The first
-syntax error is marked with a red wavy underline and edge stripe on its gutter
-line. Hover that line number for the error, or read its line, column, and message
+syntax error is marked with a red warning triangle, tinted background, and edge
+stripe on its gutter line (separate from the breakpoint dot). Hover that line number for the error, or read its line, column, and message
 below the editor. Breakpoint dots still work on error lines. Fixing or changing
 the code clears stale markers immediately; old background results are discarded.
 Checks also catch compiler errors such as `return` outside a function. They do

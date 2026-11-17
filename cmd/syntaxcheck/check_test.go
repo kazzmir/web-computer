@@ -16,6 +16,8 @@ func TestCheckSource(t *testing.T) {
 		source, message string
 		line            int
 	}{
+		{"x = = = y", "SyntaxError", 1},
+		{"x = 1\ny = 2\nx = = = y", "SyntaxError", 3},
 		{"x = 1\ndef broken(:\n    pass", "SyntaxError", 2},
 		{"x = 1\nreturn 3", "outside function", 2},
 		{"x = 1\nbreak", "outside loop", 2},

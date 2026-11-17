@@ -22,6 +22,23 @@ try {
   await state(page, 'valid');
   assert.equal(await page.locator('#gutter .syntax-error').count(), 0);
   assert.equal(await page.locator('#console').textContent(), '');
+  // Reproduce the reported input with real keystrokes, not only a fill event.
+  await page.locator('#source').fill('x');
+  await page.locator('#source').press('End');
+  await page.locator('#source').pressSequentially(' = = = y', { delay: 20 });
+  await state(page, 'error');
+  const firstLine = page.locator('#gutter button[data-line="1"]');
+  assert.match(await firstLine.getAttribute('class'), /syntax-error/);
+  assert.match(await firstLine.getAttribute('title'), /SyntaxError/);
+  const warning = await firstLine.evaluate((element) => {
+    const style = getComputedStyle(element, '::after');
+    return { content: style.content, width: parseFloat(style.width), background: style.backgroundColor };
+  });
+  assert.equal(warning.content, '"!"', 'syntax errors must have an explicit warning icon');
+  assert(warning.width >= 14, 'warning icon must be visible at normal editor size');
+  assert.notEqual(warning.background, 'rgba(0, 0, 0, 0)');
+  await firstLine.click();
+  assert.match(await firstLine.getAttribute('class'), /breakpoint/, 'warning must coexist with a breakpoint dot');
   await page.locator('#source').fill('x = 1\ndef broken(:\n    pass');
   await state(page, 'error');
   const marker = page.locator('#gutter button[data-line="2"]');

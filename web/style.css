@@ -66,12 +66,13 @@ footer { padding: 8px 16px; border-top: 1px solid #283245; font-size: 11px; }
 .syntax-number, .syntax-constant { color: #f78c6c; }
 .syntax-comment { color: #879bb6; font-style: italic; }
 .syntax-operator { color: #89ddff; }
-#gutter { width: 64px; flex: none; overflow: hidden; background: #121a27; border-right: 1px solid #283245; }
+#gutter { width: calc(54px + var(--gutter-digits, 3) * 1ch); font: 14px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; flex: none; overflow: hidden; background: #121a27; border-right: 1px solid #283245; }
 #gutter-lines { padding: 20px 0; }
-#gutter button { display: block; position: relative; width: 100%; height: 23.1px; padding: 0 10px 0 22px; border: 0; border-radius: 0; background: transparent; color: #879bb6; text-align: right; font: 14px/23.1px ui-monospace, SFMono-Regular, Consolas, monospace; }
+#gutter button { display: block; position: relative; width: 100%; height: 23.1px; padding: 0 10px 0 40px; border: 0; border-radius: 0; background: transparent; color: #879bb6; text-align: right; font: 14px/23.1px ui-monospace, SFMono-Regular, Consolas, monospace; }
 #gutter button.breakpoint::before { content: ''; position: absolute; left: 7px; top: 7px; width: 10px; height: 10px; border-radius: 50%; background: #ff5252; }
 #gutter button.current { background: #685020; color: #ffe5a0; }
-#gutter button.syntax-error { color: #ffa7a7; text-decoration: underline wavy #ff5252; text-underline-offset: 3px; box-shadow: inset -3px 0 #ff5252; }
+#gutter button.syntax-error { color: #ffa7a7; background: #ff52521a; text-decoration: underline wavy #ff5252; text-underline-offset: 3px; box-shadow: inset -3px 0 #ff5252; }
+#gutter button.syntax-error::after { content: '!'; position: absolute; left: 25px; top: 4px; width: 15px; height: 15px; clip-path: polygon(50% 0, 100% 100%, 0 100%); background: #ff6b6b; color: #101724; font: bold 11px/19px system-ui, sans-serif; text-align: center; text-decoration: none; }
 #syntax-status { display: block; min-height: 1.5em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 #syntax-status[data-state="valid"] { color: #8ed9ae; }
 #syntax-status[data-state="error"], #syntax-status[data-state="unavailable"] { color: #ffa7a7; }

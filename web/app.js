@@ -94,6 +94,7 @@ function editVariable(row, name, value) {
 }
 function renderGutter() {
   const count = source.value.split('\n').length;
+  gutter.style.setProperty('--gutter-digits', Math.max(3, String(count).length));
   for (const line of breakpoints) if (line > count) breakpoints.delete(line);
   gutterLines.replaceChildren(...Array.from({ length: count }, (_, i) => {
     const line = i + 1;
