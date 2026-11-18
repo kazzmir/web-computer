@@ -28,6 +28,14 @@ to reach minimum heights. Double-click either to reset that layout. Minimums kee
 the runtime, debugger controls, and console usable; very short windows can scroll.
 These dividers also work on mobile and while the interpreter is paused.
 
+Click **Pygame template** above the code to replace the editor with a small game
+starter: pygame import/init, `main()`, a 640×480 window, quit/Escape event handling,
+and a `while not quit:` loop with `clock.tick(60)`, a drawing placeholder, and
+`pygame.display.flip()`. It clears breakpoints/conditions, refreshes editor analysis,
+and saves locally without running the code. The template is also in the Example
+dropdown; Reset example reloads it when selected. Replacement is disabled while
+debugging so paused source locations remain valid.
+
 Use **Syntax highlighting** above the editor to toggle Python token colors for
 keywords, identifiers, function names, strings, numbers, comments, and operators.
 The preference is saved locally. Unchanged tokens before and after an edit keep
@@ -160,7 +168,8 @@ run `node web/debug-test.mjs`, `node web/splitter-test.mjs`, or
 `node web/brackets-test.mjs`, `node web/step-out-test.mjs`, or
 `node web/call-stack-test.mjs`, `node web/result-splitters-test.mjs`, or
 `node web/break-test.mjs`, `node web/evaluator-test.mjs`, or
-`node web/conditional-breakpoints-test.mjs` (supports `BASE_URL` and `PLAYWRIGHT_MODULE`).
+`node web/conditional-breakpoints-test.mjs`, or `node web/template-test.mjs`
+(supports `BASE_URL` and `PLAYWRIGHT_MODULE`).
 Static function-resolution tests also run without a browser:
 `node web/function-index-test.mjs`, `node web/bracket-pairs-test.mjs`, and
 `node web/dedent-test.mjs`.

@@ -2,6 +2,7 @@ IDE feature ideas
 [x] = implemented; [ ] = not yet implemented.
 
 Editing
+[x] Pygame template button with a main function, event loop, and drawing placeholder.
 [ ] Autocomplete for variables, functions, and pygame APIs.
 [x] Hover documentation with signatures and descriptions for known functions.
 [x] Dedent the current or selected lines with Shift+Tab.

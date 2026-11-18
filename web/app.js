@@ -16,6 +16,7 @@ const storageKey = 'web-computer.python';
 const selector = document.querySelector('#examples');
 const runButton = document.querySelector('#run');
 const resetButton = document.querySelector('#reset');
+const templateButton = document.querySelector('#new-template');
 const debugButton = document.querySelector('#debug');
 const gutter = document.querySelector('#gutter');
 const gutterLines = document.querySelector('#gutter-lines');
@@ -254,7 +255,7 @@ function finishDebug() {
   debugControls.forEach((button) => { button.disabled = true; });
   document.querySelector('#debug-stop').disabled = true;
   source.readOnly = false;
-  selector.disabled = resetButton.disabled = false;
+  selector.disabled = resetButton.disabled = templateButton.disabled = false;
   updateDebugControls();
   renderGutter();
 }
@@ -330,8 +331,39 @@ while running:
 
 pygame.quit()
 `;
+const pygameTemplate = `import pygame
+
+
+def main():
+    pygame.init()
+    screen = pygame.display.set_mode((640, 480))
+    pygame.display.set_caption("My pygame game")
+    clock = pygame.time.Clock()
+    quit = False
+
+    while not quit:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                quit = True
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                quit = True
+
+        if quit:
+            break
+
+        clock.tick(60)
+        screen.fill((18, 27, 43))
+        # Draw here.
+        pygame.display.flip()
+
+    pygame.quit()
+
+
+main()
+`;
 const examples = [
   { id: 'starter', label: 'Welcome animation', filename: 'editor.py', help: 'Moving square · Escape exits' },
+  { id: 'template', label: 'Pygame template', filename: 'editor.py', help: 'Starter game loop · Draw on screen · Escape exits' },
   { id: 'chimp', label: 'Chimp — sprites & sound', filename: 'chimp.py', help: 'Move the mouse and click to punch · Escape exits' },
   { id: 'aliens', label: 'Aliens — arcade game', filename: 'aliens.py', help: 'Arrows move · Space shoots · F toggles fullscreen · Escape exits' },
   { id: 'liquid', label: 'Liquid — image animation', filename: 'liquid.py', help: 'Any key or mouse click exits' },
@@ -372,11 +404,11 @@ async function loadExample(id) {
   const info = examples.find((item) => item.id === id);
   if (!info) return;
   const request = ++loading;
-  runButton.disabled = debugButton.disabled = resetButton.disabled = true;
+  runButton.disabled = debugButton.disabled = resetButton.disabled = templateButton.disabled = true;
   source.readOnly = true;
   try {
-    let text = example;
-    if (info.id !== 'starter') {
+    let text = info.id === 'template' ? pygameTemplate : example;
+    if (info.id !== 'starter' && info.id !== 'template') {
       const response = await fetch(`examples/${info.filename}`);
       if (!response.ok) throw new Error(`Cannot load ${info.filename} (${response.status}). Run ./web/build.sh to copy the examples.`);
       text = await response.text();
@@ -384,6 +416,9 @@ async function loadExample(id) {
     if (request !== loading) return;
     selected = info;
     source.value = text;
+    source.setSelectionRange(0, 0);
+    source.scrollTop = source.scrollLeft = 0;
+    source.dispatchEvent(new Event('scroll'));
     refreshHighlighting(true);
     refreshFunctionIndex();
     refreshSyntaxErrors();
@@ -399,7 +434,7 @@ async function loadExample(id) {
     setStatus('Example unavailable', 'error');
   } finally {
     if (request === loading) {
-      runButton.disabled = debugButton.disabled = resetButton.disabled = false;
+      runButton.disabled = debugButton.disabled = resetButton.disabled = templateButton.disabled = false;
       source.readOnly = false;
     }
   }
@@ -435,7 +470,7 @@ function run(debug = false) {
   debugLocation.textContent = 'Debugger — running';
   document.querySelector('#debug-stop').disabled = !debug;
   source.readOnly = debug;
-  selector.disabled = resetButton.disabled = debug;
+  selector.disabled = resetButton.disabled = templateButton.disabled = debug;
   program = { source: source.value, filename: selected.filename, args: selected.args ?? [], debug, breakpoints: breakpointSpecs() };
   output.textContent = '';
   setStatus('Loading runtime…');
@@ -555,6 +590,7 @@ stop.addEventListener('click', () => {
 });
 document.querySelector('#clear').addEventListener('click', () => { output.textContent = ''; });
 resetButton.addEventListener('click', () => loadExample(selected.id));
+templateButton.addEventListener('click', () => loadExample('template'));
 source.addEventListener('keydown', (event) => {
   if (source.readOnly || event.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
   if (event.key === 'Tab' && event.shiftKey) {
